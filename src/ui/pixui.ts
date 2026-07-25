@@ -11,13 +11,16 @@
 // L'INTÉRIEUR depuis ce coin. Son propre origin définit son point d'alignement.
 
 import Phaser from 'phaser'
-import { Container, ComponentFactory, Rectangle, Image, OriginX, OriginY } from 'phaser-pixui'
+import { Container, ComponentFactory, Image, OriginX, OriginY } from 'phaser-pixui'
 import type { ComponentConfig } from 'phaser-pixui'
 import { WORLD } from '../config/game'
+import { TEX } from '../gfx/textures'
+import { UI9, UI9_MIN, type Ui9Skin } from '../gfx/ui9'
 import { handCursor, wireHandCursors } from './cursor'
 
 export { OriginX, OriginY }
 export { handCursor }
+export { UI9, type Ui9Skin }
 
 // La scène de jeu est en mode Scale.FIT sur une résolution fixe WORLD : la
 // caméra met à l'échelle l'ensemble, donc le layout pixui travaille en
@@ -176,54 +179,93 @@ export function iconButton(f: ComponentFactory, o: IconButtonOpts): Image {
   return img
 }
 
+export interface NinePanelOpts {
+  x?: number
+  y?: number
+  width: number
+  height: number
+  /** Tuile du tileset d'interface (défaut : cadre brun à liseré). */
+  skin?: Ui9Skin
+  originX?: OriginX
+  originY?: OriginY
+}
+
+/**
+ * Cadre nine-slice du tileset d'interface, redimensionnable à volonté (les
+ * coins de 16 px restent intacts). Générique : à utiliser pour toute pop-up,
+ * encart ou fond de panneau. À appeler AVANT Ui.commit().
+ */
+export function ninePanel(f: ComponentFactory, o: NinePanelOpts): Image {
+  return f.image({
+    texture: TEX.ui,
+    frame: o.skin ?? UI9.insetDark,
+    x: o.x ?? 0,
+    y: o.y ?? 0,
+    width: Math.max(UI9_MIN, o.width),
+    height: Math.max(UI9_MIN, o.height),
+    originX: o.originX ?? OriginX.Center,
+    originY: o.originY ?? OriginY.Center,
+  })
+}
+
 export interface ButtonOpts {
   x?: number
   y?: number
   label: string
   size: number
   font: string
+  /** Couleur du libellé. */
   color: number
-  bg: number
-  bgHover: number
+  /** Tuiles au repos / au survol (défaut : ambre → clair). */
+  skin?: Ui9Skin
+  skinHover?: Ui9Skin
   onClick: () => void
   padX?: number
   padY?: number
+  /** Largeur imposée (sinon : libellé + marges). Utile pour aligner un menu. */
+  width?: number
 }
 
+// Le tileset dessine une ombre portée sur ses 3 dernières lignes : le libellé
+// est remonté d'autant pour rester centré dans la face visible du bouton.
+const BUTTON_SHADOW = 3
+
 /**
- * Compose un bouton pixui (fond + libellé + zone cliquable) sous une fabrique
- * ancrée. Le fond change de teinte au survol/appui. À appeler AVANT Ui.commit().
+ * Bouton texte sur fond nine-slice (fond + libellé + zone cliquable), sous une
+ * fabrique ancrée. Le fond change de tuile au survol/appui. Générique : aucune
+ * dépendance à une scène particulière. À appeler AVANT Ui.commit().
  */
 export function button(f: ComponentFactory, o: ButtonOpts): void {
-  const padX = o.padX ?? 16
-  const padY = o.padY ?? 8
+  const padX = o.padX ?? 20
+  const padY = o.padY ?? 10
   const x = o.x ?? 0
   const y = o.y ?? 0
+  const skin = o.skin ?? UI9.insetAmber
+  const skinHover = o.skinHover ?? UI9.insetLight
 
-  // Le fond est créé EN PREMIER pour rester sous le libellé dans la display
-  // list (y compris après un bringToTop du conteneur) ; il est dimensionné
-  // juste après, une fois le libellé mesuré.
-  const bg: Rectangle = f.rectangle({
-    x,
-    y,
-    fillColor: o.bg,
-    originX: OriginX.Center,
-    originY: OriginY.Center,
-  })
-  const label = f.bitmapText({
+  // Le libellé est mesuré d'abord (sa taille dépend de la fonte), mais le fond
+  // doit rester SOUS lui dans la display list : on le crée juste avant, à une
+  // taille provisoire, puis on l'ajuste.
+  const measure = f.scene.make.bitmapText({ font: o.font, size: o.size, text: o.label }, false)
+  const w = o.width ?? Math.max(UI9_MIN, measure.width + padX * 2)
+  const h = Math.max(UI9_MIN, measure.height + padY * 2 + BUTTON_SHADOW)
+  measure.destroy()
+
+  // Les deux états sont deux cadres superposés dont on bascule la visibilité :
+  // changer la frame d'un nine-slice en place réinitialise ses dimensions.
+  const bg = ninePanel(f, { x, y, width: w, height: h, skin })
+  const bgHover = ninePanel(f, { x, y, width: w, height: h, skin: skinHover })
+  bgHover.visible = false
+  f.bitmapText({
     font: o.font,
     size: o.size,
     text: o.label,
     tint: o.color,
     x,
-    y,
+    y: y - BUTTON_SHADOW,
     originX: OriginX.Center,
     originY: OriginY.Center,
   })
-  const w = label.width + padX * 2
-  const h = label.height + padY * 2
-  bg.setWidth(w)
-  bg.setHeight(h)
 
   const hit = f.clickable({
     x,
@@ -234,7 +276,9 @@ export function button(f: ComponentFactory, o: ButtonOpts): void {
     originY: OriginY.Center,
     onClick: o.onClick,
     onUpdate: () => {
-      bg.fillColor = hit.hovered || hit.pressed ? o.bgHover : o.bg
+      const hover = hit.hovered || hit.pressed
+      bg.visible = !hover
+      bgHover.visible = hover
     },
   })
   handCursor(hit.events)

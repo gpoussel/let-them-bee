@@ -49,6 +49,7 @@ export const TEX = {
   hive: 'tex-hive',
   pollen: 'tex-pollen',
   logo: 'img-logo',
+  ui: 'img-ui',
   iconItch: 'tex-icon-itch',
   iconGithub: 'tex-icon-github',
   iconAbout: 'tex-icon-about',

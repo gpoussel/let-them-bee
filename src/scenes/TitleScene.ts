@@ -3,13 +3,21 @@ import { CREDITS, STR } from '../config/strings'
 import { GAME, WORLD } from '../config/game'
 import { COLORS, FONTS } from '../ui/theme'
 import { FONT_KEY } from '../gfx/font'
-import { Ui, Panel, button, iconButton, handCursor, OriginX, OriginY } from '../ui/pixui'
+import {
+  Ui,
+  Panel,
+  button,
+  iconButton,
+  ninePanel,
+  handCursor,
+  UI9,
+  OriginX,
+  OriginY,
+} from '../ui/pixui'
 import { TEX } from '../gfx/textures'
 import { createLogo } from '../gfx/logo'
 import { gameState, GameState } from '../systems/GameState'
 
-const BTN_BG = 0x8a5a2b
-const BTN_BG_HOVER = 0xa66c34
 const ITCH_RED = 0xfa5c5c // couleur de marque itch.io (survol de son icône)
 
 // Barre de bas d'écran : version à gauche, crédit jam au centre, icônes à droite.
@@ -59,9 +67,7 @@ export class TitleScene extends Phaser.Scene {
       font: FONT_KEY,
       size: FONTS.sizeButton,
       label: hasSave ? STR.continue : STR.play,
-      color: COLORS.cream,
-      bg: BTN_BG,
-      bgHover: BTN_BG_HOVER,
+      color: COLORS.darkBrown,
       x: 0,
       y: height * 0.62 - cy,
       onClick: () => this.scene.start('Game'),
@@ -84,9 +90,7 @@ export class TitleScene extends Phaser.Scene {
         font: FONT_KEY,
         size: FONTS.sizeButton,
         label: STR.reset,
-        color: COLORS.cream,
-        bg: BTN_BG,
-        bgHover: BTN_BG_HOVER,
+        color: COLORS.darkBrown,
         x: 0,
         y: height * 0.84 - cy,
         onClick: () => {
@@ -198,14 +202,8 @@ export class TitleScene extends Phaser.Scene {
       onClick: () => this.toggleAbout(false),
     })
 
-    // Cadre de la pop-up.
-    overlay.center.rectangle({
-      width: ABOUT_W,
-      height: ABOUT_H,
-      fillColor: COLORS.darkBrown,
-      borderColor: COLORS.honey,
-      borderWidth: 2,
-    })
+    // Cadre de la pop-up (tileset d'interface, étiré en nine-slice).
+    ninePanel(overlay.center, { width: ABOUT_W, height: ABOUT_H, skin: UI9.insetDark })
     // Le cadre absorbe les clics pour ne pas refermer la pop-up par mégarde.
     overlay.center.clickable({ width: ABOUT_W, height: ABOUT_H, onClick: () => {} })
 
@@ -231,7 +229,7 @@ export class TitleScene extends Phaser.Scene {
           font: FONT_KEY,
           size: FONTS.sizeHint,
           text: `${line.label}:`,
-          tint: COLORS.amber,
+          tint: COLORS.darkBrown,
           x: frameX + ABOUT_LABEL_X,
           y,
           originX: OriginX.Left,
@@ -254,9 +252,7 @@ export class TitleScene extends Phaser.Scene {
       font: FONT_KEY,
       size: FONTS.sizeHint,
       label: STR.close,
-      color: COLORS.cream,
-      bg: BTN_BG,
-      bgHover: BTN_BG_HOVER,
+      color: COLORS.darkBrown,
       padX: 14,
       padY: 6,
       x: 0,
