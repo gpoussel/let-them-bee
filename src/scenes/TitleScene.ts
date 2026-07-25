@@ -5,6 +5,7 @@ import { COLORS, FONTS } from '../ui/theme'
 import { FONT_KEY } from '../gfx/font'
 import { Ui, Panel, button, iconButton, handCursor, OriginX, OriginY } from '../ui/pixui'
 import { TEX } from '../gfx/textures'
+import { createLogo } from '../gfx/logo'
 import { gameState, GameState } from '../systems/GameState'
 
 const BTN_BG = 0x8a5a2b
@@ -100,8 +101,8 @@ export class TitleScene extends Phaser.Scene {
 
     ui.commit()
 
-    // Logo (pixel art, x3) au-dessus du layout.
-    this.add.image(width / 2, height * 0.3, TEX.logo).setScale(3)
+    // Logo animé (pixel art, x3) au-dessus du layout.
+    createLogo(this, width / 2, height * 0.3, 3)
 
     // La pop-up est construite en même temps que le reste (pixui ne fige le
     // layout qu'une fois) : on la masque puis on la remonte au premier plan,
