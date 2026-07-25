@@ -35,7 +35,7 @@ const HOUSE_BUSH: [number, number] = [15, 5]
 /** Touffes d'herbe au pied droit, décalées en tuiles depuis le coin. */
 const HOUSE_TUFTS: Array<[number, number]> = [
   [0, 0],
-  [0, -1],
+  [0, 1],
 ]
 /** Cailloux et buissons, posés à l'unité. */
 const SCRUB: Array<[number, number]> = [
@@ -191,34 +191,30 @@ export function bakeGarden(scene: Phaser.Scene, o: GardenOpts): void {
     blit(objects, LOTUS, STAGES[3][0], pond.x + dx, pond.y + dy - 1, 1, 2)
   }
 
-  // 3. La maisonnette du jardinier, sur la berge du bassin. Elle est réservée
-  //    dans `busy` : ni buisson ni touffe ne viendra la parasiter.
-  const house = { x: pond.x + pond.w + 2, y: pond.y + 2 }
-  blit(tiles, HOUSE.col, HOUSE.row, house.x, house.y, HOUSE.w, HOUSE.h)
-  for (let j = 0; j < HOUSE.h; j++) {
-    for (let i = 0; i < HOUSE.w; i++) take(house.x + i, house.y + j)
-  }
-  // Un buisson d'un côté, deux touffes de l'autre : la maison est assise dans
-  // le gazon au lieu d'y être posée.
-  const houseBase = house.y + HOUSE.h - 1
-  blit(tiles, HOUSE_BUSH[0], HOUSE_BUSH[1], house.x - 1, houseBase)
-  take(house.x - 1, houseBase)
-  for (const [dx, dy] of HOUSE_TUFTS) {
-    blit(tiles, TUFTS[0][0], TUFTS[0][1], house.x + HOUSE.w + dx, houseBase + dy)
-    take(house.x + HOUSE.w + dx, houseBase + dy)
-  }
+  // 3. Emprise de la maisonnette du jardinier : centrée sur la colonne de
+  //    parterres de droite, bâtie au bord du deuxième — comme l'arbre, elle
+  //    mord sur la terre — porte tournée vers l'allée, qui lui laisse deux
+  //    lignes de gazon dégagées devant. Elle n'est dessinée qu'après les
+  //    parterres (cf. plus bas) pour ne pas être recouverte par la terre.
+  const bedX = cols - BED_W - 2
+  /** Ligne du k-ième parterre d'une colonne. */
+  const bedRow = (k: number): number => 2 + k * (BED_H + BED_GAP)
+  const house = { x: bedX + Math.floor((BED_W - HOUSE.w) / 2), y: bedRow(1) + BED_H - 2 }
+  /** La tuile est-elle sous la maison ? (les arbres doivent l'éviter) */
+  const underHouse = (tx: number, ty: number): boolean =>
+    tx >= house.x && tx < house.x + HOUSE.w && ty >= house.y && ty < house.y + HOUSE.h
 
   // 4. Parterres : des blocs de terre plantés dru, alignés le long des bords.
   //    Le centre de l'écran reste du gazon nu.
   const beds: Array<[number, number, number]> = []
   // Le bas de l'écran reste libre : c'est là que passent le score et la barre
   // de bas de page.
-  for (let y = 2, k = 0; y + BED_H <= rows - 4; y += BED_H + BED_GAP, k++) {
-    beds.push([2, y, k % SPECIES])
-    beds.push([cols - BED_W - 2, y, (k + 4) % SPECIES])
+  for (let k = 0; bedRow(k) + BED_H <= rows - 4; k++) {
+    beds.push([2, bedRow(k), k % SPECIES])
+    beds.push([bedX, bedRow(k), (k + 4) % SPECIES])
   }
   // Un dernier parterre à droite, en face du bassin, pour équilibrer le bas.
-  beds.push([cols - BED_W - 2, rows - 9, 7])
+  beds.push([bedX, rows - 9, 7])
 
   for (const [bx, by, species] of beds) {
     // Un parterre ne mord jamais sur le bassin.
@@ -283,12 +279,41 @@ export function bakeGarden(scene: Phaser.Scene, o: GardenOpts): void {
     if (rnd() < TREE_CHANCE) {
       const tx = bx + 1 + Math.floor(rnd() * (BED_W - TREE.w - 2))
       const ty = by + BED_H
-      blit(tiles, TREE.col, TREE.row, tx, ty - (TREE.h - 1), TREE.w, TREE.h)
-      for (let i = 0; i < TREE.w; i++) take(tx + i, ty)
+      // Le feuillage déborde sur trois lignes : pas d'arbre s'il masquerait ce
+      // qui est déjà posé là (la maison).
+      let room = true
+      for (let j = 0; j < TREE.h && room; j++) {
+        for (let i = 0; i < TREE.w; i++) {
+          if (!free(tx + i, ty - j) || underHouse(tx + i, ty - j)) {
+            room = false
+            break
+          }
+        }
+      }
+      if (room) {
+        blit(tiles, TREE.col, TREE.row, tx, ty - (TREE.h - 1), TREE.w, TREE.h)
+        for (let i = 0; i < TREE.w; i++) take(tx + i, ty)
+      }
     }
   }
 
-  // 5. Cailloux et buissons dispersés sur le gazon libre.
+  // 5. La maisonnette, posée par-dessus la terre du parterre qu'elle borde.
+  //    Ses tuiles sont réservées : le décor dispersé ne la parasitera pas.
+  blit(tiles, HOUSE.col, HOUSE.row, house.x, house.y, HOUSE.w, HOUSE.h)
+  for (let j = 0; j < HOUSE.h; j++) {
+    for (let i = 0; i < HOUSE.w; i++) take(house.x + i, house.y + j)
+  }
+  // Un buisson d'un côté, deux touffes de l'autre : la maison est assise dans
+  // le gazon au lieu d'y être posée.
+  const houseBase = house.y + HOUSE.h - 1
+  blit(tiles, HOUSE_BUSH[0], HOUSE_BUSH[1], house.x - 1, houseBase)
+  take(house.x - 1, houseBase)
+  for (const [dx, dy] of HOUSE_TUFTS) {
+    blit(tiles, TUFTS[0][0], TUFTS[0][1], house.x + HOUSE.w + dx, houseBase + dy)
+    take(house.x + HOUSE.w + dx, houseBase + dy)
+  }
+
+  // 6. Cailloux et buissons dispersés sur le gazon libre.
   for (let n = 0, tries = 0; n < SCRUB_COUNT && tries < SCRUB_COUNT * 40; tries++) {
     const tx = Math.floor(rnd() * cols)
     const ty = Math.floor(rnd() * rows)
@@ -299,7 +324,7 @@ export function bakeGarden(scene: Phaser.Scene, o: GardenOpts): void {
     n++
   }
 
-  // 6. Touffes d'herbe, partout où il reste du gazon nu.
+  // 7. Touffes d'herbe, partout où il reste du gazon nu.
   for (const [tx, ty] of tufts) {
     if (!free(tx, ty)) continue
     const [col, row] = TUFTS[Math.floor(rnd() * TUFTS.length)]
