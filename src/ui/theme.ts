@@ -6,6 +6,10 @@ export const COLORS = {
   cream: 0xfff6e0,
   honey: 0xf6c445,
   amber: 0xe89b2b,
+  // Palette du jeu (cf. CLAUDE.md) : ambre clair et vert-gris sombre, les deux
+  // teintes qui restent lisibles sur le gazon.
+  amberSoft: 0xf3b468,
+  deepGreen: 0x4a655a,
   darkBrown: 0x3a2a1a,
   bgDark: 0x2b2233,
   grassA: 0x6fae5f,

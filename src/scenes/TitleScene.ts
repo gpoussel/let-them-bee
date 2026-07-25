@@ -3,23 +3,33 @@ import { CREDITS, STR } from '../config/strings'
 import { GAME, WORLD } from '../config/game'
 import { COLORS, FONTS } from '../ui/theme'
 import { FONT_KEY } from '../gfx/font'
-import { Ui, Panel, button, iconButton, OriginX, OriginY } from '../ui/pixui'
+import {
+  Ui,
+  Panel,
+  button,
+  iconButton,
+  ninePanel,
+  handCursor,
+  UI9,
+  OriginX,
+  OriginY,
+} from '../ui/pixui'
 import { TEX } from '../gfx/textures'
+import { createLogo } from '../gfx/logo'
 import { gameState, GameState } from '../systems/GameState'
 
-const BTN_BG = 0x8a5a2b
-const BTN_BG_HOVER = 0xa66c34
 const ITCH_RED = 0xfa5c5c // couleur de marque itch.io (survol de son icône)
 
 // Barre de bas d'écran : version à gauche, crédit jam au centre, icônes à droite.
 const FOOTER_Y = 10
 const ICON_GAP = 40
+const ICON_SIZE = 32
 const ICON_MARGIN = 12
 
 // Dimensions de la pop-up de crédits (texte en taille « hint » : les lignes de
 // crédits sont longues et doivent tenir sur une ligne).
 const ABOUT_W = 420
-const ABOUT_H = 180
+const ABOUT_H = 232
 const ABOUT_LINE_H = 18
 const ABOUT_LABEL_X = 20
 const ABOUT_VALUE_X = 110
@@ -34,7 +44,8 @@ export class TitleScene extends Phaser.Scene {
 
   create(): void {
     const { width, height } = WORLD
-    this.cameras.main.setBackgroundColor(COLORS.grassB)
+    // Fond : le jardin baké au boot, posé à l'origine (il couvre l'écran).
+    this.add.image(0, 0, TEX.garden).setOrigin(0, 0)
 
     const hasSave = gameState.load()
     const ui = new Ui(this)
@@ -42,13 +53,19 @@ export class TitleScene extends Phaser.Scene {
 
     // Offsets exprimés depuis le centre de l'écran.
     const cy = height / 2
+    // Le bouton principal se place à mi-hauteur entre l'accroche et la barre
+    // de bas d'écran ; le meilleur score, quand il existe, s'intercale dessous.
+    const taglineY = height * 0.3 + 132
+    const footerTopY = height - FOOTER_Y - ICON_SIZE
+    const buttonY = (taglineY + footerTopY) / 2
+    const scoreY = (buttonY + footerTopY) / 2
     center.bitmapText({
       font: FONT_KEY,
       size: FONTS.sizeSmall,
       text: STR.tagline,
-      tint: COLORS.honey,
+      tint: COLORS.amberSoft,
       x: 0,
-      y: height * 0.3 + 132 - cy,
+      y: taglineY - cy,
       originX: OriginX.Center,
       originY: OriginY.Center,
     })
@@ -58,36 +75,33 @@ export class TitleScene extends Phaser.Scene {
       font: FONT_KEY,
       size: FONTS.sizeButton,
       label: hasSave ? STR.continue : STR.play,
-      color: COLORS.cream,
-      bg: BTN_BG,
-      bgHover: BTN_BG_HOVER,
+      color: COLORS.darkBrown,
       x: 0,
-      y: height * 0.62 - cy,
+      y: buttonY - cy,
       onClick: () => this.scene.start('Game'),
     })
 
-    // Meilleur score / reines.
-    center.bitmapText({
-      font: FONT_KEY,
-      size: FONTS.sizeSmall,
-      text: `${STR.best} ${STR.honey.toLowerCase()}: ${Math.floor(gameState.bestHoney)}   -   ${STR.queens}: ${gameState.queens}`,
-      tint: COLORS.cream,
-      x: 0,
-      y: height * 0.74 - cy,
-      originX: OriginX.Center,
-      originY: OriginY.Center,
-    })
-
     if (hasSave) {
+      // Meilleur score / reines : rien à afficher tant qu'aucune partie n'a
+      // été jouée.
+      center.bitmapText({
+        font: FONT_KEY,
+        size: FONTS.sizeSmall,
+        text: `${STR.best} ${STR.honey.toLowerCase()}: ${Math.floor(gameState.bestHoney)}   -   ${STR.queens}: ${gameState.queens}`,
+        tint: COLORS.cream,
+        x: 0,
+        y: scoreY - cy,
+        originX: OriginX.Center,
+        originY: OriginY.Center,
+      })
+
       button(center, {
         font: FONT_KEY,
         size: FONTS.sizeButton,
         label: STR.reset,
-        color: COLORS.cream,
-        bg: BTN_BG,
-        bgHover: BTN_BG_HOVER,
+        color: COLORS.darkBrown,
         x: 0,
-        y: height * 0.84 - cy,
+        y: (scoreY + footerTopY) / 2 - cy,
         onClick: () => {
           GameState.clear()
           this.scene.restart()
@@ -100,8 +114,8 @@ export class TitleScene extends Phaser.Scene {
 
     ui.commit()
 
-    // Logo (pixel art, x3) au-dessus du layout.
-    this.add.image(width / 2, height * 0.3, TEX.logo).setScale(3)
+    // Logo animé (pixel art, x3) au-dessus du layout.
+    createLogo(this, width / 2, height * 0.3, 3)
 
     // La pop-up est construite en même temps que le reste (pixui ne fige le
     // layout qu'une fois) : on la masque puis on la remonte au premier plan,
@@ -128,7 +142,7 @@ export class TitleScene extends Phaser.Scene {
       font: FONT_KEY,
       size: FONTS.sizeSmall,
       text: STR.jamCredit,
-      tint: COLORS.honey,
+      tint: COLORS.cream,
       x: 0,
       y: FOOTER_Y,
       originX: OriginX.Center,
@@ -143,17 +157,18 @@ export class TitleScene extends Phaser.Scene {
       originY: OriginY.Bottom,
       onClick: () => this.openLink(STR.jamUrl),
       onUpdate: () => {
-        jam.tint = jamHit.hovered ? COLORS.cream : COLORS.honey
+        jam.tint = jamHit.hovered ? COLORS.amberSoft : COLORS.cream
       },
     })
+    handCursor(jamHit.events)
 
     // Icônes de droite à gauche : about, GitHub, itch.io. Elles sont crème au
     // repos et prennent leur couleur de marque au survol.
     const icons: Array<{ texture: string; tintHover: number; onClick: () => void }> = [
-      { texture: TEX.iconAbout, tintHover: COLORS.honey, onClick: () => this.toggleAbout(true) },
+      { texture: TEX.iconAbout, tintHover: COLORS.amberSoft, onClick: () => this.toggleAbout(true) },
       {
         texture: TEX.iconGithub,
-        tintHover: COLORS.honey,
+        tintHover: COLORS.amberSoft,
         onClick: () => this.openLink(STR.githubUrl),
       },
       { texture: TEX.iconItch, tintHover: ITCH_RED, onClick: () => this.openLink(STR.itchUrl) },
@@ -196,14 +211,8 @@ export class TitleScene extends Phaser.Scene {
       onClick: () => this.toggleAbout(false),
     })
 
-    // Cadre de la pop-up.
-    overlay.center.rectangle({
-      width: ABOUT_W,
-      height: ABOUT_H,
-      fillColor: COLORS.darkBrown,
-      borderColor: COLORS.honey,
-      borderWidth: 2,
-    })
+    // Cadre de la pop-up (tileset d'interface, étiré en nine-slice).
+    ninePanel(overlay.center, { width: ABOUT_W, height: ABOUT_H, skin: UI9.insetDark })
     // Le cadre absorbe les clics pour ne pas refermer la pop-up par mégarde.
     overlay.center.clickable({ width: ABOUT_W, height: ABOUT_H, onClick: () => {} })
 
@@ -229,7 +238,7 @@ export class TitleScene extends Phaser.Scene {
           font: FONT_KEY,
           size: FONTS.sizeHint,
           text: `${line.label}:`,
-          tint: COLORS.amber,
+          tint: COLORS.darkBrown,
           x: frameX + ABOUT_LABEL_X,
           y,
           originX: OriginX.Left,
@@ -252,9 +261,7 @@ export class TitleScene extends Phaser.Scene {
       font: FONT_KEY,
       size: FONTS.sizeHint,
       label: STR.close,
-      color: COLORS.cream,
-      bg: BTN_BG,
-      bgHover: BTN_BG_HOVER,
+      color: COLORS.darkBrown,
       padX: 14,
       padY: 6,
       x: 0,

@@ -4,6 +4,7 @@ import { COLORS } from './ui/theme'
 import { BootScene } from './scenes/BootScene'
 import { TitleScene } from './scenes/TitleScene'
 import { GameScene } from './scenes/GameScene'
+import { installCursors } from './ui/cursor'
 
 const game = new Phaser.Game({
   type: Phaser.AUTO,
@@ -19,6 +20,8 @@ const game = new Phaser.Game({
   title: GAME.name,
   scene: [BootScene, TitleScene, GameScene],
 })
+
+game.events.once(Phaser.Core.Events.READY, () => installCursors(game))
 
 // Hook de debug en dev uniquement (accès au jeu depuis la console / tests).
 if (import.meta.env.DEV) {

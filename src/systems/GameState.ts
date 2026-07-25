@@ -39,6 +39,7 @@ export class GameState {
   }
 
   save(): void {
+    if (!GAME.saveEnabled) return
     const data: SaveData = {
       honey: this.honey,
       royalJelly: this.royalJelly,
@@ -54,6 +55,7 @@ export class GameState {
   }
 
   load(): boolean {
+    if (!GAME.saveEnabled) return false
     try {
       const raw = localStorage.getItem(SAVE_KEY)
       if (!raw) return false
