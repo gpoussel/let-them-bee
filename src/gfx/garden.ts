@@ -26,6 +26,8 @@ const TUFTS: Array<[number, number]> = [
   [1, 5],
   [2, 5],
 ]
+/** Arbre : bloc de 2x3 tuiles, posé par sa base. */
+const TREE = { col: 17, row: 0, w: 2, h: 3 } as const
 /** Cailloux et buissons, posés à l'unité. */
 const SCRUB: Array<[number, number]> = [
   [11, 5],
@@ -69,6 +71,10 @@ const BED_GAP = 3
 const BED_INSET = 2
 /** Proportion de trous dans un parterre (une terre jamais parfaitement pleine). */
 const BED_HOLE = 0.08
+/** Proportion de pieds de la seconde variété plantée dans un parterre. */
+const BED_COMPANION = 0.3
+/** Probabilité qu'un arbre pousse devant un parterre. */
+const TREE_CHANCE = 0.5
 
 export interface GardenOpts {
   /** Nom de la texture produite. */
@@ -230,9 +236,10 @@ export function bakeGarden(scene: Phaser.Scene, o: GardenOpts): void {
         take(bx + i, by + j)
       }
     }
-    // Plantation : une espèce, semée le même jour — les pieds d'un même
+    // Plantation : deux variétés semées le même jour — les pieds d'un même
     // parterre ne s'écartent donc que d'un stade de pousse. Ligne par ligne,
     // pour que les fleurs du bas recouvrent celles du dessus.
+    const companion = (species + 3) % SPECIES
     // Un parterre tout juste semé de temps en temps, mais la plupart sont déjà
     // sortis de terre : la terre nue est bien moins lisible qu'une floraison.
     const stage = rnd() < 0.2 ? 0 : 1 + Math.floor(rnd() * 2)
@@ -240,8 +247,18 @@ export function bakeGarden(scene: Phaser.Scene, o: GardenOpts): void {
       for (let i = 0; i < BED_W; i++) {
         if (!inside[j][i] || rnd() < BED_HOLE) continue
         const [row, h] = STAGES[stage + (rnd() < 0.4 ? 1 : 0)]
-        blit(objects, species, row, bx + i, by + j - (h - 1), 1, h)
+        const kind = rnd() < BED_COMPANION ? companion : species
+        blit(objects, kind, row, bx + i, by + j - (h - 1), 1, h)
       }
+    }
+
+    // Un arbre planté devant la bordure basse : il déborde sur le parterre et
+    // sur le gazon, ce qui donne au décor un peu de profondeur.
+    if (rnd() < TREE_CHANCE) {
+      const tx = bx + 1 + Math.floor(rnd() * (BED_W - TREE.w - 2))
+      const ty = by + BED_H
+      blit(tiles, TREE.col, TREE.row, tx, ty - (TREE.h - 1), TREE.w, TREE.h)
+      for (let i = 0; i < TREE.w; i++) take(tx + i, ty)
     }
   }
 
