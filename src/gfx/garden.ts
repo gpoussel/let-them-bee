@@ -5,7 +5,7 @@ import { TEX } from './textures'
 //
 // Le rendu est « bakè » une fois dans une texture canvas (une seule image à
 // l'écran, aucun coût par frame) à partir de deux planches 16x16 :
-//   - `tileset.png` : gazon, terre, eau, touffes et buissons ;
+//   - `tileset.png` : gazon, terre, eau, touffes, buissons, arbre et maison ;
 //   - `objects.png` : les fleurs, 9 espèces x 4 stades de pousse.
 //
 // Composition voulue : une grande étendue de gazon presque unie au centre —
@@ -28,6 +28,8 @@ const TUFTS: Array<[number, number]> = [
 ]
 /** Arbre : bloc de 2x3 tuiles, posé par sa base. */
 const TREE = { col: 17, row: 0, w: 2, h: 3 } as const
+/** Maisonnette : bloc de 3x3 tuiles, posé par son coin haut-gauche. */
+const HOUSE = { col: 17, row: 3, w: 3, h: 3 } as const
 /** Cailloux et buissons, posés à l'unité. */
 const SCRUB: Array<[number, number]> = [
   [11, 5],
@@ -182,7 +184,15 @@ export function bakeGarden(scene: Phaser.Scene, o: GardenOpts): void {
     blit(objects, LOTUS, STAGES[3][0], pond.x + dx, pond.y + dy - 1, 1, 2)
   }
 
-  // 3. Parterres : des blocs de terre plantés dru, alignés le long des bords.
+  // 3. La maisonnette du jardinier, sur la berge du bassin. Elle est réservée
+  //    dans `busy` : ni buisson ni touffe ne viendra la parasiter.
+  const house = { x: pond.x + pond.w + 2, y: pond.y + 2 }
+  blit(tiles, HOUSE.col, HOUSE.row, house.x, house.y, HOUSE.w, HOUSE.h)
+  for (let j = 0; j < HOUSE.h; j++) {
+    for (let i = 0; i < HOUSE.w; i++) take(house.x + i, house.y + j)
+  }
+
+  // 4. Parterres : des blocs de terre plantés dru, alignés le long des bords.
   //    Le centre de l'écran reste du gazon nu.
   const beds: Array<[number, number, number]> = []
   // Le bas de l'écran reste libre : c'est là que passent le score et la barre
@@ -262,7 +272,7 @@ export function bakeGarden(scene: Phaser.Scene, o: GardenOpts): void {
     }
   }
 
-  // 4. Cailloux et buissons dispersés sur le gazon libre.
+  // 5. Cailloux et buissons dispersés sur le gazon libre.
   for (let n = 0, tries = 0; n < SCRUB_COUNT && tries < SCRUB_COUNT * 40; tries++) {
     const tx = Math.floor(rnd() * cols)
     const ty = Math.floor(rnd() * rows)
@@ -273,7 +283,7 @@ export function bakeGarden(scene: Phaser.Scene, o: GardenOpts): void {
     n++
   }
 
-  // 5. Touffes d'herbe, partout où il reste du gazon nu.
+  // 6. Touffes d'herbe, partout où il reste du gazon nu.
   for (const [tx, ty] of tufts) {
     if (!free(tx, ty)) continue
     const [col, row] = TUFTS[Math.floor(rnd() * TUFTS.length)]
