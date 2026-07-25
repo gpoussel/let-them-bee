@@ -23,6 +23,10 @@ export const STR = {
   githubUrl: 'https://github.com/gpoussel/let-them-bee',
   about: 'Credits',
   close: 'Close',
+  settings: 'Settings',
+  musicVolume: 'Music',
+  sfxVolume: 'Sound FX',
+  done: 'Done',
 } as const
 
 // Contenu de la pop-up « about ». Une entrée = une ligne (label + valeur) ;
@@ -33,5 +37,7 @@ export const CREDITS: ReadonlyArray<{ label?: string; value: string }> = [
   { label: 'Font', value: 'monogram - Vinicius Menezio (CC0)' },
   { label: 'UI & cursors', value: 'Cozyland UI - RoleyMoth (roleymoth.itch.io)' },
   { label: 'Garden tiles', value: '16x16 Tiny Garden - kathychow (kathychow.itch.io)' },
+  { label: 'Music', value: 'Castle Tales - alkakrab (alkakrab.itch.io)' },
+  { label: 'UI sounds', value: 'Universal UI Soundpack - Cyrex Studios' },
   { label: 'Engine', value: 'Phaser 4 + Vite + phaser-pixui' },
 ] as const
