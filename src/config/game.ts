@@ -1,6 +1,9 @@
-// Métadonnées du jeu. Point unique pour la version et l'identité.
+// Injecté par Vite (cf. `define` dans vite.config.ts) depuis package.json.
+declare const __APP_VERSION__: string
+
+// Métadonnées du jeu. Point unique pour l'identité ; la version vient de package.json.
 export const GAME = {
-  version: '0.1.0',
+  version: __APP_VERSION__,
   name: 'Let Them Bee',
   saveKey: 'let-them-bee/save/v1',
 } as const
