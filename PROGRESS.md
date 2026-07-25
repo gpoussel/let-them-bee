@@ -50,6 +50,8 @@ Vérifié de bout en bout dans le navigateur (zéro erreur console) :
 - [ ] Ouvrières (production passive) + `HivePanel` (overlay) + `Upgrades` (achats miel)
 
 **Assets**
+- [ ] Porter tout le jeu sur la palette officielle (cf. `CLAUDE.md`) : `src/ui/theme.ts`
+      et la palette pixel de `src/gfx/textures.ts` utilisent encore des teintes hors palette
 - [ ] Remplacer les placeholders par les vrais PNG (tileset Tiny Garden, `objects.png`)
 - [ ] Créer le sprite d'abeille custom 16×16
 
