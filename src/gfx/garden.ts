@@ -30,6 +30,13 @@ const TUFTS: Array<[number, number]> = [
 const TREE = { col: 17, row: 0, w: 2, h: 3 } as const
 /** Maisonnette : bloc de 3x3 tuiles, posé par son coin haut-gauche. */
 const HOUSE = { col: 17, row: 3, w: 3, h: 3 } as const
+/** Buisson planté au pied gauche de la maison. */
+const HOUSE_BUSH: [number, number] = [15, 5]
+/** Touffes d'herbe au pied droit, décalées en tuiles depuis le coin. */
+const HOUSE_TUFTS: Array<[number, number]> = [
+  [0, 0],
+  [0, -1],
+]
 /** Cailloux et buissons, posés à l'unité. */
 const SCRUB: Array<[number, number]> = [
   [11, 5],
@@ -190,6 +197,15 @@ export function bakeGarden(scene: Phaser.Scene, o: GardenOpts): void {
   blit(tiles, HOUSE.col, HOUSE.row, house.x, house.y, HOUSE.w, HOUSE.h)
   for (let j = 0; j < HOUSE.h; j++) {
     for (let i = 0; i < HOUSE.w; i++) take(house.x + i, house.y + j)
+  }
+  // Un buisson d'un côté, deux touffes de l'autre : la maison est assise dans
+  // le gazon au lieu d'y être posée.
+  const houseBase = house.y + HOUSE.h - 1
+  blit(tiles, HOUSE_BUSH[0], HOUSE_BUSH[1], house.x - 1, houseBase)
+  take(house.x - 1, houseBase)
+  for (const [dx, dy] of HOUSE_TUFTS) {
+    blit(tiles, TUFTS[0][0], TUFTS[0][1], house.x + HOUSE.w + dx, houseBase + dy)
+    take(house.x + HOUSE.w + dx, houseBase + dy)
   }
 
   // 4. Parterres : des blocs de terre plantés dru, alignés le long des bords.
