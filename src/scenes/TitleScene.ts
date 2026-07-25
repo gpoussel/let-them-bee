@@ -28,7 +28,7 @@ const ICON_MARGIN = 12
 // Dimensions de la pop-up de crédits (texte en taille « hint » : les lignes de
 // crédits sont longues et doivent tenir sur une ligne).
 const ABOUT_W = 420
-const ABOUT_H = 200
+const ABOUT_H = 232
 const ABOUT_LINE_H = 18
 const ABOUT_LABEL_X = 20
 const ABOUT_VALUE_X = 110
