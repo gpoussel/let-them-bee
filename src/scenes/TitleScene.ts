@@ -23,6 +23,7 @@ const ITCH_RED = 0xfa5c5c // couleur de marque itch.io (survol de son icône)
 // Barre de bas d'écran : version à gauche, crédit jam au centre, icônes à droite.
 const FOOTER_Y = 10
 const ICON_GAP = 40
+const ICON_SIZE = 32
 const ICON_MARGIN = 12
 
 // Dimensions de la pop-up de crédits (texte en taille « hint » : les lignes de
@@ -52,13 +53,19 @@ export class TitleScene extends Phaser.Scene {
 
     // Offsets exprimés depuis le centre de l'écran.
     const cy = height / 2
+    // Le bouton principal se place à mi-hauteur entre l'accroche et la barre
+    // de bas d'écran ; le meilleur score, quand il existe, s'intercale dessous.
+    const taglineY = height * 0.3 + 132
+    const footerTopY = height - FOOTER_Y - ICON_SIZE
+    const buttonY = (taglineY + footerTopY) / 2
+    const scoreY = (buttonY + footerTopY) / 2
     center.bitmapText({
       font: FONT_KEY,
       size: FONTS.sizeSmall,
       text: STR.tagline,
       tint: COLORS.honey,
       x: 0,
-      y: height * 0.3 + 132 - cy,
+      y: taglineY - cy,
       originX: OriginX.Center,
       originY: OriginY.Center,
     })
@@ -70,30 +77,31 @@ export class TitleScene extends Phaser.Scene {
       label: hasSave ? STR.continue : STR.play,
       color: COLORS.darkBrown,
       x: 0,
-      y: height * 0.62 - cy,
+      y: buttonY - cy,
       onClick: () => this.scene.start('Game'),
     })
 
-    // Meilleur score / reines.
-    center.bitmapText({
-      font: FONT_KEY,
-      size: FONTS.sizeSmall,
-      text: `${STR.best} ${STR.honey.toLowerCase()}: ${Math.floor(gameState.bestHoney)}   -   ${STR.queens}: ${gameState.queens}`,
-      tint: COLORS.cream,
-      x: 0,
-      y: height * 0.74 - cy,
-      originX: OriginX.Center,
-      originY: OriginY.Center,
-    })
-
     if (hasSave) {
+      // Meilleur score / reines : rien à afficher tant qu'aucune partie n'a
+      // été jouée.
+      center.bitmapText({
+        font: FONT_KEY,
+        size: FONTS.sizeSmall,
+        text: `${STR.best} ${STR.honey.toLowerCase()}: ${Math.floor(gameState.bestHoney)}   -   ${STR.queens}: ${gameState.queens}`,
+        tint: COLORS.cream,
+        x: 0,
+        y: scoreY - cy,
+        originX: OriginX.Center,
+        originY: OriginY.Center,
+      })
+
       button(center, {
         font: FONT_KEY,
         size: FONTS.sizeButton,
         label: STR.reset,
         color: COLORS.darkBrown,
         x: 0,
-        y: height * 0.84 - cy,
+        y: (scoreY + footerTopY) / 2 - cy,
         onClick: () => {
           GameState.clear()
           this.scene.restart()

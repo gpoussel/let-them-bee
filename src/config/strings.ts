@@ -3,7 +3,7 @@
 export const STR = {
   title: 'Let Them Bee',
   tagline: 'Forage, combo, grow your hive.',
-  play: 'Forage',
+  play: 'New Game',
   continue: 'Continue',
   reset: 'Restart',
   soundOn: 'Sound: on',
