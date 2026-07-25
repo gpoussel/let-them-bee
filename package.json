@@ -1,0 +1,20 @@
+{
+  "name": "let-them-bee",
+  "version": "0.1.0",
+  "description": "Let them bee, an incremental game made for DTJ36 Game Jam",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "build:itch": "tsc --noEmit && vite build --base=./",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "phaser": "^4.2.1",
+    "phaser-pixui": "^0.2.2"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3",
+    "vite": "^6.0.0"
+  }
+}
