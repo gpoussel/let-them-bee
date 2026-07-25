@@ -91,6 +91,30 @@ export class TitleScene extends Phaser.Scene {
       originY: OriginY.Bottom,
     })
 
+    // Crédit jam, cliquable → page itch.io de la DTJ36-28.
+    const jam = ui.bottomCenter.bitmapText({
+      font: FONT_KEY,
+      size: FONTS.sizeSmall,
+      text: STR.jamCredit,
+      tint: COLORS.honey,
+      x: 0,
+      y: 20,
+      originX: OriginX.Center,
+      originY: OriginY.Bottom,
+    })
+    const jamHit = ui.bottomCenter.clickable({
+      x: 0,
+      y: 20,
+      width: jam.width + 12,
+      height: jam.height + 6,
+      originX: OriginX.Center,
+      originY: OriginY.Bottom,
+      onClick: () => window.open(STR.jamUrl, '_blank', 'noopener'),
+      onUpdate: () => {
+        jam.tint = jamHit.hovered ? COLORS.cream : COLORS.honey
+      },
+    })
+
     ui.commit()
 
     // Logo (pixel art, x3) au-dessus du layout.
