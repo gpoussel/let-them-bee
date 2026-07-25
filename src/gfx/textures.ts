@@ -102,32 +102,27 @@ function beeGrid(flap: boolean): string[] {
   return flap ? down : up
 }
 
-// Palette dédiée aux icônes de liens (couleurs de marque + crème/brun du thème).
-const IP = {
-  r: 0xfa5c5c, // rouge itch.io
-  w: 0xfff6e0, // crème (fentes de l'icône itch, silhouette GitHub)
-  g: 0xfff6e0,
-  c: 0xfff6e0, // disque crème de l'icône « about » (teinté au survol)
-  k: 0x3a2a1a, // brun foncé (glyphe « i »)
-} as const
+// Les icônes de liens sont monochromes (crème) : leur couleur de marque est
+// appliquée en teinte au survol (cf. iconButton).
+const IP = { g: 0xfff6e0 } as const
 
 // Marque itch.io : auvent en haut, corps fendu de trois encoches.
 const ICON_ITCH = [
   '................',
-  '..rrrrrrrrrrrr..',
-  '.rrrrrrrrrrrrrr.',
-  'rrrrrrrrrrrrrrrr',
-  'rrrrrrrrrrrrrrrr',
-  '.rrrrrrrrrrrrrr.',
-  '.rrrrrrrrrrrrrr.',
-  '.rrrrrrrrrrrrrr.',
-  '.rrwwrrwwrrwwrr.',
-  '.rrwwrrwwrrwwrr.',
-  '.rrwwrrwwrrwwrr.',
-  '.rrwwrrwwrrwwrr.',
-  '.rrrrrrrrrrrrrr.',
-  '.rrrrrrrrrrrrrr.',
-  '..rrrrrrrrrrrr..',
+  '..gggggggggggg..',
+  '.gggggggggggggg.',
+  'gggggggggggggggg',
+  'gggggggggggggggg',
+  '.gggggggggggggg.',
+  '.gggggggggggggg.',
+  '.gggggggggggggg.',
+  '.gg..gg..gg..gg.',
+  '.gg..gg..gg..gg.',
+  '.gg..gg..gg..gg.',
+  '.gg..gg..gg..gg.',
+  '.gggggggggggggg.',
+  '.gggggggggggggg.',
+  '..gggggggggggg..',
   '................',
 ]
 
@@ -152,23 +147,23 @@ const ICON_GITHUB = [
   '................',
 ]
 
-// Pastille « i » d'information.
+// Pastille « i » d'information (le glyphe est évidé, pas peint).
 const ICON_ABOUT = [
   '................',
-  '.....cccccc.....',
-  '...cccccccccc...',
-  '..ccccckkccccc..',
-  '..ccccckkccccc..',
-  '.cccccccccccccc.',
-  '.cccccckkcccccc.',
-  '.cccccckkcccccc.',
-  '.cccccckkcccccc.',
-  '.cccccckkcccccc.',
-  '.cccccckkcccccc.',
-  '..ccccckkccccc..',
-  '..cccccccccccc..',
-  '...cccccccccc...',
-  '.....cccccc.....',
+  '.....gggggg.....',
+  '...gggggggggg...',
+  '..ggggg..ggggg..',
+  '..ggggg..ggggg..',
+  '.gggggggggggggg.',
+  '.gggggg..gggggg.',
+  '.gggggg..gggggg.',
+  '.gggggg..gggggg.',
+  '.gggggg..gggggg.',
+  '.gggggg..gggggg.',
+  '..ggggg..ggggg..',
+  '..gggggggggggg..',
+  '...gggggggggg...',
+  '.....gggggg.....',
   '................',
 ]
 

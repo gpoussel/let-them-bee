@@ -9,6 +9,7 @@ import { gameState, GameState } from '../systems/GameState'
 
 const BTN_BG = 0x8a5a2b
 const BTN_BG_HOVER = 0xa66c34
+const ITCH_RED = 0xfa5c5c // couleur de marque itch.io (survol de son icône)
 
 // Barre de bas d'écran : version à gauche, crédit jam au centre, icônes à droite.
 const FOOTER_Y = 10
@@ -146,11 +147,16 @@ export class TitleScene extends Phaser.Scene {
       },
     })
 
-    // Icônes de droite à gauche : about, GitHub, itch.io.
-    const icons: Array<{ texture: string; onClick: () => void }> = [
-      { texture: TEX.iconAbout, onClick: () => this.toggleAbout(true) },
-      { texture: TEX.iconGithub, onClick: () => this.openLink(STR.githubUrl) },
-      { texture: TEX.iconItch, onClick: () => this.openLink(STR.itchUrl) },
+    // Icônes de droite à gauche : about, GitHub, itch.io. Elles sont crème au
+    // repos et prennent leur couleur de marque au survol.
+    const icons: Array<{ texture: string; tintHover: number; onClick: () => void }> = [
+      { texture: TEX.iconAbout, tintHover: COLORS.honey, onClick: () => this.toggleAbout(true) },
+      {
+        texture: TEX.iconGithub,
+        tintHover: COLORS.honey,
+        onClick: () => this.openLink(STR.githubUrl),
+      },
+      { texture: TEX.iconItch, tintHover: ITCH_RED, onClick: () => this.openLink(STR.itchUrl) },
     ]
     icons.forEach((icon, i) => {
       iconButton(ui.bottomRight, {
@@ -159,7 +165,7 @@ export class TitleScene extends Phaser.Scene {
         y: FOOTER_Y,
         originX: OriginX.Right,
         originY: OriginY.Bottom,
-        tintHover: COLORS.honey,
+        tintHover: icon.tintHover,
         onClick: icon.onClick,
       })
     })
