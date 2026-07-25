@@ -63,7 +63,7 @@ export class TitleScene extends Phaser.Scene {
       font: FONT_KEY,
       size: FONTS.sizeSmall,
       text: STR.tagline,
-      tint: COLORS.honey,
+      tint: COLORS.amberSoft,
       x: 0,
       y: taglineY - cy,
       originX: OriginX.Center,
@@ -142,7 +142,7 @@ export class TitleScene extends Phaser.Scene {
       font: FONT_KEY,
       size: FONTS.sizeSmall,
       text: STR.jamCredit,
-      tint: COLORS.honey,
+      tint: COLORS.cream,
       x: 0,
       y: FOOTER_Y,
       originX: OriginX.Center,
@@ -157,7 +157,7 @@ export class TitleScene extends Phaser.Scene {
       originY: OriginY.Bottom,
       onClick: () => this.openLink(STR.jamUrl),
       onUpdate: () => {
-        jam.tint = jamHit.hovered ? COLORS.cream : COLORS.honey
+        jam.tint = jamHit.hovered ? COLORS.amberSoft : COLORS.cream
       },
     })
     handCursor(jamHit.events)
@@ -165,10 +165,10 @@ export class TitleScene extends Phaser.Scene {
     // Icônes de droite à gauche : about, GitHub, itch.io. Elles sont crème au
     // repos et prennent leur couleur de marque au survol.
     const icons: Array<{ texture: string; tintHover: number; onClick: () => void }> = [
-      { texture: TEX.iconAbout, tintHover: COLORS.honey, onClick: () => this.toggleAbout(true) },
+      { texture: TEX.iconAbout, tintHover: COLORS.amberSoft, onClick: () => this.toggleAbout(true) },
       {
         texture: TEX.iconGithub,
-        tintHover: COLORS.honey,
+        tintHover: COLORS.amberSoft,
         onClick: () => this.openLink(STR.githubUrl),
       },
       { texture: TEX.iconItch, tintHover: ITCH_RED, onClick: () => this.openLink(STR.itchUrl) },
