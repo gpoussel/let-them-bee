@@ -32,6 +32,6 @@ export const CREDITS: ReadonlyArray<{ label?: string; value: string }> = [
   { label: 'Code & art', value: 'Original pixel art, made for the jam' },
   { label: 'Font', value: 'monogram - Vinicius Menezio (CC0)' },
   { label: 'UI & cursors', value: 'Cozyland UI - RoleyMoth (roleymoth.itch.io)' },
-  { label: 'Garden tiles', value: 'Tiny Garden free pack (itch.io)' },
+  { label: 'Garden tiles', value: '16x16 Tiny Garden - kathychow (kathychow.itch.io)' },
   { label: 'Engine', value: 'Phaser 4 + Vite + phaser-pixui' },
 ] as const
