@@ -19,8 +19,11 @@ import { TEX } from './textures'
 
 const TILE = 48
 const SPACING = 2
+// Les coins arrondis du tileset tiennent dans 8 px : c'est l'épaisseur de bord
+// la plus fine qui les préserve, et donc la plus petite taille possible pour un
+// bouton (2 x 8 px). Au-delà, seules les bandes centrales s'étirent.
 /** Épaisseur des bords non étirables (coins du nine-slice). */
-export const UI9_BORDER = 16
+export const UI9_BORDER = 8
 /** Taille minimale d'un nine-slice : les deux bords, sans centre. */
 export const UI9_MIN = UI9_BORDER * 2
 
@@ -46,6 +49,54 @@ const LAYOUT: Array<[Ui9Skin, number, number]> = [
   [UI9.insetAmber, 1, 1],
   [UI9.insetLight, 2, 1],
 ]
+
+// Planche du curseur (`public/img/ui-slider.png`), extraite du même tileset :
+// trois rails de 48x16 (sombre, ambre, clair) puis deux poignées de 16x16
+// (repos, survol), espacés de 2 px.
+const SLIDER_RAIL_W = 48
+const SLIDER_H = 16
+/** Épaisseur des extrémités non étirables d'un rail. */
+export const SLIDER_CAP = 8
+
+/** Frames de la planche du curseur (texture `TEX.uiSlider`). */
+export const SLIDER = {
+  railDark: 'slider-rail-dark',
+  railAmber: 'slider-rail-amber',
+  railLight: 'slider-rail-light',
+  knob: 'slider-knob',
+  knobHover: 'slider-knob-hover',
+} as const
+
+/** Découpe la planche du curseur. À appeler au boot, après chargement. */
+export function bakeSlider(scene: Phaser.Scene): void {
+  const texture = scene.textures.get(TEX.uiSlider)
+  texture.setFilter(Phaser.Textures.FilterMode.NEAREST)
+
+  const rails: Array<[string, number]> = [
+    [SLIDER.railDark, 0],
+    [SLIDER.railAmber, 50],
+    [SLIDER.railLight, 100],
+  ]
+  for (const [name, x] of rails) {
+    if (texture.has(name)) continue
+    const frame = texture.add(name, 0, x, 0, SLIDER_RAIL_W, SLIDER_H)
+    if (!frame) continue
+    // Rail étirable horizontalement seulement : les deux extrémités arrondies
+    // restent intactes, la hauteur est celle de la planche.
+    const center = SLIDER_RAIL_W - SLIDER_CAP * 2
+    frame.setScale9(SLIDER_CAP, 0, center, SLIDER_H)
+    frame.customData = { scale9Borders: { x: SLIDER_CAP, y: 0, w: center, h: SLIDER_H } }
+  }
+
+  const knobs: Array<[string, number]> = [
+    [SLIDER.knob, 150],
+    [SLIDER.knobHover, 168],
+  ]
+  for (const [name, x] of knobs) {
+    if (texture.has(name)) continue
+    texture.add(name, 0, x, 0, SLIDER_H, SLIDER_H)
+  }
+}
 
 /**
  * Découpe la planche d'interface en frames nine-slice. À appeler une fois au

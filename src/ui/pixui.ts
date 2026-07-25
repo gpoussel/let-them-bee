@@ -15,8 +15,9 @@ import { Container, ComponentFactory, Image, OriginX, OriginY } from 'phaser-pix
 import type { ComponentConfig } from 'phaser-pixui'
 import { WORLD } from '../config/game'
 import { TEX } from '../gfx/textures'
-import { UI9, UI9_MIN, type Ui9Skin } from '../gfx/ui9'
+import { SLIDER, SLIDER_CAP, UI9, UI9_MIN, type Ui9Skin } from '../gfx/ui9'
 import { handCursor, wireHandCursors } from './cursor'
+import { audio } from '../systems/Audio'
 
 export { OriginX, OriginY }
 export { handCursor }
@@ -170,7 +171,10 @@ export function iconButton(f: ComponentFactory, o: IconButtonOpts): Image {
     height: frame.height,
     originX,
     originY,
-    onClick: o.onClick,
+    onClick: () => {
+      audio.playClick()
+      o.onClick()
+    },
     onUpdate: () => {
       img.tint = hit.hovered || hit.pressed ? (o.tintHover ?? 0xffffff) : undefined
     },
@@ -226,9 +230,19 @@ export interface ButtonOpts {
   width?: number
 }
 
-// Le tileset dessine une ombre portée sur ses 3 dernières lignes : le libellé
-// est remonté d'autant pour rester centré dans la face visible du bouton.
-const BUTTON_SHADOW = 3
+// Centrage du libellé dans la face du bouton, mesuré sur le rendu.
+//
+// Vertical : la tuile réserve 4 px de liseré en haut et 6 px de bordure +
+// ombre portée en bas, donc la face est centrée 1 px au-dessus du centre
+// géométrique. S'y ajoute l'encre de la fonte, qui repose un demi-pixel sous
+// le centre de sa boîte de 12 px (soit size/48 une fois mise à l'échelle).
+const BUTTON_FACE_OFFSET = 1
+const labelOffsetY = (size: number): number => Math.round(BUTTON_FACE_OFFSET + size / 48)
+
+// Horizontal : la fonte compte une gouttière d'un pixel APRÈS le dernier
+// glyphe, donc l'encre est décalée d'un demi-pixel à gauche du centre de la
+// boîte de texte (un demi-pixel natif = size/24 à l'écran).
+const labelOffsetX = (size: number): number => Math.round(size / 24)
 
 /**
  * Bouton texte sur fond nine-slice (fond + libellé + zone cliquable), sous une
@@ -248,7 +262,9 @@ export function button(f: ComponentFactory, o: ButtonOpts): void {
   // taille provisoire, puis on l'ajuste.
   const measure = f.scene.make.bitmapText({ font: o.font, size: o.size, text: o.label }, false)
   const w = o.width ?? Math.max(UI9_MIN, measure.width + padX * 2)
-  const h = Math.max(UI9_MIN, measure.height + padY * 2 + BUTTON_SHADOW)
+  // La hauteur compense l'ombre portée pour que les marges hautes et basses
+  // du libellé restent visuellement égales dans la face.
+  const h = Math.max(UI9_MIN, measure.height + padY * 2 + BUTTON_FACE_OFFSET * 2)
   measure.destroy()
 
   // Les deux états sont deux cadres superposés dont on bascule la visibilité :
@@ -261,8 +277,8 @@ export function button(f: ComponentFactory, o: ButtonOpts): void {
     size: o.size,
     text: o.label,
     tint: o.color,
-    x,
-    y: y - BUTTON_SHADOW,
+    x: x + labelOffsetX(o.size),
+    y: y - labelOffsetY(o.size),
     originX: OriginX.Center,
     originY: OriginY.Center,
   })
@@ -274,12 +290,108 @@ export function button(f: ComponentFactory, o: ButtonOpts): void {
     height: h,
     originX: OriginX.Center,
     originY: OriginY.Center,
-    onClick: o.onClick,
+    onClick: () => {
+      audio.playClick()
+      o.onClick()
+    },
     onUpdate: () => {
       const hover = hit.hovered || hit.pressed
       bg.visible = !hover
       bgHover.visible = hover
     },
   })
+  handCursor(hit.events)
+}
+
+export interface SliderOpts {
+  /** Offset depuis le coin d'ancrage (bord GAUCHE du rail). */
+  x?: number
+  /** Offset depuis le coin d'ancrage (bord HAUT de la zone du curseur). */
+  y?: number
+  /** Longueur du rail en pixels. */
+  width: number
+  /** Valeur initiale, dans [0, 1]. */
+  value: number
+  /** Appelé en continu pendant le glissé (application immédiate du réglage). */
+  onChange: (value: number) => void
+}
+
+/** Rail et poignée font 16 px de haut dans le tileset (cf. gfx/ui9). */
+const SLIDER_H = 16
+/** Hauteur de la zone cliquable : le rail, avec un peu de marge. */
+const SLIDER_HIT_H = SLIDER_H + 8
+
+/**
+ * Curseur horizontal (rail + remplissage + poignée) aux sprites du tileset,
+ * valeur dans [0, 1]. Le rail entier est cliquable et se glisse ; `onChange`
+ * est appelé à chaque mouvement pour que le réglage s'applique en direct.
+ * Ancré en haut à gauche. À appeler AVANT Ui.commit().
+ */
+export function slider(f: ComponentFactory, o: SliderOpts): void {
+  const x = o.x ?? 0
+  const y = o.y ?? 0
+  const w = o.width
+  const anchor = { originX: OriginX.Left, originY: OriginY.Top } as const
+  // La poignée reste entièrement dans le rail : sa course utile est réduite
+  // d'une demi-poignée à chaque extrémité.
+  const travel = w - SLIDER_H
+  const trackY = y + (SLIDER_HIT_H - SLIDER_H) / 2
+
+  let value = Math.min(1, Math.max(0, o.value))
+  // Le remplissage doit toujours garder ses deux extrémités arrondies : sa
+  // largeur ne descend pas sous les deux capuchons du nine-slice.
+  const fillWidth = () => Math.max(SLIDER_CAP * 2, SLIDER_H / 2 + value * travel)
+
+  const railCfg = { ...anchor, x, y: trackY, width: w, height: SLIDER_H }
+  f.image({ ...railCfg, texture: TEX.uiSlider, frame: SLIDER.railDark })
+  const fill = f.image({
+    ...railCfg,
+    width: fillWidth(),
+    texture: TEX.uiSlider,
+    frame: SLIDER.railAmber,
+  })
+
+  const knobCfg = { ...anchor, y: trackY, width: SLIDER_H, height: SLIDER_H }
+  const knob = f.image({ ...knobCfg, x: x + value * travel, texture: TEX.uiSlider, frame: SLIDER.knob })
+  const knobHover = f.image({
+    ...knobCfg,
+    x: x + value * travel,
+    texture: TEX.uiSlider,
+    frame: SLIDER.knobHover,
+  })
+  knobHover.visible = false
+
+  const hit = f.clickable({
+    ...anchor,
+    x,
+    y,
+    width: w,
+    height: SLIDER_HIT_H,
+    draggable: true,
+    onUpdate: () => {
+      const active = hit.hovered || hit.pressed
+      knob.visible = !active
+      knobHover.visible = active
+    },
+  })
+
+  const render = () => {
+    fill.setWidth(fillWidth())
+    knob.localX = x + value * travel
+    knobHover.localX = x + value * travel
+  }
+
+  // La position est lue en coordonnées monde : la scène est en Scale.FIT, donc
+  // `worldX` est déjà ramené au repère du layout.
+  const setFromPointer = (pointer: Phaser.Input.Pointer) => {
+    const next = Math.min(1, Math.max(0, (pointer.worldX - hit.left - SLIDER_H / 2) / travel))
+    if (next === value) return
+    value = next
+    render()
+    o.onChange(value)
+  }
+
+  hit.events.on('pointerdown', setFromPointer)
+  hit.events.on('drag', setFromPointer)
   handCursor(hit.events)
 }

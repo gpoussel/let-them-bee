@@ -50,12 +50,14 @@ export const TEX = {
   pollen: 'tex-pollen',
   logo: 'img-logo',
   ui: 'img-ui',
+  uiSlider: 'img-ui-slider',
   tileset: 'img-garden-tiles',
   objects: 'img-garden-objects',
   garden: 'tex-garden',
   iconItch: 'tex-icon-itch',
   iconGithub: 'tex-icon-github',
   iconAbout: 'tex-icon-about',
+  iconPrefs: 'tex-icon-prefs',
 } as const
 
 // Les icônes du bas de l'écran-titre sont dessinées sur une grille 16x16 et
@@ -171,7 +173,28 @@ const ICON_ABOUT = [
   '................',
 ]
 
+// Roue crantée des préférences : huit dents et un moyeu évidé.
+const ICON_PREFS = [
+  '................',
+  '...g..gggg..g...',
+  '...gg.gggg.gg...',
+  '...gggggggggg...',
+  '.gggggggggggggg.',
+  '..gggg....gggg..',
+  'ggggg......ggggg',
+  'gggg........gggg',
+  'gggg........gggg',
+  'ggggg......ggggg',
+  '..gggg....gggg..',
+  '.gggggggggggggg.',
+  '...gggggggggg...',
+  '...gg.gggg.gg...',
+  '...g..gggg..g...',
+  '................',
+]
+
 export function bakeAll(scene: Phaser.Scene) {
+  bake(scene, TEX.iconPrefs, ICON_PREFS, IP, ICON_PX)
   bake(scene, TEX.iconItch, ICON_ITCH, IP, ICON_PX)
   bake(scene, TEX.iconGithub, ICON_GITHUB, IP, ICON_PX)
   bake(scene, TEX.iconAbout, ICON_ABOUT, IP, ICON_PX)
