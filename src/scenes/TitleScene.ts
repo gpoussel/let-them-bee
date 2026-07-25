@@ -43,7 +43,8 @@ export class TitleScene extends Phaser.Scene {
 
   create(): void {
     const { width, height } = WORLD
-    this.cameras.main.setBackgroundColor(COLORS.grassB)
+    // Fond : le jardin baké au boot, posé à l'origine (il couvre l'écran).
+    this.add.image(0, 0, TEX.garden).setOrigin(0, 0)
 
     const hasSave = gameState.load()
     const ui = new Ui(this)
