@@ -3,8 +3,7 @@ import { STR } from '../config/strings'
 import { gameState } from '../systems/GameState'
 import { WORLD } from '../config/game'
 import { COLORS, HEX, FONTS, HUD } from './theme'
-
-const FONT = { fontFamily: FONTS.ui, color: HEX.cream }
+import { pixelText } from './text'
 
 function fmt(n: number): string {
   if (n < 1000) return n.toFixed(n < 10 ? 1 : 0)
@@ -20,22 +19,20 @@ function fmt(n: number): string {
 // HUD permanent de la GameScene : miel, gelée, nectar, combo + feedbacks flottants.
 export class Hud {
   private scene: Phaser.Scene
-  private honeyText: Phaser.GameObjects.Text
-  private jellyText: Phaser.GameObjects.Text
-  private nectarText: Phaser.GameObjects.Text
-  private comboText: Phaser.GameObjects.Text
+  private honeyText: Phaser.GameObjects.BitmapText
+  private jellyText: Phaser.GameObjects.BitmapText
+  private nectarText: Phaser.GameObjects.BitmapText
+  private comboText: Phaser.GameObjects.BitmapText
   private nectarBar: Phaser.GameObjects.Rectangle
   private comboBar: Phaser.GameObjects.Rectangle
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene
 
-    this.honeyText = scene.add
-      .text(12, 10, '', { ...FONT, fontSize: FONTS.sizeHoney })
+    this.honeyText = pixelText(scene, 12, 10, '', FONTS.sizeHoney, HEX.cream)
       .setScrollFactor(0)
       .setDepth(100)
-    this.jellyText = scene.add
-      .text(12, 38, '', { ...FONT, fontSize: FONTS.sizeJelly, color: HEX.jelly })
+    this.jellyText = pixelText(scene, 12, 50, '', FONTS.sizeJelly, HEX.jelly)
       .setScrollFactor(0)
       .setDepth(100)
 
@@ -50,8 +47,7 @@ export class Hud {
       .setOrigin(0, 0)
       .setScrollFactor(0)
       .setDepth(101)
-    this.nectarText = scene.add
-      .text(WORLD.width - 132, 34, '', { ...FONT, fontSize: FONTS.sizeSmall })
+    this.nectarText = pixelText(scene, WORLD.width - 132, 34, '', FONTS.sizeSmall, HEX.cream)
       .setScrollFactor(0)
       .setDepth(101)
 
@@ -66,8 +62,7 @@ export class Hud {
       .setOrigin(0, 0)
       .setScrollFactor(0)
       .setDepth(101)
-    this.comboText = scene.add
-      .text(cx, WORLD.height - 52, '', { ...FONT, fontSize: FONTS.sizeCombo })
+    this.comboText = pixelText(scene, cx, WORLD.height - 52, '', FONTS.sizeCombo, HEX.cream)
       .setOrigin(0.5, 0.5)
       .setScrollFactor(0)
       .setDepth(101)
@@ -92,8 +87,7 @@ export class Hud {
 
   /** Texte flottant qui pop et remonte (ex "+5", "Parfait !"). */
   popText(x: number, y: number, text: string, color: string = HEX.cream): void {
-    const t = this.scene.add
-      .text(x, y, text, { ...FONT, fontSize: FONTS.sizePop, color })
+    const t = pixelText(this.scene, x, y, text, FONTS.sizePop, color)
       .setOrigin(0.5, 0.5)
       .setDepth(120)
     this.scene.tweens.add({

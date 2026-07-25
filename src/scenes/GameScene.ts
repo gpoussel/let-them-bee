@@ -3,7 +3,8 @@ import { WORLD } from '../config/game'
 import { FLOWER } from '../config/balance'
 import { FEEL } from '../config/feel'
 import { STR } from '../config/strings'
-import { COLORS, HEX } from '../ui/theme'
+import { COLORS, HEX, FONTS } from '../ui/theme'
+import { pixelText } from '../ui/text'
 import { TEX } from '../gfx/textures'
 import { Bee } from '../entities/Bee'
 import { Flower } from '../entities/Flower'
@@ -30,13 +31,9 @@ export class GameScene extends Phaser.Scene {
 
     // Ruche (zone de dépôt) dans un coin.
     this.hive = this.add.sprite(width - 70, height - 90, TEX.hive).setScale(2)
-    this.add
-      .text(this.hive.x, this.hive.y + 40, STR.hive, {
-        fontFamily: 'monospace',
-        fontSize: '12px',
-        color: HEX.cream,
-      })
-      .setOrigin(0.5)
+    pixelText(this, this.hive.x, this.hive.y + 40, STR.hive, FONTS.sizeSmall, HEX.cream).setOrigin(
+      0.5,
+    )
 
     // Fleurs disséminées (en évitant la ruche).
     for (let i = 0; i < FLOWER.count; i++) {
@@ -57,12 +54,7 @@ export class GameScene extends Phaser.Scene {
     // Contrôle souris.
     this.input.on('pointermove', (p: Phaser.Input.Pointer) => this.bee.setTarget(p.worldX, p.worldY))
 
-    this.add
-      .text(width / 2, 12, STR.controlsHint, {
-        fontFamily: 'monospace',
-        fontSize: '12px',
-        color: HEX.cream,
-      })
+    pixelText(this, width / 2, 4, STR.controlsHint, FONTS.sizeHint, HEX.cream)
       .setOrigin(0.5, 0)
       .setAlpha(0.6)
       .setDepth(100)

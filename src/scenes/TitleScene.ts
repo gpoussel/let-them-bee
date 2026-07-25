@@ -2,6 +2,7 @@ import Phaser from 'phaser'
 import { STR } from '../config/strings'
 import { GAME, WORLD } from '../config/game'
 import { COLORS, HEX, FONTS } from '../ui/theme'
+import { pixelText } from '../ui/text'
 import { TEX } from '../gfx/textures'
 import { gameState, GameState } from '../systems/GameState'
 
@@ -17,20 +18,10 @@ export class TitleScene extends Phaser.Scene {
 
     const hasSave = gameState.load()
 
-    this.add
-      .text(width / 2, height * 0.3, STR.title, {
-        fontFamily: FONTS.ui,
-        fontSize: FONTS.sizeTitle,
-        color: HEX.cream,
-      })
-      .setOrigin(0.5)
-    this.add
-      .text(width / 2, height * 0.3 + 44, STR.tagline, {
-        fontFamily: FONTS.ui,
-        fontSize: FONTS.sizeSmall,
-        color: HEX.honey,
-      })
-      .setOrigin(0.5)
+    pixelText(this, width / 2, height * 0.3, STR.title, FONTS.sizeTitle, HEX.cream).setOrigin(0.5)
+    pixelText(this, width / 2, height * 0.3 + 44, STR.tagline, FONTS.sizeSmall, HEX.honey).setOrigin(
+      0.5,
+    )
 
     // Abeille qui tourne autour du titre.
     const bee = this.add.sprite(width / 2, height * 0.3, TEX.bee)
@@ -52,14 +43,14 @@ export class TitleScene extends Phaser.Scene {
     })
 
     // Meilleur score / reines
-    this.add
-      .text(
-        width / 2,
-        height * 0.74,
-        `${STR.honey} record : ${Math.floor(gameState.bestHoney)}   •   Reines : ${gameState.queens}`,
-        { fontFamily: FONTS.ui, fontSize: FONTS.sizeSmall, color: HEX.cream },
-      )
-      .setOrigin(0.5)
+    pixelText(
+      this,
+      width / 2,
+      height * 0.74,
+      `${STR.honey} record : ${Math.floor(gameState.bestHoney)}   -   Reines : ${gameState.queens}`,
+      FONTS.sizeSmall,
+      HEX.cream,
+    ).setOrigin(0.5)
 
     if (hasSave) {
       this.makeButton(width / 2, height * 0.84, STR.reset, () => {
@@ -68,28 +59,20 @@ export class TitleScene extends Phaser.Scene {
       })
     }
 
-    this.add
-      .text(6, height - 16, `v${GAME.version}`, {
-        fontFamily: FONTS.ui,
-        fontSize: FONTS.sizeSmall,
-        color: HEX.cream,
-      })
-      .setAlpha(0.5)
+    pixelText(this, 6, height - 20, `v${GAME.version}`, FONTS.sizeSmall, HEX.cream).setAlpha(0.5)
   }
 
   private makeButton(x: number, y: number, label: string, onClick: () => void): void {
-    const t = this.add
-      .text(x, y, label, {
-        fontFamily: FONTS.ui,
-        fontSize: FONTS.sizeButton,
-        color: HEX.cream,
-        backgroundColor: '#8a5a2b',
-        padding: { x: 16, y: 8 },
-      })
+    const t = pixelText(this, 0, 0, label, FONTS.sizeButton, HEX.cream).setOrigin(0.5)
+    const padX = 16
+    const padY = 8
+    const bg = this.add
+      .rectangle(0, 0, t.width + padX * 2, t.height + padY * 2, 0x8a5a2b)
       .setOrigin(0.5)
-      .setInteractive({ useHandCursor: true })
-    t.on('pointerover', () => t.setScale(1.06))
-    t.on('pointerout', () => t.setScale(1))
-    t.on('pointerdown', onClick)
+    const btn = this.add.container(x, y, [bg, t])
+    bg.setInteractive({ useHandCursor: true })
+    bg.on('pointerover', () => btn.setScale(1.06))
+    bg.on('pointerout', () => btn.setScale(1))
+    bg.on('pointerdown', onClick)
   }
 }

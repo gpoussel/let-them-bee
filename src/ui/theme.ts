@@ -23,15 +23,18 @@ export const HEX = {
   perfect: '#ffe08a',
 } as const
 
+// Tailles de la bitmap font « monogram » (cf. src/gfx/font.ts). La cellule native
+// fait 12px : on n'utilise QUE des multiples de 12 pour garantir un scaling entier
+// (nearest-neighbor) et donc un rendu pixel-perfect, sans anti-aliasing.
 export const FONTS = {
-  ui: 'monospace',
-  sizeHoney: '22px',
-  sizeJelly: '14px',
-  sizeSmall: '12px',
-  sizeCombo: '18px',
-  sizePop: '16px',
-  sizeTitle: '48px',
-  sizeButton: '20px',
+  sizeHoney: 36,
+  sizeJelly: 24,
+  sizeSmall: 24,
+  sizeCombo: 24,
+  sizePop: 24,
+  sizeTitle: 48,
+  sizeButton: 24,
+  sizeHint: 12,
 } as const
 
 // Réglages d'affichage des jauges / feedbacks flottants.
