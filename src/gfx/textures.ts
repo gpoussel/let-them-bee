@@ -6,7 +6,12 @@ import Phaser from 'phaser'
 
 const PX = 4 // taille d'un "pixel" logique
 
-function drawGrid(g: Phaser.GameObjects.Graphics, grid: string[], palette: Record<string, number>) {
+function drawGrid(
+  g: Phaser.GameObjects.Graphics,
+  grid: string[],
+  palette: Record<string, number>,
+  px: number,
+) {
   for (let y = 0; y < grid.length; y++) {
     const row = grid[y]
     for (let x = 0; x < row.length; x++) {
@@ -15,16 +20,22 @@ function drawGrid(g: Phaser.GameObjects.Graphics, grid: string[], palette: Recor
       const color = palette[c]
       if (color === undefined) continue
       g.fillStyle(color, 1)
-      g.fillRect(x * PX, y * PX, PX, PX)
+      g.fillRect(x * px, y * px, px, px)
     }
   }
 }
 
-function bake(scene: Phaser.Scene, key: string, grid: string[], palette: Record<string, number>) {
+function bake(
+  scene: Phaser.Scene,
+  key: string,
+  grid: string[],
+  palette: Record<string, number>,
+  px: number = PX,
+) {
   const g = scene.make.graphics({ x: 0, y: 0 }, false)
-  drawGrid(g, grid, palette)
-  const w = grid[0].length * PX
-  const h = grid.length * PX
+  drawGrid(g, grid, palette, px)
+  const w = grid[0].length * px
+  const h = grid.length * px
   g.generateTexture(key, w, h)
   g.destroy()
 }
@@ -38,7 +49,15 @@ export const TEX = {
   hive: 'tex-hive',
   pollen: 'tex-pollen',
   logo: 'img-logo',
+  iconItch: 'tex-icon-itch',
+  iconGithub: 'tex-icon-github',
+  iconAbout: 'tex-icon-about',
 } as const
+
+// Les icônes du bas de l'écran-titre sont dessinées sur une grille 16x16 et
+// bakées en x2 (32x32) : taille d'affichage native, donc pixel-perfect sans
+// scaling au rendu.
+const ICON_PX = 2
 
 // Palette miel / prairie
 const P = {
@@ -83,7 +102,81 @@ function beeGrid(flap: boolean): string[] {
   return flap ? down : up
 }
 
+// Palette dédiée aux icônes de liens (couleurs de marque + crème/brun du thème).
+const IP = {
+  r: 0xfa5c5c, // rouge itch.io
+  w: 0xfff6e0, // crème (fentes de l'icône itch, silhouette GitHub)
+  g: 0xfff6e0,
+  c: 0xfff6e0, // disque crème de l'icône « about » (teinté au survol)
+  k: 0x3a2a1a, // brun foncé (glyphe « i »)
+} as const
+
+// Marque itch.io : auvent en haut, corps fendu de trois encoches.
+const ICON_ITCH = [
+  '................',
+  '..rrrrrrrrrrrr..',
+  '.rrrrrrrrrrrrrr.',
+  'rrrrrrrrrrrrrrrr',
+  'rrrrrrrrrrrrrrrr',
+  '.rrrrrrrrrrrrrr.',
+  '.rrrrrrrrrrrrrr.',
+  '.rrrrrrrrrrrrrr.',
+  '.rrwwrrwwrrwwrr.',
+  '.rrwwrrwwrrwwrr.',
+  '.rrwwrrwwrrwwrr.',
+  '.rrwwrrwwrrwwrr.',
+  '.rrrrrrrrrrrrrr.',
+  '.rrrrrrrrrrrrrr.',
+  '..rrrrrrrrrrrr..',
+  '................',
+]
+
+// Marque GitHub : « invertocat », octocat évidé dans un disque plein
+// (oreilles, bras écartés, deux pattes).
+const ICON_GITHUB = [
+  '................',
+  '.....gggggg.....',
+  '...gggggggggg...',
+  '..gggggggggggg..',
+  '..ggg.gggg.ggg..',
+  '.ggg........ggg.',
+  '.ggg........ggg.',
+  '.gg..........gg.',
+  '.ggg........ggg.',
+  '.gggg..gg..gggg.',
+  '.gggg..gg..gggg.',
+  '..gggggggggggg..',
+  '..gggggggggggg..',
+  '...gggggggggg...',
+  '.....gggggg.....',
+  '................',
+]
+
+// Pastille « i » d'information.
+const ICON_ABOUT = [
+  '................',
+  '.....cccccc.....',
+  '...cccccccccc...',
+  '..ccccckkccccc..',
+  '..ccccckkccccc..',
+  '.cccccccccccccc.',
+  '.cccccckkcccccc.',
+  '.cccccckkcccccc.',
+  '.cccccckkcccccc.',
+  '.cccccckkcccccc.',
+  '.cccccckkcccccc.',
+  '..ccccckkccccc..',
+  '..cccccccccccc..',
+  '...cccccccccc...',
+  '.....cccccc.....',
+  '................',
+]
+
 export function bakeAll(scene: Phaser.Scene) {
+  bake(scene, TEX.iconItch, ICON_ITCH, IP, ICON_PX)
+  bake(scene, TEX.iconGithub, ICON_GITHUB, IP, ICON_PX)
+  bake(scene, TEX.iconAbout, ICON_ABOUT, IP, ICON_PX)
+
   bake(scene, TEX.bee, beeGrid(false), P)
   bake(scene, TEX.beeFlap, beeGrid(true), P)
 
