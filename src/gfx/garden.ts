@@ -34,12 +34,10 @@ const SCRUB: Array<[number, number]> = [
   [14, 5],
   [15, 5],
 ]
-// Bande de terre haute d'une tuile : extrémité gauche, deux motifs de milieu,
-// extrémité droite (tous sur la ligne 0 du tileset).
-const BED_ROW = 0
-const BED_LEFT = 2
-const BED_MID: [number, number] = [3, 4]
-const BED_RIGHT = 5
+// Bloc de terre : colonnes bord gauche / deux motifs de milieu / bord droit,
+// lignes bord haut / deux motifs de milieu / bord bas.
+const BED_COL: [number, number, number, number] = [2, 3, 4, 5]
+const BED_ROW: [number, number, number, number] = [1, 2, 3, 4]
 // Bassin : bloc de 4x4 tuiles (colonnes gauche / milieu x2 / droite, lignes
 // berge / eau x2 / rive basse).
 const POND_COL: [number, number, number, number] = [9, 10, 11, 12]
@@ -59,7 +57,16 @@ const STAGES: Array<[number, number]> = [
 ]
 
 /** Densité de touffes d'herbe (proportion de tuiles). */
-const TUFT_DENSITY = 0.07
+const TUFT_DENSITY = 0.22
+/** Nombre de buissons et cailloux dispersés sur le gazon. */
+const SCRUB_COUNT = 34
+
+/** Parterres : largeur, hauteur et espacement vertical, en tuiles. */
+const BED_W = 8
+const BED_H = 3
+const BED_GAP = 6
+/** Proportion de trous dans un parterre (une terre jamais parfaitement pleine). */
+const BED_HOLE = 0.08
 
 export interface GardenOpts {
   /** Nom de la texture produite. */
@@ -127,15 +134,22 @@ export function bakeGarden(scene: Phaser.Scene, o: GardenOpts): void {
     )
   }
 
-  // 1. Gazon : un aplat, puis des touffes éparses pour texturer sans bruit.
+  // Tuiles déjà prises (terre, eau) : le gazon et ses décors les évitent.
+  const busy = new Uint8Array(cols * rows)
+  const take = (tx: number, ty: number): void => {
+    if (tx >= 0 && tx < cols && ty >= 0 && ty < rows) busy[ty * cols + tx] = 1
+  }
+  const free = (tx: number, ty: number): boolean =>
+    tx >= 0 && tx < cols && ty >= 0 && ty < rows && busy[ty * cols + tx] === 0
+
+  // 1. Gazon : un aplat, puis des touffes pour texturer sans bruit.
   ctx.fillStyle = GRASS
   ctx.fillRect(0, 0, width, height)
   const rnd = random(o.seed ?? 7)
+  const tufts: Array<[number, number]> = []
   for (let ty = 0; ty < rows; ty++) {
     for (let tx = 0; tx < cols; tx++) {
-      if (rnd() >= TUFT_DENSITY) continue
-      const [col, row] = TUFTS[Math.floor(rnd() * TUFTS.length)]
-      blit(tiles, col, row, tx, ty)
+      if (rnd() < TUFT_DENSITY) tufts.push([tx, ty])
     }
   }
 
@@ -146,6 +160,7 @@ export function bakeGarden(scene: Phaser.Scene, o: GardenOpts): void {
     for (let i = 0; i < pond.w; i++) {
       const col = i === 0 ? POND_COL[0] : i === pond.w - 1 ? POND_COL[3] : POND_COL[1 + (i % 2)]
       blit(tiles, col, row, pond.x + i, pond.y + j)
+      take(pond.x + i, pond.y + j)
     }
   }
   // Les nénuphars restent sur l'eau : jamais sur la berge (j = 0) ni sur la
@@ -159,47 +174,72 @@ export function bakeGarden(scene: Phaser.Scene, o: GardenOpts): void {
     blit(objects, LOTUS, STAGES[3][0], pond.x + dx, pond.y + dy - 1, 1, 2)
   }
 
-  // 3. Parterres : deux colonnes le long des bords, plus une série en bas à
-  //    droite. Le centre de l'écran reste du gazon nu.
+  // 3. Parterres : des blocs de terre plantés dru, alignés le long des bords.
+  //    Le centre de l'écran reste du gazon nu.
   const beds: Array<[number, number, number]> = []
-  const sideRows = [3, 6, 9, 12, 15, 18, 21]
-  sideRows.forEach((y, k) => {
+  // Le bas de l'écran reste libre : c'est là que passent le score et la barre
+  // de bas de page.
+  for (let y = 2, k = 0; y + BED_H <= rows - 4; y += BED_H + BED_GAP, k++) {
     beds.push([2, y, k % SPECIES])
-    beds.push([cols - 10, y, (k + 4) % SPECIES])
-  })
-  ;[rows - 9, rows - 6, rows - 3].forEach((y, k) => {
-    beds.push([cols - 18, y, (k + 2) % SPECIES])
-  })
+    beds.push([cols - BED_W - 2, y, (k + 4) % SPECIES])
+  }
+  // Un dernier parterre à droite, en face du bassin, pour équilibrer le bas.
+  beds.push([cols - BED_W - 2, rows - 9, 7])
 
-  const BED_LEN = 8
   for (const [bx, by, species] of beds) {
-    for (let i = 0; i < BED_LEN; i++) {
-      const col =
-        i === 0 ? BED_LEFT : i === BED_LEN - 1 ? BED_RIGHT : BED_MID[i % BED_MID.length]
-      blit(tiles, col, BED_ROW, bx + i, by)
+    // Un parterre ne mord jamais sur le bassin.
+    let clear = true
+    for (let j = 0; j < BED_H && clear; j++) {
+      for (let i = 0; i < BED_W; i++) {
+        if (!free(bx + i, by + j)) {
+          clear = false
+          break
+        }
+      }
     }
-    // Stades croissants de gauche à droite : le parterre se lit comme une
-    // frise de la graine à la fleur.
-    for (let i = 0; i < BED_LEN; i++) {
-      const [row, h] = STAGES[Math.min(STAGES.length - 1, Math.floor((i * STAGES.length) / BED_LEN))]
-      blit(objects, species, row, bx + i, by - (h - 1), 1, h)
+    if (!clear) continue
+
+    // Terre : un bloc, bords sur le pourtour, motifs alternés au milieu.
+    for (let j = 0; j < BED_H; j++) {
+      const row = j === 0 ? BED_ROW[0] : j === BED_H - 1 ? BED_ROW[3] : BED_ROW[1 + (j % 2)]
+      for (let i = 0; i < BED_W; i++) {
+        const col = i === 0 ? BED_COL[0] : i === BED_W - 1 ? BED_COL[3] : BED_COL[1 + (i % 2)]
+        blit(tiles, col, row, bx + i, by + j)
+        take(bx + i, by + j)
+      }
+    }
+    // Plantation : une fleur par tuile, stade croissant de gauche à droite
+    // avec un peu de jeu, et quelques trous — un vrai parterre n'est ni
+    // parfaitement plein ni parfaitement régulier. Ligne par ligne, pour que
+    // les fleurs du bas recouvrent celles du dessus.
+    for (let j = 0; j < BED_H; j++) {
+      for (let i = 0; i < BED_W; i++) {
+        if (rnd() < BED_HOLE) continue
+        const grown = (i + Math.floor(rnd() * 2)) / BED_W
+        const [row, h] = STAGES[Math.min(STAGES.length - 1, Math.floor(grown * STAGES.length))]
+        // Une espèce voisine ici et là : le parterre reste lisible sans être
+        // mécanique.
+        const kind = rnd() < 0.15 ? (species + 1) % SPECIES : species
+        blit(objects, kind, row, bx + i, by + j - (h - 1), 1, h)
+      }
     }
   }
 
-  // 4. Quelques cailloux et buissons pour casser l'uniformité du gazon.
-  for (const [tx, ty, i] of [
-    [20, 4, 3],
-    [21, 20, 4],
-    [35, 8, 3],
-    [46, 14, 4],
-    [24, 15, 0],
-    [38, 22, 1],
-    [30, 3, 2],
-    [15, 20, 3],
-    [cols - 4, rows - 9, 4],
-    [cols - 4, rows - 5, 3],
-  ]) {
-    const [col, row] = SCRUB[i]
+  // 4. Cailloux et buissons dispersés sur le gazon libre.
+  for (let n = 0, tries = 0; n < SCRUB_COUNT && tries < SCRUB_COUNT * 40; tries++) {
+    const tx = Math.floor(rnd() * cols)
+    const ty = Math.floor(rnd() * rows)
+    if (!free(tx, ty)) continue
+    const [col, row] = SCRUB[Math.floor(rnd() * SCRUB.length)]
+    blit(tiles, col, row, tx, ty)
+    take(tx, ty)
+    n++
+  }
+
+  // 5. Touffes d'herbe, partout où il reste du gazon nu.
+  for (const [tx, ty] of tufts) {
+    if (!free(tx, ty)) continue
+    const [col, row] = TUFTS[Math.floor(rnd() * TUFTS.length)]
     blit(tiles, col, row, tx, ty)
   }
 
