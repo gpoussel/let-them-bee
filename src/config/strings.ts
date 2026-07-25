@@ -31,5 +31,6 @@ export const CREDITS: ReadonlyArray<{ label?: string; value: string }> = [
   { label: 'Author', value: 'Guillaume Poussel (gpoussel)' },
   { label: 'Code & art', value: 'Original pixel art, made for the jam' },
   { label: 'Font', value: 'monogram - Vinicius Menezio (CC0)' },
+  { label: 'Cursors', value: 'Cozyland UI - RoleyMoth (roleymoth.itch.io)' },
   { label: 'Engine', value: 'Phaser 4 + Vite + phaser-pixui' },
 ] as const

@@ -14,8 +14,10 @@ import Phaser from 'phaser'
 import { Container, ComponentFactory, Rectangle, Image, OriginX, OriginY } from 'phaser-pixui'
 import type { ComponentConfig } from 'phaser-pixui'
 import { WORLD } from '../config/game'
+import { handCursor, wireHandCursors } from './cursor'
 
 export { OriginX, OriginY }
+export { handCursor }
 
 // La scène de jeu est en mode Scale.FIT sur une résolution fixe WORLD : la
 // caméra met à l'échelle l'ensemble, donc le layout pixui travaille en
@@ -113,6 +115,7 @@ export class Ui extends Anchored {
       ZOOM,
     )
     super(scene, root)
+    wireHandCursors(scene)
   }
 
   get root(): Container {
@@ -169,6 +172,7 @@ export function iconButton(f: ComponentFactory, o: IconButtonOpts): Image {
       img.tint = hit.hovered || hit.pressed ? (o.tintHover ?? 0xffffff) : undefined
     },
   })
+  handCursor(hit.events)
   return img
 }
 
@@ -233,4 +237,5 @@ export function button(f: ComponentFactory, o: ButtonOpts): void {
       bg.fillColor = hit.hovered || hit.pressed ? o.bgHover : o.bg
     },
   })
+  handCursor(hit.events)
 }

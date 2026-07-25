@@ -3,7 +3,7 @@ import { CREDITS, STR } from '../config/strings'
 import { GAME, WORLD } from '../config/game'
 import { COLORS, FONTS } from '../ui/theme'
 import { FONT_KEY } from '../gfx/font'
-import { Ui, Panel, button, iconButton, OriginX, OriginY } from '../ui/pixui'
+import { Ui, Panel, button, iconButton, handCursor, OriginX, OriginY } from '../ui/pixui'
 import { TEX } from '../gfx/textures'
 import { gameState, GameState } from '../systems/GameState'
 
@@ -19,7 +19,7 @@ const ICON_MARGIN = 12
 // Dimensions de la pop-up de crédits (texte en taille « hint » : les lignes de
 // crédits sont longues et doivent tenir sur une ligne).
 const ABOUT_W = 420
-const ABOUT_H = 180
+const ABOUT_H = 200
 const ABOUT_LINE_H = 18
 const ABOUT_LABEL_X = 20
 const ABOUT_VALUE_X = 110
@@ -146,6 +146,7 @@ export class TitleScene extends Phaser.Scene {
         jam.tint = jamHit.hovered ? COLORS.cream : COLORS.honey
       },
     })
+    handCursor(jamHit.events)
 
     // Icônes de droite à gauche : about, GitHub, itch.io. Elles sont crème au
     // repos et prennent leur couleur de marque au survol.
