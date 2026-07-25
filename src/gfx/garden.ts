@@ -61,10 +61,12 @@ const TUFT_DENSITY = 0.22
 /** Nombre de buissons et cailloux dispersés sur le gazon. */
 const SCRUB_COUNT = 34
 
-/** Parterres : largeur, hauteur et espacement vertical, en tuiles. */
-const BED_W = 8
-const BED_H = 3
-const BED_GAP = 6
+/** Parterres : emprise maximale et espacement vertical, en tuiles. */
+const BED_W = 12
+const BED_H = 7
+const BED_GAP = 3
+/** Retrait maximal des bords : donne au parterre une forme libre, pas un rectangle. */
+const BED_INSET = 2
 /** Proportion de trous dans un parterre (une terre jamais parfaitement pleine). */
 const BED_HOLE = 0.08
 
@@ -199,28 +201,46 @@ export function bakeGarden(scene: Phaser.Scene, o: GardenOpts): void {
     }
     if (!clear) continue
 
-    // Terre : un bloc, bords sur le pourtour, motifs alternés au milieu.
+    // Contour libre : chaque ligne est rognée à gauche et à droite d'un
+    // retrait qui ne bouge que d'une tuile d'une ligne à l'autre — la terre
+    // garde un bord continu, sans jamais former un rectangle.
+    const inside: boolean[][] = []
+    let left = Math.floor(rnd() * (BED_INSET + 1))
+    let right = Math.floor(rnd() * (BED_INSET + 1))
     for (let j = 0; j < BED_H; j++) {
-      const row = j === 0 ? BED_ROW[0] : j === BED_H - 1 ? BED_ROW[3] : BED_ROW[1 + (j % 2)]
+      if (j > 0) {
+        left = Math.min(BED_INSET, Math.max(0, left + Math.floor(rnd() * 3) - 1))
+        right = Math.min(BED_INSET, Math.max(0, right + Math.floor(rnd() * 3) - 1))
+      }
+      const line: boolean[] = []
+      for (let i = 0; i < BED_W; i++) line.push(i >= left && i < BED_W - right)
+      inside.push(line)
+    }
+    const at = (i: number, j: number): boolean =>
+      j >= 0 && j < BED_H && i >= 0 && i < BED_W && inside[j][i]
+
+    // Terre : bords du bloc sur le pourtour de la forme, motifs alternés au
+    // milieu (bord gauche + bord haut = tuile de coin, par construction).
+    for (let j = 0; j < BED_H; j++) {
       for (let i = 0; i < BED_W; i++) {
-        const col = i === 0 ? BED_COL[0] : i === BED_W - 1 ? BED_COL[3] : BED_COL[1 + (i % 2)]
+        if (!inside[j][i]) continue
+        const col = !at(i - 1, j) ? BED_COL[0] : !at(i + 1, j) ? BED_COL[3] : BED_COL[1 + (i % 2)]
+        const row = !at(i, j - 1) ? BED_ROW[0] : !at(i, j + 1) ? BED_ROW[3] : BED_ROW[1 + (j % 2)]
         blit(tiles, col, row, bx + i, by + j)
         take(bx + i, by + j)
       }
     }
-    // Plantation : une fleur par tuile, stade croissant de gauche à droite
-    // avec un peu de jeu, et quelques trous — un vrai parterre n'est ni
-    // parfaitement plein ni parfaitement régulier. Ligne par ligne, pour que
-    // les fleurs du bas recouvrent celles du dessus.
+    // Plantation : une espèce, semée le même jour — les pieds d'un même
+    // parterre ne s'écartent donc que d'un stade de pousse. Ligne par ligne,
+    // pour que les fleurs du bas recouvrent celles du dessus.
+    // Un parterre tout juste semé de temps en temps, mais la plupart sont déjà
+    // sortis de terre : la terre nue est bien moins lisible qu'une floraison.
+    const stage = rnd() < 0.2 ? 0 : 1 + Math.floor(rnd() * 2)
     for (let j = 0; j < BED_H; j++) {
       for (let i = 0; i < BED_W; i++) {
-        if (rnd() < BED_HOLE) continue
-        const grown = (i + Math.floor(rnd() * 2)) / BED_W
-        const [row, h] = STAGES[Math.min(STAGES.length - 1, Math.floor(grown * STAGES.length))]
-        // Une espèce voisine ici et là : le parterre reste lisible sans être
-        // mécanique.
-        const kind = rnd() < 0.15 ? (species + 1) % SPECIES : species
-        blit(objects, kind, row, bx + i, by + j - (h - 1), 1, h)
+        if (!inside[j][i] || rnd() < BED_HOLE) continue
+        const [row, h] = STAGES[stage + (rnd() < 0.4 ? 1 : 0)]
+        blit(objects, species, row, bx + i, by + j - (h - 1), 1, h)
       }
     }
   }
