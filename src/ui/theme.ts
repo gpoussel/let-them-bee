@@ -13,6 +13,7 @@ export const COLORS = {
   comboHigh: 0xf6c445,
   comboLow: 0xff6b3d,
   perfect: 0xffe08a,
+  jelly: 0xffd76a,
 } as const
 
 // Versions hexadécimales string pour les textes / CSS.
