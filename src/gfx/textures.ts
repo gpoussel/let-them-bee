@@ -37,6 +37,7 @@ export const TEX = {
   flowerOpen: 'tex-flower-2',
   hive: 'tex-hive',
   pollen: 'tex-pollen',
+  logo: 'img-logo',
 } as const
 
 // Palette miel / prairie

@@ -29,21 +29,11 @@ export class TitleScene extends Phaser.Scene {
     const cy = height / 2
     center.bitmapText({
       font: FONT_KEY,
-      size: FONTS.sizeTitle,
-      text: STR.title,
-      tint: COLORS.cream,
-      x: 0,
-      y: height * 0.3 - cy,
-      originX: OriginX.Center,
-      originY: OriginY.Center,
-    })
-    center.bitmapText({
-      font: FONT_KEY,
       size: FONTS.sizeSmall,
       text: STR.tagline,
       tint: COLORS.honey,
       x: 0,
-      y: height * 0.3 + 44 - cy,
+      y: height * 0.3 + 132 - cy,
       originX: OriginX.Center,
       originY: OriginY.Center,
     })
@@ -65,7 +55,7 @@ export class TitleScene extends Phaser.Scene {
     center.bitmapText({
       font: FONT_KEY,
       size: FONTS.sizeSmall,
-      text: `${STR.honey} record : ${Math.floor(gameState.bestHoney)}   -   Reines : ${gameState.queens}`,
+      text: `${STR.best} ${STR.honey.toLowerCase()}: ${Math.floor(gameState.bestHoney)}   -   ${STR.queens}: ${gameState.queens}`,
       tint: COLORS.cream,
       x: 0,
       y: height * 0.74 - cy,
@@ -103,18 +93,8 @@ export class TitleScene extends Phaser.Scene {
 
     ui.commit()
 
-    // Abeille qui tourne autour du titre (sprite brut, au-dessus du layout).
-    const bee = this.add.sprite(width / 2, height * 0.3, TEX.bee)
-    this.tweens.add({
-      targets: { a: 0 },
-      a: Math.PI * 2,
-      duration: 4000,
-      repeat: -1,
-      onUpdate: (_tw, t) => {
-        const a = (t as { a: number }).a
-        bee.setPosition(width / 2 + Math.cos(a) * 140, height * 0.3 + Math.sin(a) * 50)
-        bee.setRotation(a + Math.PI / 2)
-      },
-    })
+    // Logo (pixel art, x3) au-dessus du layout.
+    this.add.image(width / 2, height * 0.3, TEX.logo).setScale(3)
+
   }
 }

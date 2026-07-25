@@ -1,18 +1,20 @@
-// Textes UI centralisés (FR). Réutilisables pour la page itch / localisation future.
+// Textes UI centralisés (EN). Réutilisables pour la page itch / localisation future.
 
 export const STR = {
   title: 'Let Them Bee',
-  tagline: 'Butinez, combotez, faites grandir votre ruche.',
-  play: 'Butiner',
-  continue: 'Continuer',
-  reset: 'Recommencer',
-  soundOn: 'Son : on',
-  soundOff: 'Son : off',
-  honey: 'Miel',
-  royalJelly: 'Gelée royale',
+  tagline: 'Forage, combo, grow your hive.',
+  play: 'Forage',
+  continue: 'Continue',
+  reset: 'Restart',
+  soundOn: 'Sound: on',
+  soundOff: 'Sound: off',
+  honey: 'Honey',
+  royalJelly: 'Royal jelly',
   nectar: 'Nectar',
   combo: 'Combo',
-  perfect: 'Parfait !',
-  hive: 'Ruche',
-  controlsHint: 'Guidez l’abeille avec la souris. Survolez les fleurs ouvertes pour butiner.',
+  perfect: 'Perfect!',
+  hive: 'Hive',
+  best: 'Best',
+  queens: 'Queens',
+  controlsHint: 'Guide the bee with your mouse. Hover open flowers to forage.',
 } as const

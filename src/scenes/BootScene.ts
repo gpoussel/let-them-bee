@@ -1,5 +1,5 @@
 import Phaser from 'phaser'
-import { bakeAll } from '../gfx/textures'
+import { bakeAll, TEX } from '../gfx/textures'
 import { bakeFont } from '../gfx/font'
 
 // Génère les textures placeholder puis passe au titre.
@@ -9,7 +9,12 @@ export class BootScene extends Phaser.Scene {
     super('Boot')
   }
 
+  preload(): void {
+    this.load.image(TEX.logo, 'img/logo.png')
+  }
+
   create(): void {
+    this.textures.get(TEX.logo).setFilter(Phaser.Textures.FilterMode.NEAREST)
     bakeAll(this)
     bakeFont(this)
     this.scene.start('Title')
