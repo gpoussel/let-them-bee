@@ -94,7 +94,7 @@ export const STR = {
 export const UPGRADE_STR: Record<string, { name: string; tip: string }> = {
   storage: {
     name: 'Storage',
-    tip: 'A wider comb. The hive holds more nectar before it starts spilling.',
+    tip: 'A wider comb. The hive holds more nectar before it starts spilling — and each cell widens it more than the last.',
   },
   foragers: {
     name: 'Foragers',

@@ -6,6 +6,7 @@ import { HEX_R, TEX } from '../gfx/textures'
 import { audio } from '../systems/Audio'
 import { gameState } from '../systems/GameState'
 import { handCursor, wireHandCursors } from '../ui/cursor'
+import { fmtBig } from '../ui/format'
 import { button, ninePanel, OriginX, OriginY, Ui, UI9, type ButtonHandle } from '../ui/pixui'
 import { pixelText } from '../ui/text'
 import { COLORS, FONTS, HEX, PALETTE, PANEL_PAD, PANEL_TINT, SCREEN } from '../ui/theme'
@@ -178,16 +179,26 @@ export class CombScene extends Phaser.Scene {
 
   // --- Construction --------------------------------------------------------
 
-  /** Demi-encombrement du rayon entier, à l'échelle 1, hexagones compris. */
-  private halfExtent(): { w: number; h: number } {
-    let w = HEX_R
-    let h = HEX_R
+  /**
+   * Encombrement du rayon entier, à l'échelle 1, hexagones compris, en
+   * coordonnées locales au calque (la ruche est en 0, 0).
+   *
+   * Les bornes sont relevées des QUATRE côtés séparément, et non ramenées à un
+   * demi-encombrement symétrique : la branche « réserve » monte cinquante
+   * alvéoles au-dessus de la ruche et rien ne descend autant. Un encombrement
+   * symétrique aurait autorisé à faire glisser vers le bas autant de vide qu'il y
+   * a de cire en haut.
+   */
+  private extent(): { minX: number; maxX: number; minY: number; maxY: number } {
+    const box = { minX: -HEX_R, maxX: HEX_R, minY: -HEX_R, maxY: HEX_R }
     for (const cell of COMB) {
       const { x, y } = this.posOf(cell.q, cell.r)
-      w = Math.max(w, Math.abs(x) + HEX_R)
-      h = Math.max(h, Math.abs(y) + HEX_R)
+      box.minX = Math.min(box.minX, x - HEX_R)
+      box.maxX = Math.max(box.maxX, x + HEX_R)
+      box.minY = Math.min(box.minY, y - HEX_R)
+      box.maxY = Math.max(box.maxY, y + HEX_R)
     }
-    return { w, h }
+    return box
   }
 
   /**
@@ -231,19 +242,25 @@ export class CombScene extends Phaser.Scene {
    */
   private clampPan(): void {
     const view = this.hiveView()
-    const half = this.halfExtent()
-    const cx = view.x + view.w / 2
-    const cy = view.y + view.h / 2
-    const slackX = this.slack(half.w * this.layer.scaleX, view.w)
-    const slackY = this.slack(half.h * this.layer.scaleY, view.h)
-    this.layer.x = Phaser.Math.Clamp(this.layer.x, cx - slackX, cx + slackX)
-    this.layer.y = Phaser.Math.Clamp(this.layer.y, cy - slackY, cy + slackY)
+    const box = this.extent()
+    this.layer.x = this.axis(this.layer.x, box.minX, box.maxX, view.x, view.w)
+    this.layer.y = this.axis(this.layer.y, box.minY, box.maxY, view.y, view.h)
   }
 
-  /** Jeu de glissement sur un axe : le débord, plus la marge s'il y a débord. */
-  private slack(halfExtent: number, viewSize: number): number {
-    const overflow = halfExtent - viewSize / 2
-    return overflow > 0 ? overflow + PAN_MARGIN : 0
+  /**
+   * Position du calque sur un axe : recalée dans la course s'il y a débord,
+   * centrée sur le contenu s'il n'y en a pas.
+   *
+   * @param lo bord bas du contenu, local au calque ; `hi` son bord haut.
+   * @param origin bord bas de la fenêtre à l'écran ; `size` sa taille.
+   */
+  private axis(pos: number, lo: number, hi: number, origin: number, size: number): number {
+    if (hi - lo <= size) return origin + size / 2 - (lo + hi) / 2
+    // Le contenu déborde : on borne la course pour que le bord de la cire ne
+    // rentre jamais plus loin que `PAN_MARGIN` dans la fenêtre.
+    const min = origin + size - hi - PAN_MARGIN
+    const max = origin - lo + PAN_MARGIN
+    return Phaser.Math.Clamp(pos, min, max)
   }
 
   /** Fenêtre où vivent les alvéoles : l'intérieur du cadre, titre et détail ôtés. */
@@ -306,7 +323,10 @@ export class CombScene extends Phaser.Scene {
       .image(0, 16, COIN_TEX[cell.currency])
       .setOrigin(0.5, 0.5)
       .setTint(COIN_TINT[cell.currency])
-    const cost = pixelText(this, 0, 16, `${cell.cost}`, FONTS.sizeHint, HEX.cream).setOrigin(0, 0.5)
+    const cost = pixelText(this, 0, 16, fmtBig(cell.cost), FONTS.sizeHint, HEX.cream).setOrigin(
+      0,
+      0.5,
+    )
 
     root.add([hex, name, coin, cost])
     this.layer.add(root)
@@ -515,7 +535,10 @@ export class CombScene extends Phaser.Scene {
       view.name.setAlpha(dim)
       view.cost.setTint(owned ? PALETTE.lime : COLORS.cream)
       view.cost.setAlpha(dim)
-      view.cost.setText(owned ? STR.combOwned : `${cell.cost}`)
+      // Le prix s'abrège au-delà de cinq chiffres : les derniers rangs de la
+      // réserve coûtent six chiffres, qui débordaient de l'alvéole sur ses
+      // voisines.
+      view.cost.setText(owned ? STR.combOwned : fmtBig(cell.cost))
 
       // Une alvéole bâtie n'a plus de prix : la vignette de monnaie s'efface et
       // le mot se recentre seul.

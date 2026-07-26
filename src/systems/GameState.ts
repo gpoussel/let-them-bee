@@ -1,7 +1,16 @@
-import { BEE, BEE_KINDS, FLOWER, HIVE, HONEY, ROUTE, type BeeKindId } from '../config/balance'
+import {
+  BEE,
+  BEE_KINDS,
+  FLOWER,
+  getNectarCapacity,
+  HONEY,
+  ROUTE,
+  type BeeKindId,
+} from '../config/balance'
 import { GAME } from '../config/game'
 import { LINEAGE, LINEAGE_EFFECT, type LineageKind, type LineageNode } from '../config/lineage'
 import {
+  cellAt,
   COMB,
   NEIGHBORS,
   UPGRADE_EFFECT,
@@ -94,9 +103,9 @@ export class GameState {
     return n
   }
 
-  /** Contenance de la réserve, améliorations comprises. */
+  /** Contenance de la réserve, améliorations comprises (courbe quadratique). */
   get nectarCapacity(): number {
-    return HIVE.nectarCapacity + this.levelOf('storage') * UPGRADE_EFFECT.storageStep
+    return getNectarCapacity(this.levelOf('storage'))
   }
 
   /** Multiplicateur de vitesse de vol de la butineuse. */
@@ -145,7 +154,7 @@ export class GameState {
       const r = cell.r + dr
       // La ruche compte comme construite : c'est elle qui amorce le rayon.
       if (q === 0 && r === 0) return true
-      const neighbor = COMB.find((c) => c.q === q && c.r === r)
+      const neighbor = cellAt(q, r)
       if (neighbor && this.comb.has(neighbor.id)) return true
     }
     return false

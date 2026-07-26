@@ -11,6 +11,8 @@
 // L'alvéole (0, 0) est la ruche elle-même : elle ne s'achète pas, et c'est
 // d'elle que part le dévoilement.
 
+import { getNectarCapacity } from './balance'
+
 /**
  * Les branches du rayon. Une branche = un effet, plusieurs alvéoles.
  *
@@ -43,6 +45,55 @@ export interface CombCell {
   bees?: number
 }
 
+/**
+ * Nombre d'alvéoles de la branche « réserve ». C'est la plus longue du rayon,
+ * mais elle reste COURTE : quinze paliers (« Storage I » à « Storage XV »). Une
+ * branche de cinquante alvéoles se lisait comme une corvée — cinquante clics dont
+ * chacun ne pesait presque rien. Quinze paliers sur une courbe raide font le
+ * contraire : peu de décisions, chacune coûteuse (voir `getNectarCapacity` et
+ * `storageCost`).
+ */
+export const STORAGE_TIERS = 15
+
+/**
+ * Prix d'une alvéole « réserve » : `A n² + B n + C`.
+ *
+ * Ces trois coefficients ne sont pas libres : ils doivent tenir sous la RÈGLE
+ * D'OR (cf. `storageCost`). Ceux-ci sont exactement les TROIS QUARTS de la
+ * contenance du rang précédent — `0,75 × (200 n² - 300 n + 200)` — c'est-à-dire le
+ * prix le plus dur que la règle autorise sans jamais s'en approcher : chaque
+ * alvéole coûte les trois quarts d'une réserve pleine, la marge restante est le
+ * quart, et elle est positive pour TOUT n par construction. Il n'y a pas de rang
+ * où la branche se referme sur elle-même.
+ */
+const STORAGE_COST = { a: 150, b: -225, c: 150 } as const
+
+/**
+ * Écart minimal, en nectar, entre le prix d'une alvéole « réserve » et le plafond
+ * qui doit la payer. Un prix ÉGAL au plafond serait payable en théorie
+ * (`nectar >= cost` à réserve pleine) mais illisible en pratique : le joueur
+ * regarderait sa jauge saturée en se demandant s'il lui manque quelque chose.
+ */
+const SOFTLOCK_MARGIN = 10
+
+/**
+ * RÈGLE D'OR ANTI-BLOCAGE. Le prix de l'alvéole de rang `n` doit rester sous la
+ * contenance qu'offre le rang `n - 1` : le nectar est plafonné, une alvéole plus
+ * chère que la réserve du moment est inatteignable À JAMAIS, et comme c'est la
+ * branche « réserve » qui relève le plafond, un seul rang trop cher fige tout le
+ * rayon du vol.
+ *
+ * La formule quadratique ci-dessus la respecte d'elle-même ; le plafonnement
+ * n'est donc pas un ajustement d'équilibrage mais un FILET : si quelqu'un retouche
+ * A, B ou C, la règle tient quand même, et le pire qui arrive est une courbe de
+ * prix qui s'aplatit — jamais une partie bloquée.
+ */
+export function storageCost(tier: number): number {
+  const raw = STORAGE_COST.a * tier ** 2 + STORAGE_COST.b * tier + STORAGE_COST.c
+  const ceiling = getNectarCapacity(tier - 1) - SOFTLOCK_MARGIN
+  return Math.max(1, Math.min(raw, ceiling))
+}
+
 /** Les six voisines d'une alvéole, en axial. */
 export const NEIGHBORS: readonly (readonly [number, number])[] = [
   [1, 0],
@@ -61,7 +112,7 @@ export const NEIGHBORS: readonly (readonly [number, number])[] = [
 //
 // Le rayon du vol (réserve, butineuse, vol, pousse, première ouvrière) se paie
 // en NECTAR — celui que le joueur rapporte lui-même : améliorer son vol se paie
-// en volant. Il est PLAFONNÉ, donc borné : voir `UPGRADE_EFFECT.storageStep`.
+// en volant. Il est PLAFONNÉ, donc borné : voir `getNectarCapacity`.
 //
 // Le rayon de la ruche (ventilation, économie, maturation, effectifs) se paie en
 // MIEL, et il ne se dévoile qu'une fois la première ouvrière installée : il
@@ -81,23 +132,15 @@ export const NEIGHBORS: readonly (readonly [number, number])[] = [
 // Ces alvéoles-là sont serrées CONTRE la ruche, dans les creux laissés par les
 // quatre premières branches : le rayon s'épaissit au centre au lieu de pousser
 // quatre bras de plus, et l'écran reste lisible sans glissé.
-export const COMB: readonly CombCell[] = [
-  // Réserve — vers le haut. Les deux derniers paliers relèvent le plafond, donc
-  // ce que les rangs V et VI des autres branches peuvent coûter.
-  { id: 'storage-1', kind: 'storage', tier: 1, cost: 45, currency: 'nectar', q: 0, r: -1 },
-  { id: 'storage-2', kind: 'storage', tier: 2, cost: 140, currency: 'nectar', q: 1, r: -2 },
-  { id: 'storage-3', kind: 'storage', tier: 3, cost: 300, currency: 'nectar', q: 1, r: -3 },
-  { id: 'storage-4', kind: 'storage', tier: 4, cost: 460, currency: 'nectar', q: 2, r: -4 },
-  { id: 'storage-5', kind: 'storage', tier: 5, cost: 600, currency: 'nectar', q: 1, r: -4 },
-  { id: 'storage-6', kind: 'storage', tier: 6, cost: 740, currency: 'nectar', q: 1, r: -5 },
-
+// Toutes les alvéoles POSÉES À LA MAIN. La branche « réserve » n'en fait plus
+// partie : elle est trop longue pour être écrite, elle est générée (cf. `COMB`).
+const HAND_PLACED: readonly CombCell[] = [
   // Ouvrières — au bout de la branche « réserve », et nulle part ailleurs.
   //
-  // 640, c'est la réserve pleine des quatre premiers paliers (650) à dix
-  // nectar près : cette alvéole est LA dernière chose que le nectar seul peut
-  // payer, et elle n'est même visible qu'une fois ces quatre paliers bâtis. Le
-  // jeu bascule là : jusqu'ici le nectar servait à s'améliorer, à partir d'ici
-  // il se transforme (cf. `HONEY`).
+  // 640, c'est plus que la réserve pleine du premier palier (400) : cette alvéole
+  // demande DEUX paliers de réserve, et elle n'est de toute façon visible qu'une
+  // fois le tracé du début bâti jusqu'à (2, -4). Le jeu bascule là : jusqu'ici le
+  // nectar servait à s'améliorer, à partir d'ici il se transforme (cf. `HONEY`).
   //
   // Les suivantes se paient en miel et donnent une ouvrière de plus : un lot
   // rend `honeyPerWorker` PAR ouvrière, l'effectif multiplie donc directement la
@@ -213,38 +256,126 @@ export const COMB: readonly CombCell[] = [
   { id: 'ripening-4', kind: 'ripening', tier: 4, cost: 42, currency: 'honey', q: -1, r: -3 },
 ] as const
 
+// LA BRANCHE « RÉSERVE », GÉNÉRÉE.
+//
+// Quinze alvéoles pourraient encore s'écrire à la main, mais leur PRIX non : il
+// sort d'une formule, et la géométrie suit la même règle pour que retoucher
+// `STORAGE_TIERS` ne demande jamais de replacer des coordonnées. La règle est en
+// deux temps :
+//
+//   1. les SIX PREMIÈRES gardent exactement le tracé qu'elles avaient — le coude
+//      qui remonte à droite puis revient sur lui-même, et surtout l'alvéole
+//      (2, -4) contre laquelle pousse la première ouvrière. Ce tracé porte
+//      l'ordre de dévoilement du début de partie, on n'y touche pas ;
+//   2. au-delà, la branche cesse d'être un fil et devient un PAVAGE : elle
+//      remplit le haut du rayon en serpentin, ligne par ligne, de la droite vers
+//      la gauche puis l'inverse. Un fil de quinze alvéoles aurait tiré une antenne
+//      de 500 px hors de la fenêtre ; le serpentin fait ce que fait un vrai
+//      rayon — il s'étend en nappe.
+//
+// Le serpentin passe d'une ligne à l'autre par la voisine `(0, -1)`, donc chaque
+// alvéole touche la précédente : le dévoilement reste ce qu'il est (§7.2 du GDD),
+// une cire qui avance de proche en proche.
+const STORAGE_SEED: readonly (readonly [number, number])[] = [
+  [0, -1],
+  [1, -2],
+  [1, -3],
+  [2, -4],
+  [1, -4],
+  [1, -5],
+] as const
+
+/** Bornes du serpentin, en q. Cinq colonnes : le pavage tient dans la fenêtre. */
+const STORAGE_ROWS = { qMax: 1, qMin: -3, firstR: -6 } as const
+
+function storageCells(): CombCell[] {
+  const taken = new Set(HAND_PLACED.map((c) => `${c.q},${c.r}`))
+  const cells: CombCell[] = []
+  const push = (q: number, r: number): void => {
+    if (taken.has(`${q},${r}`)) {
+      // Impossible avec la géométrie actuelle, et c'est le genre de faute qu'on
+      // veut voir tout de suite : deux alvéoles au même endroit, c'est une case
+      // qui en cache une autre pour toujours.
+      throw new Error(`comb: l'alvéole réserve (${q}, ${r}) est déjà occupée`)
+    }
+    taken.add(`${q},${r}`)
+    const tier = cells.length + 1
+    cells.push({
+      id: `storage-${tier}`,
+      kind: 'storage',
+      tier,
+      cost: storageCost(tier),
+      currency: 'nectar',
+      q,
+      r,
+    })
+  }
+
+  for (const [q, r] of STORAGE_SEED) {
+    if (cells.length >= STORAGE_TIERS) return cells
+    push(q, r)
+  }
+
+  // Le serpentin reprend où le tracé s'arrête : la ligne du dessus, au même q.
+  let r = STORAGE_ROWS.firstR
+  let step = -1
+  let q = STORAGE_SEED[STORAGE_SEED.length - 1][0]
+  while (cells.length < STORAGE_TIERS) {
+    push(q, r)
+    const next = q + step
+    if (next > STORAGE_ROWS.qMax || next < STORAGE_ROWS.qMin) {
+      // Bout de ligne : on monte d'un cran et on repart dans l'autre sens.
+      r -= 1
+      step = -step
+    } else {
+      q = next
+    }
+  }
+  return cells
+}
+
+export const COMB: readonly CombCell[] = [...storageCells(), ...HAND_PLACED]
+
 /** Nombre d'alvéoles achetables au total (jauge du bouton d'accès). */
 export const COMB_TOTAL = COMB.length
 
 /**
+ * Les alvéoles par coordonnée. Le dévoilement interroge les six voisines de
+ * chaque alvéole à chaque frame : la recherche linéaire refaisait un balayage de
+ * tout le rayon six fois par alvéole, pour un résultat qui ne change qu'à l'achat.
+ */
+const CELL_AT = new Map<string, CombCell>(COMB.map((c) => [`${c.q},${c.r}`, c]))
+
+/** L'alvéole posée en (q, r), s'il y en a une. */
+export function cellAt(q: number, r: number): CombCell | undefined {
+  return CELL_AT.get(`${q},${r}`)
+}
+
+/**
  * Effet d'UN niveau de chaque branche.
  *
- * `storageStep` n'est pas un chiffre libre : c'est LUI qui décide si le rayon
- * est finissable. Tout s'y paie en nectar, or le nectar est PLAFONNÉ — une
- * alvéole plus chère que la réserve du moment est hors d'atteinte, le joueur
- * butine et la réserve sature avant le prix. Avec 150 par palier et six
- * alvéoles de réserve, le plafond monte 50 / 200 / 350 / 500 / 650 / 800 / 950 :
+ * La réserve n'y figure plus : son effet n'est pas un pas mais une COURBE
+ * (`getNectarCapacity`), et c'est cette courbe qui décide si le rayon est
+ * finissable. Tout s'y paie en nectar, or le nectar est PLAFONNÉ — une alvéole
+ * plus chère que la réserve du moment est hors d'atteinte, le joueur butine et la
+ * réserve sature avant le prix. Le plafond monte donc
+ * 100 / 400 / 1100 / 2200 / 3700 / 5600…, et :
  *
- *   - la branche « réserve » reste toujours payable (45, puis 140 sous 200,
- *     300 sous 350, 460 sous 500, 600 sous 650, 740 sous 800) — c'est elle qui
- *     déverrouille tout le reste ;
- *   - les alvéoles de rang III (340) demandent deux paliers de réserve, celles
- *     de rang IV (600) les quatre. Ce n'est pas un cul-de-sac, c'est un ORDRE :
- *     on agrandit sa ruche avant de s'offrir le luxe.
+ *   - la branche « réserve » reste toujours payable, par construction (règle d'or,
+ *     cf. `storageCost`) — c'est elle qui déverrouille tout le reste ;
+ *   - les alvéoles de rang III (340) demandent un palier de réserve, celles de
+ *     rang IV (600) et l'alvéole « ouvrières » (640) deux. Ce n'est pas un
+ *     cul-de-sac, c'est un ORDRE : on agrandit sa ruche avant de s'offrir le luxe.
+ *     La courbe raide franchit ces seuils plus vite que l'ancien pas fixe, et c'est
+ *     assumé : ce qui borne la fin de partie n'est plus le plafond de la réserve
+ *     mais le PRIX du palier suivant, qui prend les trois quarts de ce plafond.
  *
- * Le pas est à 150 plutôt qu'à 100 parce que les prix en nectar ont monté d'un
- * bon tiers : le rayon du vol se pilote plus longtemps, mais le plafond monte
- * avec lui, sinon les rangs hauts seraient devenus inachetables pour toujours.
- *
- * Toute nouvelle alvéole EN NECTAR doit tenir sous le plafond que la branche
- * « réserve » atteint à ce moment-là, sinon elle est inachetable pour toujours.
- * C'est ce qui cale l'alvéole « ouvrières » à 640 (le maximum sous 650, la
- * réserve à quatre paliers), puis les rangs V à 750 (sous 800, cinq paliers) et
- * les rangs VI à 900 (sous 950, six paliers). Le miel, lui, n'a pas de plafond :
- * les alvéoles de la ruche ne connaissent pas cette contrainte.
+ * Toute nouvelle alvéole EN NECTAR doit tenir sous `getNectarCapacity(n)` pour le
+ * niveau de réserve `n` auquel elle se dévoile, sinon elle est inachetable pour
+ * toujours. Le miel, lui, n'a pas de plafond : les alvéoles de la ruche ne
+ * connaissent pas cette contrainte.
  */
 export const UPGRADE_EFFECT = {
-  storageStep: 150,
   /**
    * Gain de vitesse de vol par niveau. TRÈS léger, et c'est voulu : le pilotage
    * est ce que le joueur maîtrise, une amélioration qui le rendrait facile
@@ -272,10 +403,40 @@ export const UPGRADE_EFFECT = {
   ripeningStep: 0.25,
 } as const
 
-const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI'] as const
+// Les rangs se lisent en chiffres romains, et la branche « réserve » va jusqu'à
+// XV : une table écrite à la main s'arrêtait à VI et rendait `undefined` au-delà.
+// La table de chiffres va bien plus loin que quinze, pour que rallonger la branche
+// reste une seule ligne à changer.
+const ROMAN_DIGITS: readonly (readonly [number, string])[] = [
+  [100, 'C'],
+  [90, 'XC'],
+  [50, 'L'],
+  [40, 'XL'],
+  [10, 'X'],
+  [9, 'IX'],
+  [5, 'V'],
+  [4, 'IV'],
+  [1, 'I'],
+] as const
+
+/** « XXVII » pour 27. Rien pour 0 ou moins : il n'y a pas de rang zéro. */
+export function roman(n: number): string {
+  let rest = Math.floor(n)
+  let out = ''
+  for (const [value, digit] of ROMAN_DIGITS) {
+    while (rest >= value) {
+      out += digit
+      rest -= value
+    }
+  }
+  return out
+}
+
+/** Nombre d'alvéoles par branche, compté une fois pour toutes (cf. `tierLabel`). */
+const BRANCH_SIZE = new Map<UpgradeKind, number>()
+for (const cell of COMB) BRANCH_SIZE.set(cell.kind, (BRANCH_SIZE.get(cell.kind) ?? 0) + 1)
 
 /** « II » pour la deuxième alvéole d'une branche ; rien si la branche est unique. */
 export function tierLabel(cell: CombCell): string {
-  const branch = COMB.filter((c) => c.kind === cell.kind)
-  return branch.length > 1 ? ROMAN[cell.tier] : ''
+  return (BRANCH_SIZE.get(cell.kind) ?? 0) > 1 ? roman(cell.tier) : ''
 }

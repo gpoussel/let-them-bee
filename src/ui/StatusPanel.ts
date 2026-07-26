@@ -12,6 +12,7 @@ import { STR } from '../config/strings'
 import { FONT_KEY } from '../gfx/font'
 import { gameState } from '../systems/GameState'
 import { routeRate, type Route } from '../systems/Route'
+import { fmtBig } from './format'
 import { Nudge } from './Nudge'
 import { button, ninePanel, OriginX, OriginY, setText, UI9 } from './pixui'
 import { COLORS, FONTS, HUD, PALETTE, PANEL_PAD, PANEL_TINT, SCREEN } from './theme'
@@ -259,7 +260,7 @@ export class StatusPanel {
 
     const [lap, nectar, rate] = this.best.values
     setText(lap, `${(route.duration / 1000).toFixed(1)}s`)
-    setText(nectar, `${Math.round(route.nectar)}`)
+    setText(nectar, fmtBig(Math.round(route.nectar)))
     setText(rate, routeRate(route).toFixed(2))
   }
 }
