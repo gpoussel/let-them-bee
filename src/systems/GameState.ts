@@ -10,8 +10,11 @@ import {
 import { GAME } from '../config/game'
 import { LINEAGE, LINEAGE_EFFECT, type LineageKind, type LineageNode } from '../config/lineage'
 import {
+  CELL_BEE_KIND,
   cellAt,
   COMB,
+  costRank,
+  mainCurrency,
   NEIGHBORS,
   UPGRADE_EFFECT,
   type CombCell,
@@ -21,6 +24,13 @@ import type { FieldTuning } from './FlowerField'
 import { isBetter, isValidRoute, type Route } from './Route'
 
 const SAVE_KEY = GAME.saveKey
+
+/**
+ * Ce que la dérive du vol garde après un cran de la branche « vol » (cf.
+ * `beeDrift`). Six crans en laissent 65 % : assez pour que le premier achat se
+ * sente, pas assez pour que le pilotage cesse d'être un métier.
+ */
+const DRIFT_PER_FLIGHT = 0.93
 
 /** Effectif par caste. Une partie commence avec l'unique butineuse du joueur. */
 export type BeePopulation = Record<BeeKindId, number>
@@ -103,14 +113,63 @@ export class GameState {
     return n
   }
 
+  /**
+   * Une alvéole UNIQUE est-elle bâtie ? Les jalons et les pièges n'ont qu'un
+   * rang : demander leur niveau n'aurait pas de sens, on demande s'ils sont là.
+   */
+  has(kind: UpgradeKind): boolean {
+    return this.levelOf(kind) > 0
+  }
+
   /** Contenance de la réserve, améliorations comprises (courbe quadratique). */
   get nectarCapacity(): number {
     return getNectarCapacity(this.levelOf('storage'))
   }
 
-  /** Multiplicateur de vitesse de vol de la butineuse. */
+  /**
+   * Multiplicateur de vitesse de vol de la butineuse.
+   *
+   * Deux branches y contribuent, ADDITIVEMENT : le vol du début de partie par
+   * pas de 4 %, l'aérodynamisme par pas de 0,5 %. Additivement et non
+   * multiplicativement, pour que la vingt-quatrième alvéole d'aérodynamisme pèse
+   * exactement autant que la première — une branche de grind ne doit pas
+   * s'emballer, elle doit durer.
+   */
   get flightMult(): number {
-    return 1 + this.levelOf('flight') * UPGRADE_EFFECT.flightStep
+    return (
+      1 +
+      this.levelOf('flight') * UPGRADE_EFFECT.flightStep +
+      this.levelOf('aerodynamics') * UPGRADE_EFFECT.aeroStep
+    )
+  }
+
+  /**
+   * BUTINEUSES EFFECTIVES : celles qui volent le trajet, dessinées ou non.
+   *
+   * Aux abeilles réelles s'ajoutent les FANTÔMES — la Reine Mère en verse un par
+   * cran, la Danse Frénétique un par tranche d'ouvrières. Ce ne sont pas des
+   * abeilles : elles n'apparaissent pas dans les effectifs, elles ne coûtent
+   * rien à nourrir, elles multiplient simplement ce que rapporte un tour. Le
+   * jeu ne dessine de toute façon qu'une butineuse à l'écran, quelle que soit
+   * leur nombre (cf. `GameScene.deposit`) : la fiction du fantôme ne coûte donc
+   * rien à la lisibilité.
+   */
+  get foragerCount(): number {
+    const ghosts = this.levelOf('queenMother') * UPGRADE_EFFECT.ghostPerQueenTier
+    const dance = this.has('frenzyDance')
+      ? Math.floor(this.bees.worker / UPGRADE_EFFECT.danceWorkersPerGhost)
+      : 0
+    return this.bees.forager + ghosts + dance
+  }
+
+  /** Nectar ADDITIF rapporté par un vol, quoi qu'il arrive (piège « Pollen lourd »). */
+  get flatNectarPerLap(): number {
+    return this.has('heavyPollen') ? UPGRADE_EFFECT.heavyPollenNectar : 0
+  }
+
+  /** Désaccord du son de butinage, en cents (cosmétique « Bourdonnement sourd »). */
+  get forageDetune(): number {
+    return this.has('dullBuzz') ? UPGRADE_EFFECT.dullBuzzDetune : 0
   }
 
   /** Multiplicateur de vitesse du calendrier des fleurs. */
@@ -148,7 +207,7 @@ export class GameState {
     // ses voisines. Sans cette ligne, un héritage en miel disparaîtrait de
     // l'écran tant que la colonie neuve n'a pas d'ouvrière.
     if (this.comb.has(cell.id)) return true
-    if (cell.currency === 'honey' && !this.canBrew) return false
+    if (cell.cost.honey !== undefined && !this.canBrew) return false
     for (const [dq, dr] of NEIGHBORS) {
       const q = cell.q + dq
       const r = cell.r + dr
@@ -160,13 +219,17 @@ export class GameState {
     return false
   }
 
-  /** Ce dont dispose le joueur dans la monnaie d'une alvéole. */
-  balanceFor(cell: CombCell): number {
-    return cell.currency === 'honey' ? this.honey : this.nectar
+  /**
+   * La bourse suffit-elle ? Un prix mixte demande les DEUX monnaies à la fois :
+   * il n'y a pas de conversion dans ce jeu, et une alvéole mixte ne s'achète pas
+   * à moitié.
+   */
+  canAfford(cell: CombCell): boolean {
+    return this.honey >= (cell.cost.honey ?? 0) && this.nectar >= (cell.cost.nectar ?? 0)
   }
 
   canBuy(cell: CombCell): boolean {
-    return !this.owns(cell) && this.isRevealed(cell) && this.balanceFor(cell) >= cell.cost
+    return !this.owns(cell) && this.isRevealed(cell) && this.canAfford(cell)
   }
 
   /** Une alvéole visible et payable quelque part : le rayon a quelque chose à dire. */
@@ -174,11 +237,11 @@ export class GameState {
     return COMB.some((cell) => this.canBuy(cell))
   }
 
-  /** Achète une alvéole dans SA monnaie. Renvoie faux si elle n'est pas à portée. */
+  /** Achète une alvéole dans SES monnaies. Renvoie faux si elle n'est pas à portée. */
   buyCell(cell: CombCell): boolean {
     if (!this.canBuy(cell)) return false
-    if (cell.currency === 'honey') this.honey -= cell.cost
-    else this.nectar -= cell.cost
+    this.honey -= cell.cost.honey ?? 0
+    this.nectar -= cell.cost.nectar ?? 0
     this.comb.add(cell.id)
     this.grantCellBees(cell)
     return true
@@ -197,8 +260,9 @@ export class GameState {
    */
   grantCellBees(cell: CombCell): void {
     if (cell.bees === undefined) return
-    if (cell.kind === 'foragers') this.bees.forager += cell.bees
-    if (cell.kind === 'workers') this.bees.worker += cell.bees
+    const kind = CELL_BEE_KIND[cell.kind]
+    if (!kind) return
+    this.bees[kind] += cell.bees
   }
 
   // --- La lignée (prestige) -----------------------------------------------
@@ -289,7 +353,7 @@ export class GameState {
       honey: this.lineageLevel('honeyBlood'),
     }
     for (const cell of COMB) {
-      if (cell.tier > tiers[cell.currency] || this.comb.has(cell.id)) continue
+      if (cell.tier > tiers[mainCurrency(cell)] || this.comb.has(cell.id)) continue
       this.comb.add(cell.id)
       this.grantCellBees(cell)
     }
@@ -319,7 +383,9 @@ export class GameState {
     // La borne est le rayon entier : chaque tour bâtit exactement une alvéole,
     // il ne peut donc pas y en avoir plus que d'alvéoles.
     while (built < COMB.length) {
-      const next = COMB.filter((cell) => this.canBuy(cell)).sort((a, b) => a.cost - b.cost)[0]
+      const next = COMB.filter((cell) => this.canBuy(cell)).sort(
+        (a, b) => costRank(a.cost) - costRank(b.cost),
+      )[0]
       if (!next) break
       this.buyCell(next)
       built++
@@ -327,14 +393,49 @@ export class GameState {
     return built
   }
 
-  /** Multiplicateur du lissage de l'abeille : plus grand = moins d'inertie. */
+  /**
+   * Multiplicateur du lissage de l'abeille : plus grand = moins d'inertie.
+   *
+   * L'INERTIE ZÉRO en supprime 95 % d'un coup. C'est le seul nœud du jeu qui
+   * touche au geste lui-même, et c'est assumé : il ne rapporte rien, il rend
+   * traçable le trajet que le joueur avait en tête et n'arrivait pas à voler. Il
+   * coûte en conséquence — à ce prix-là, le joueur a déjà prouvé qu'il savait
+   * piloter avec l'inertie.
+   */
   get beeLerp(): number {
-    return BEE.lerp * LINEAGE_EFFECT.steadyLerpMult ** this.lineageLevel('steadyWings')
+    const steady = LINEAGE_EFFECT.steadyLerpMult ** this.lineageLevel('steadyWings')
+    const zero = this.has('zeroInertia') ? UPGRADE_EFFECT.zeroInertiaMult : 1
+    return BEE.lerp * steady * zero
   }
 
-  /** Couperet du tour, rallonges de la lignée comprises. */
+  /**
+   * Amplitude de la DÉRIVE du vol piloté, en multiple de `BEE.driftPx`.
+   *
+   * Elle vaut 1 sur une colonie nue, et elle FOND à mesure qu'on améliore le vol.
+   * Deux facteurs, et ce sont exactement ceux qui tiennent l'abeille :
+   *
+   *   - le LISSAGE (`beeLerp`) : la dérive lui est inversement proportionnelle,
+   *     donc « ailes sûres » et l'INERTIE ZÉRO l'effacent en même temps qu'ils
+   *     effacent l'inertie — à l'inertie zéro il reste 5 % de flottement, ce qui
+   *     revient à voler droit ;
+   *   - la branche VOL : 7 % de dérive en moins par cran. C'est là que se gagne le
+   *     sentiment de progrès, parce que c'est le premier achat que le joueur fait
+   *     et qu'il le sent AU GESTE, pas dans un compteur.
+   *
+   * Un premier trajet se vole donc de travers, et c'est le sujet : le rayon ne
+   * vend pas seulement des chiffres, il rend la main.
+   */
+  get beeDrift(): number {
+    return (BEE.lerp / this.beeLerp) * DRIFT_PER_FLIGHT ** this.levelOf('flight')
+  }
+
+  /** Couperet du tour, rallonges de la lignée et de la frénésie comprises. */
   get maxLapMs(): number {
-    return ROUTE.maxDurationMs + this.lineageLevel('longDays') * LINEAGE_EFFECT.longDayMs
+    return (
+      ROUTE.maxDurationMs +
+      this.lineageLevel('longDays') * LINEAGE_EFFECT.longDayMs +
+      this.levelOf('frenzy') * UPGRADE_EFFECT.frenzyMs
+    )
   }
 
   /**
@@ -350,11 +451,20 @@ export class GameState {
   get fieldTuning(): FieldTuning {
     return {
       count: FLOWER.count + this.lineageLevel('wideMeadow') * LINEAGE_EFFECT.meadowPerTier,
-      restMs: FLOWER.restMs * LINEAGE_EFFECT.quickRootsMult ** this.lineageLevel('quickRoots'),
+      restMs:
+        FLOWER.restMs *
+        LINEAGE_EFFECT.quickRootsMult ** this.lineageLevel('quickRoots') *
+        UPGRADE_EFFECT.deepRootsMult ** this.levelOf('deepRoots'),
       baseNectar:
         FLOWER.baseNectar * LINEAGE_EFFECT.richBloomMult ** this.lineageLevel('richBloom'),
       perfectFreshness:
         FLOWER.perfectFreshness - this.lineageLevel('keenEye') * LINEAGE_EFFECT.keenEyeFreshness,
+      // Les COROLLES MUTANTES font passer le « Perfect » de x2 à x3. Elles ne
+      // touchent qu'au pilotage : un trajet qui ne cueille rien au bon moment
+      // n'en tire pas un nectar de plus.
+      perfectMultiplier: this.has('mutantCorollas')
+        ? UPGRADE_EFFECT.mutantPerfect
+        : FLOWER.perfectMultiplier,
     }
   }
 
@@ -372,9 +482,16 @@ export class GameState {
    * la reine qui ouvre la lignée — définitivement (cf. `canSpendJelly`).
    */
   swarm(): void {
+    // L'ESSAIMAGE DORÉ : la lignée emporte un dixième du miel. Il est relevé
+    // AVANT la remise à zéro et reversé après — l'essaimage reste ce qu'il est
+    // (tout est perdu), et ce nœud-là est l'unique exception, écrite en un seul
+    // endroit. Il pousse à RETARDER le prestige : plus la ruche est riche au
+    // moment du départ, plus la suivante démarre haut.
+    const kept = this.has('goldenSwarm') ? this.honey * UPGRADE_EFFECT.goldenSwarmKeep : 0
     this.queens += 1
     this.resetColony()
     this.applyLineage()
+    this.honey = kept
     this.save()
   }
 
@@ -427,7 +544,15 @@ export class GameState {
    */
   get honeyPerBatch(): number {
     const ripening = 1 + this.levelOf('ripening') * UPGRADE_EFFECT.ripeningStep
-    return Math.round(this.bees.worker * HONEY.honeyPerWorker * ripening * 100) / 100
+    // La MATURATION LENTE et la SYNERGIE OUVRIÈRE s'ajoutent chacune à leur
+    // propre facteur, et les deux facteurs se multiplient : la maturation paie
+    // le lot, la synergie paie l'ouvrière. Une ruche vide ne tire donc rien de
+    // la synergie, ce qui est exactement ce que le mot veut dire.
+    const slow = 1 + this.levelOf('slowRipening') * UPGRADE_EFFECT.slowHoneyStep
+    const synergy = 1 + this.levelOf('synergy') * UPGRADE_EFFECT.synergyStep
+    return (
+      Math.round(this.bees.worker * HONEY.honeyPerWorker * ripening * slow * synergy * 100) / 100
+    )
   }
 
   /**
@@ -439,9 +564,27 @@ export class GameState {
     return Math.round(HONEY.nectarPerBatch * thrift)
   }
 
-  /** Durée d'un lot, la ventilation déduite. */
+  /**
+   * Durée d'un lot. Trois branches s'y disputent, et c'est le RÉGLAGE du jeu de
+   * long terme : la ventilation et les micro-siestes la raccourcissent, la
+   * maturation lente l'allonge en échange de miel. Le joueur qui achète tout
+   * n'obtient donc pas « le meilleur » — il obtient ce qu'il a choisi.
+   */
   get batchMs(): number {
-    return HONEY.batchMs / (1 + this.levelOf('fanning') * UPGRADE_EFFECT.fanningStep)
+    const fanning = 1 + this.levelOf('fanning') * UPGRADE_EFFECT.fanningStep
+    const naps = UPGRADE_EFFECT.microNapMult ** this.levelOf('microNaps')
+    const slow = 1 + this.levelOf('slowRipening') * UPGRADE_EFFECT.slowBatchStep
+    return (HONEY.batchMs / fanning) * naps * slow
+  }
+
+  /**
+   * Miel qu'il faut accumuler pour une dose de gelée royale. La DIGESTION ROYALE
+   * l'abaisse de 20 %, donc toute la lignée avance d'un cinquième plus vite —
+   * c'est le seul nœud du rayon qui accélère le méta-jeu, et il se paie au
+   * plafond de nectar.
+   */
+  get jellyThreshold(): number {
+    return HONEY.jellyThreshold * (this.has('royalDigestion') ? UPGRADE_EFFECT.digestionMult : 1)
   }
 
   /** La ruche sait-elle transformer ? (au moins une ouvrière) */
@@ -479,8 +622,9 @@ export class GameState {
 
     this.honeySinceJelly += amount
     let jelly = 0
-    while (this.honeySinceJelly >= HONEY.jellyThreshold) {
-      this.honeySinceJelly -= HONEY.jellyThreshold
+    const threshold = this.jellyThreshold
+    while (this.honeySinceJelly >= threshold) {
+      this.honeySinceJelly -= threshold
       jelly += HONEY.jellyPerThreshold
     }
     this.royalJelly += jelly

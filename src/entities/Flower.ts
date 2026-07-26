@@ -27,9 +27,20 @@ const BAR_H = 4
  */
 const BAR_RISE = 50
 
+/**
+ * Avancement du bourgeon à partir duquel l'HORLOGE FLORALE s'allume. Le nœud ne
+ * promet pas « la fleur va s'ouvrir un jour » — ça, la pousse le dit déjà — mais
+ * « elle s'ouvre dans un instant, tourne maintenant ». Le repère doit donc
+ * arriver assez tard pour qu'on ait le temps d'y aller, pas plus.
+ */
+const CLOCK_FROM = 0.7
+/** Côté du losange de l'horloge florale, en px monde. */
+const CLOCK_SIZE = 7
+
 export class Flower extends Phaser.GameObjects.Sprite {
   private readonly barBg: Phaser.GameObjects.Rectangle
   private readonly barFill: Phaser.GameObjects.Rectangle
+  private readonly clock: Phaser.GameObjects.Rectangle
 
   constructor(scene: Phaser.Scene, slot: Slot, scale: number, depth: number) {
     super(scene, slot.x, slot.y, TEX.objects, budFrame(0))
@@ -49,14 +60,30 @@ export class Flower extends Phaser.GameObjects.Sprite {
       .rectangle(slot.x - BAR_W / 2, barY, BAR_W, BAR_H, PALETTE.lime)
       .setOrigin(0, 0.5)
       .setDepth(depth)
+
+    // Le repère de l'horloge florale : un losange posé là où la corolle va
+    // s'ouvrir. Il ne bat pas au temps réel mais à l'avancement du bourgeon —
+    // le pré doit rester la même image à la même seconde du tour, sinon deux
+    // relectures du même trajet ne se ressembleraient plus.
+    this.clock = scene.add
+      .rectangle(slot.x, barY, CLOCK_SIZE, CLOCK_SIZE, PALETTE.amber)
+      .setAngle(45)
+      .setDepth(depth)
+      .setVisible(false)
   }
 
-  /** Aligne l'affichage sur l'état calculé pour l'instant courant. */
-  sync(state: SlotState): void {
+  /**
+   * Aligne l'affichage sur l'état calculé pour l'instant courant.
+   *
+   * @param clock la ruche possède-t-elle l'HORLOGE FLORALE ? Elle seule fait
+   *   dire au bourgeon qu'il est sur le point de s'ouvrir.
+   */
+  sync(state: SlotState, clock = false): void {
     if (state.phase === 'gone') {
       this.setVisible(false)
       this.barBg.setVisible(false)
       this.barFill.setVisible(false)
+      this.clock.setVisible(false)
       return
     }
 
@@ -73,8 +100,18 @@ export class Flower extends Phaser.GameObjects.Sprite {
       this.setAlpha(0.8)
       this.barBg.setVisible(false)
       this.barFill.setVisible(false)
+      const near = clock && state.growth >= CLOCK_FROM
+      this.clock.setVisible(near)
+      // Il enfle jusqu'à l'ouverture : le losange dit COMBIEN il reste, pas
+      // seulement qu'il reste peu.
+      if (near) {
+        const t = (state.growth - CLOCK_FROM) / (1 - CLOCK_FROM)
+        this.clock.setScale(0.6 + 0.4 * t).setAlpha(0.5 + 0.5 * t)
+      }
       return
     }
+
+    this.clock.setVisible(false)
 
     // Corolle ouverte : elle pâlit à mesure qu'elle se fane, et sa barre se
     // vide. Le bon moment pour la butiner se lit d'un coup d'œil.

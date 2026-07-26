@@ -133,6 +133,20 @@ export class GameScene extends Phaser.Scene {
       .setOrigin(0.5, 0)
       .setDepth(DEPTH.flowers)
 
+    // « Cire brillante » : la ruche accroche la lumière. Ça ne change rien à
+    // rien — c'est le sujet du nœud — mais ça se voit, et c'est tout ce qu'on
+    // lui demande. Les étincelles vivent hors du calendrier du tour : elles ne
+    // touchent ni le pré ni l'abeille, donc elles ne faussent aucune relecture.
+    if (gameState.has('shinyWax')) {
+      this.time.addEvent({
+        delay: 420,
+        loop: true,
+        callback: () => {
+          this.sparkle()
+        },
+      })
+    }
+
     // Le pré : des emplacements semés une fois pour toutes, dont le calendrier
     // est identique à chaque tour (cf. systems/FlowerField).
     this.fieldFlowers = this.makeFlowerField()
@@ -351,6 +365,9 @@ export class GameScene extends Phaser.Scene {
     this.fieldFlowers.advance(delta * gameState.growthMult)
     this.bee.speedMult = gameState.flightMult
     this.bee.lerpMult = gameState.beeLerp / BEE.lerp
+    // La dérive n'existe que sous la main du joueur : c'est elle qu'on apprend à
+    // corriger, et c'est elle que les améliorations de vol calment.
+    this.bee.driftMult = this.mode === 'recording' ? gameState.beeDrift : 0
 
     if (this.fullPopTimer > 0) this.fullPopTimer -= delta
 
@@ -372,7 +389,7 @@ export class GameScene extends Phaser.Scene {
     // Affichage du pré, en dernier : les fleurs butinées cette frame ont déjà
     // disparu du calendrier.
     this.flowers.forEach((f, i) => {
-      f.sync(this.fieldFlowers.stateOf(i))
+      f.sync(this.fieldFlowers.stateOf(i), gameState.has('floralClock'))
     })
 
     this.honeyGauge.update()
@@ -427,7 +444,11 @@ export class GameScene extends Phaser.Scene {
 
     this.bee.nectar += nectar
 
-    audio.playSfx(SND.forage, this.mode === 'recording' ? 1 : FORAGE_REPLAY_GAIN)
+    audio.playSfx(
+      SND.forage,
+      this.mode === 'recording' ? 1 : FORAGE_REPLAY_GAIN,
+      gameState.forageDetune,
+    )
     this.hud.popText(
       x,
       y - 56,
@@ -461,7 +482,9 @@ export class GameScene extends Phaser.Scene {
     // Les butineuses supplémentaires (nœud « foragers ») volent le même trajet
     // sans être dessinées : une seule abeille à l'écran reste lisible, et le
     // tour de référence est le même pour toutes.
-    const carried = gained * gameState.bees.forager
+    // « Pollen lourd » ajoute une pincée fixe par butineuse et par tour. C'est
+    // volontairement dérisoire : le nœud est un piège, pas une amélioration.
+    const carried = (gained + gameState.flatNectarPerLap) * gameState.foragerCount
     const stored = gameState.addNectar(carried)
     const full = stored < carried
     this.hud.popText(
@@ -506,6 +529,29 @@ export class GameScene extends Phaser.Scene {
         HEX.jelly,
       )
     }
+  }
+
+  /** Une étincelle sur la cire (cosmétique « Cire brillante »). */
+  private sparkle(): void {
+    const half = this.hive.width / 2
+    const p = this.add
+      .image(
+        this.hive.x + Phaser.Math.Between(-half, half),
+        this.hive.y - Phaser.Math.Between(0, this.hive.height),
+        TEX.pollen,
+      )
+      .setDepth(DEPTH.pollen)
+      .setTint(PALETTE.lime)
+      .setScale(0.5)
+    this.tweens.add({
+      targets: p,
+      scale: 1,
+      alpha: 0,
+      duration: 600,
+      onComplete: () => {
+        p.destroy()
+      },
+    })
   }
 
   private spawnPollen(x: number, y: number): void {

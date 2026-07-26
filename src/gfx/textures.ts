@@ -388,13 +388,15 @@ const ICON_BEE = [
 /**
  * Rayon (centre → SOMMET) d'une alvéole du rayon d'améliorations, en px.
  *
- * Il n'est pas libre : le rayon entier doit tenir dans sa fenêtre À L'ÉCHELLE 1.
- * Le dézoomer pour l'y faire entrer rendrait la police bitmap floue — un demi-
- * pixel de monogram n'existe pas. Le rayon fait 11 R de haut (3 alvéoles de part
- * et d'autre de la ruche) pour une fenêtre de 378 px : 34 est le plus grand
- * rayon qui passe.
+ * Ce qui le fixe est le TEXTE, pas la fenêtre. Le rayon fait cent cinquante-six
+ * alvéoles : il ne tient plus dans sa fenêtre depuis longtemps, il se glisse
+ * (§7.1 du GDD) — et l'échelle 1 reste obligatoire, un demi-pixel de monogram
+ * n'existe pas. Reste donc à ce que le NOM d'une branche tienne dans sa cire :
+ * une alvéole pointe en haut fait `√3·R` de large, et le monogram de 12 tire
+ * environ 6 px par caractère. À R = 40, l'alvéole fait 69 px, soit onze
+ * caractères — la longueur maximale des noms de `UPGRADE_STR`.
  */
-export const HEX_R = 34
+export const HEX_R = 40
 /** Largeur d'une alvéole pointe en haut : de plat à plat, et non de pointe à pointe. */
 const HEX_W = Math.ceil(Math.sqrt(3) * HEX_R)
 /** Hauteur d'une alvéole pointe en haut. */

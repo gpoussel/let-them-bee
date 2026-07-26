@@ -67,9 +67,11 @@ class AudioManager {
    * @param gain atténuation relative au volume SFX du joueur (1 = plein pot).
    *   C'est ce qui distingue un geste du joueur d'un geste rejoué par le jeu :
    *   le trajet en boucle tourne en fond, il ne doit pas couvrir la partie.
+   * @param detune désaccord en cents (100 = un demi-ton). Sert au nœud
+   *   « Bourdonnement sourd », qui ne fait rien d'autre que baisser le bourdon.
    */
-  playSfx(key: string, gain = 1): void {
-    this.manager?.play(key, { volume: settings.sfxVolume * gain })
+  playSfx(key: string, gain = 1, detune = 0): void {
+    this.manager?.play(key, { volume: settings.sfxVolume * gain, detune })
   }
 
   /**

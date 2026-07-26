@@ -34,6 +34,8 @@ export interface FieldTuning {
   baseNectar: number
   /** Fraîcheur au-delà de laquelle la récolte est « Perfect ». */
   perfectFreshness: number
+  /** Ce que vaut un « Perfect » (x2, ou x3 avec les corolles mutantes). */
+  perfectMultiplier: number
 }
 
 /** Le pré tel que `config/balance` le décrit, sans aucun héritage. */
@@ -42,6 +44,7 @@ export const BASE_TUNING: FieldTuning = {
   restMs: FLOWER.restMs,
   baseNectar: FLOWER.baseNectar,
   perfectFreshness: FLOWER.perfectFreshness,
+  perfectMultiplier: FLOWER.perfectMultiplier,
 }
 
 /**
@@ -107,7 +110,7 @@ export function nectarFrom(
   // Une corolle qui vient de s'ouvrir paie plein tarif ; une fleur sur le
   // point de faner ne rapporte presque plus, mais jamais rien.
   let nectar = Math.max(1, Math.round(tuning.baseNectar * kind.value * state.freshness))
-  if (perfect) nectar *= FLOWER.perfectMultiplier
+  if (perfect) nectar *= tuning.perfectMultiplier
   return { nectar, perfect }
 }
 

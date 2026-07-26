@@ -44,6 +44,15 @@ export class Bee extends Phaser.GameObjects.Sprite {
    * la relecture d'un trajet passe par `moveTo`, qui ne lisse rien.
    */
   lerpMult = 1
+  /**
+   * Amplitude de la DÉRIVE, en multiple de `BEE.driftPx`. 0 = l'abeille va droit
+   * où on la montre. Comme `lerpMult`, elle ne concerne que le PILOTAGE : la
+   * scène la met à zéro hors enregistrement, sinon la relecture tremblerait
+   * autour d'un trajet qu'elle est censée refaire au pixel.
+   */
+  driftMult = 0
+  /** Horloge de la dérive, en secondes de vol piloté. */
+  private driftTime = 0
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, snap(x), snap(y), TEX.bee)
@@ -88,10 +97,40 @@ export class Bee extends Phaser.GameObjects.Sprite {
     super.preUpdate(time, delta)
     const dt = delta / 1000
 
+    // La dérive déplace la CIBLE, pas l'abeille : le vol reste lissé, il vise
+    // simplement à côté. C'est ce qui la fait flotter au lieu de vibrer.
+    //
+    // Elle est SURTOUT LATÉRALE et elle CROÎT AVEC LA DISTANCE au pointeur. Les
+    // deux vont ensemble et disent la même chose : une abeille qu'on envoie loin
+    // part de travers et arrive à côté, alors qu'un pointeur posé juste devant
+    // elle la tient. Une dérive d'amplitude fixe ne se voyait pas — à pleine
+    // vitesse, dix-huit pixels de flottement passent sous le geste ; ce qui se
+    // voit, c'est l'écart au but, et il faut donc qu'il grandisse avec la course.
+    // C'est aussi la bonne leçon de pilotage : on mène l'abeille, on ne la
+    // téléporte pas.
+    let tx = this.target.x
+    let ty = this.target.y
+    if (this.driftMult > 0) {
+      this.driftTime += dt
+      const a = this.driftTime * BEE.driftHzA * Math.PI * 2
+      const b = this.driftTime * BEE.driftHzB * Math.PI * 2
+      const toX = this.target.x - this.fx
+      const toY = this.target.y - this.fy
+      const reach = Math.hypot(toX, toY)
+      const amp = BEE.driftPx * this.driftMult * (BEE.driftNear + reach / BEE.driftFullPx)
+      // Composante latérale : perpendiculaire à la course, donc un écart de cap
+      // et non un tremblement. Elle domine, et c'est elle qu'on apprend à corriger.
+      const swerve = (Math.sin(a) + Math.sin(b * 1.7) * 0.5) * amp
+      const nx0 = reach > 1 ? -toY / reach : 0
+      const ny0 = reach > 1 ? toX / reach : 0
+      tx += nx0 * swerve + Math.sin(b) * amp * BEE.driftFloat
+      ty += ny0 * swerve + Math.cos(a * 1.3) * amp * BEE.driftFloat
+    }
+
     // Lissage exponentiel vers la cible (indépendant du framerate).
     const t = 1 - Math.exp(-BEE.lerp * this.lerpMult * dt)
-    const nx = Phaser.Math.Linear(this.fx, this.target.x, t)
-    const ny = Phaser.Math.Linear(this.fy, this.target.y, t)
+    const nx = Phaser.Math.Linear(this.fx, tx, t)
+    const ny = Phaser.Math.Linear(this.fy, ty, t)
 
     // Clamp de la vitesse max.
     const maxStep = BEE.maxSpeed * this.speedMult * dt
