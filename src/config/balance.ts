@@ -1,6 +1,7 @@
 // Toutes les valeurs de tuning GAMEPLAY, centralisées pour un équilibrage rapide.
-// Voir le GDD : section "Paramètres de gameplay".
-// (Métadonnées/version -> config/game.ts ; couleurs/UI -> config/theme.ts.)
+// Le POURQUOI de ces valeurs est dans docs/GDD.md — à mettre à jour avec toute
+// modification de gameplay (cf. CLAUDE.md).
+// (Métadonnées/version -> config/game.ts ; couleurs/UI -> ui/theme.ts.)
 
 export const BEE = {
   maxSpeed: 320, // px/s

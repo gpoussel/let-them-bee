@@ -1,5 +1,21 @@
 # Let Them Bee — conventions du projet
 
+## GDD
+
+Le game design document est `docs/GDD.md`. Il décrit le jeu **tel qu'il est**,
+pas tel qu'il fut imaginé.
+
+**Tout changement de gameplay doit être répercuté dans le GDD, dans le même
+changement** — pas après coup. Sont concernés : une mécanique ajoutée, retirée ou
+retournée ; une ressource, une caste, une branche ou une alvéole du rayon ; une
+règle d'équilibrage structurante (plafonds, critère de comparaison d'un trajet,
+ordre de dévoilement) ; une décision de design écartée (section 13) ; le passage
+d'une fonctionnalité de « manquant » à « fait » (section 12).
+
+Un simple retuning de valeurs ne s'y écrit pas : les chiffres vivent dans
+`src/config/`, le GDD dit **pourquoi** ils sont là. S'il faut changer un chiffre
+et que la raison écrite ne tient plus, c'est la raison qu'on met à jour.
+
 ## Palette
 
 La palette du jeu est fixée à ces 5 couleurs. Toute nouvelle couleur (sprite,
