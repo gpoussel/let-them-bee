@@ -80,7 +80,12 @@ export const ROUTE = {
   maxDurationMs: 10000,
   /** Seuil à partir duquel le compteur passe au rouge : la fin approche. */
   warnMs: 8000,
-  /** Durée minimale d'un tour retenu (évite d'enregistrer un aller-retour vide). */
+  /**
+   * Durée minimale d'un tour BREDOUILLE. Elle ne s'applique qu'aux tours sans
+   * nectar : un tour qui rapporte compte quelle que soit sa durée (le critère
+   * est le nectar par seconde), ce seuil n'est là que pour qu'un aller-retour
+   * vide ne s'installe pas comme premier trajet de référence.
+   */
   minDurationMs: 1500,
 } as const
 
