@@ -3,6 +3,7 @@ import {
   BEE_KINDS,
   FLOWER,
   getNectarCapacity,
+  HIVE,
   HONEY,
   ROUTE,
   type BeeKindId,
@@ -160,6 +161,21 @@ export class GameState {
       ? Math.floor(this.bees.worker / UPGRADE_EFFECT.danceWorkersPerGhost)
       : 0
     return this.bees.forager + ghosts + dance
+  }
+
+  /**
+   * PÉRIMÈTRE DE DÉPÔT, en px : la distance à la ruche à laquelle un tour se clôt.
+   *
+   * C'est la seule grandeur du jeu qui joue sur le DIVISEUR. Un tour est jugé au
+   * nectar par seconde ; élargir la zone de dépôt ne fait pas rentrer un nectar
+   * de plus, elle clôt le tour une fraction de seconde plus tôt. À butin égal, le
+   * même trajet vaut donc mieux — mais SEULEMENT s'il est revolé : le trajet
+   * enregistré, lui, a été volé jusqu'à l'ancien périmètre et garde sa durée.
+   * C'est ce qui ramène le joueur à la souris en fin de partie, et c'est tout
+   * l'objet des guerrières : elles ne se battent pas, elles tiennent l'espace.
+   */
+  get depositRadius(): number {
+    return HIVE.depositRadius + this.bees.warrior * UPGRADE_EFFECT.guardRadiusPx
   }
 
   /** Nectar ADDITIF rapporté par un vol, quoi qu'il arrive (piège « Pollen lourd »). */

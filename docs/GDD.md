@@ -91,6 +91,18 @@ jeu est un incrémental, le vol en est le moteur, pas le sujet.
 La cible de l'abeille est bornée au pré moins une marge : le pointeur peut aller
 survoler l'UI sans que la butineuse s'échappe.
 
+**La ruche est au CENTRE du pré**, dans une clairière de 92 px où aucune fleur ne
+pousse. Au centre, parce qu'un départ en coin faisait payer à chaque tour le même
+long transit et rendait la moitié du pré mécaniquement moins bonne que l'autre :
+au milieu, le vol de retour est court dans toutes les directions, et le périmètre
+de garde (§7.6) devient un cercle qu'on peut frôler de n'importe où. La clairière,
+parce qu'une corolle sous le panier serait invisible — et parce qu'elle est plus
+large que le périmètre de dépôt le plus large qu'on puisse acheter (86 px) : une
+fleur butinée à l'instant même où le tour se clôt ne dirait pas au joueur si elle
+a compté. Les emplacements qui y tombent sont **re-tirés**, pas supprimés : le pré
+garde son compte de fleurs, elles se serrent simplement en couronne autour de la
+ruche.
+
 ### 4.2 Cycle d'une fleur
 
 `bud` (pousse) → `bloom` (floraison) → `gone` (fanée) → repos → repousse.
@@ -299,11 +311,11 @@ clique ici — pas la main du navigateur : une seule main à l'écran.
 
 ### 6.2 Castes (`BEE_KINDS`, l'ordre fait foi)
 
-| Caste       | Rôle                                                            | Statut                                                           |
-| ----------- | --------------------------------------------------------------- | ---------------------------------------------------------------- |
-| **Forager** | L'abeille que l'on pilote. Ne produit rien seule.               | Effectif porté par la branche `foragers` du rayon (1 + 1 + 2)    |
-| **Worker**  | Ne quitte jamais la ruche, transforme le nectar en miel (§6.1). | Effectif porté par la branche `workers` du rayon (1 + 1 + 1 + 2) |
-| **Warrior** | Garde l'entrée.                                                 | Coquille : aucun effet, non achetable                            |
+| Caste       | Rôle                                                                                                                                  | Statut                                                           |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| **Forager** | L'abeille que l'on pilote. Ne produit rien seule.                                                                                     | Effectif porté par la branche `foragers` du rayon (1 + 1 + 2)    |
+| **Worker**  | Ne quitte jamais la ruche, transforme le nectar en miel (§6.1).                                                                       | Effectif porté par la branche `workers` du rayon (1 + 1 + 1 + 2) |
+| **Warrior** | Sécurise l'espace aérien autour de la ruche. Chaque guerrière élargit la zone de dépôt du nectar (hitbox de fin de tour) de 2 pixels. | Effectif porté par le grind et le jalon _Sentries_               |
 
 **Les effectifs se recrutent au rayon, pas dans un panneau.** `BEE_KINDS.cost`
 existe toujours mais ne sert à rien : un second guichet de recrutement à côté du
@@ -328,13 +340,13 @@ du rayon une ruche qui s'étend plutôt qu'une liste de compteurs.
 Les branches partent de quatre voisines de la ruche puis **s'incurvent** : quatre
 rayons droits auraient fait une étoile, pas un rayon de miel.
 
-**Le rayon fait 156 alvéoles, et il n'est pas écrit : il est engendré.** Trois
+**Le rayon fait 166 alvéoles, et il n'est pas écrit : il est engendré.** Trois
 populations s'y côtoient, et la façon dont chacune existe dit son rôle.
 
 | Population           | Combien | Comment elle existe                         | Pourquoi                                                                                                                    |
 | -------------------- | ------- | ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
 | **Début de partie**  | 46      | posée à la main (§7.3, §7.5)                | Son ordre de dévoilement **porte l'apprentissage du jeu** ; un ordre appris ne se recalcule pas                             |
-| **Le grind**         | 100     | huit boucles `for` (§7.6)                   | Un « Aérodynamisme XIII » écrit à la main serait une ligne de copie ; ce qui se décide est une **courbe**, en trois nombres |
+| **Le grind**         | 110     | neuf boucles `for` (§7.6)                   | Un « Aérodynamisme XIII » écrit à la main serait une ligne de copie ; ce qui se décide est une **courbe**, en trois nombres |
 | **Jalons et pièges** | 10      | effet et prix à la main, **place calculée** | Chacun retourne une règle du jeu (§7.7) ou tend un traquenard (§7.8) — mais aucune coordonnée n'est écrite deux fois        |
 
 **Une seule géométrie, une seule table d'occupation.** Les 250 alvéoles se
@@ -490,22 +502,28 @@ C'est la seule chose du jeu qui survive à une remise à zéro.
 **Les neuf branches** (paliers, du moins cher au plus cher ; prix en gelée dans
 `src/config/lineage.ts`) :
 
-| Branche       | Paliers  | Effet d'un palier                                                     |
-| ------------- | -------- | --------------------------------------------------------------------- |
-| `nectarBlood` | I·II·III | La colonie naît avec les alvéoles **nectar** du rang correspondant    |
-| `honeyBlood`  | I·II·III | La colonie naît avec les alvéoles **miel** du rang correspondant      |
-| `busyWax`     | 1        | Débloque le bouton **_Buy all_** du Rayon                             |
-| `wideMeadow`  | I·II·III | **+1 fleur** au pré par palier                                        |
-| `richBloom`   | 1        | Nectar de base de toutes les corolles **+10 %** à l'ouverture         |
-| `quickRoots`  | 1        | Repos d'une fleur fanée **raccourci** : elle repousse plus vite       |
-| `steadyWings` | 1        | Inertie de l'abeille **très légèrement** réduite (pilotage seulement) |
-| `longDays`    | I·II     | Couperet du tour **10 s → 11 s → 12 s**                               |
-| `keenEye`     | 1        | Marge du **« Perfect »** un peu élargie (0,85 → 0,80 de fraîcheur)    |
+| Branche       | Paliers  | Effet d'un palier                                                              |
+| ------------- | -------- | ------------------------------------------------------------------------------ |
+| `nectarBlood` | I·II·III | La colonie naît avec les alvéoles **nectar** du rang correspondant             |
+| `honeyBlood`  | I·II·III | La colonie naît avec les alvéoles **miel** du rang correspondant               |
+| `busyWax`     | 1        | Débloque le bouton **_Buy all_** du Rayon                                      |
+| `wideMeadow`  | I·II·III | **+1 fleur** au pré par palier                                                 |
+| `richBloom`   | I·II·III | Nectar de base de toutes les corolles **+10 %** par palier                     |
+| `quickRoots`  | I·II·III | Repos d'une fleur fanée **× 0,7** par palier : elle repousse plus vite         |
+| `steadyWings` | 1        | Inertie de l'abeille **très légèrement** réduite (pilotage seulement)          |
+| `longDays`    | I·II     | Couperet du tour **10 s → 11 s → 12 s**                                        |
+| `keenEye`     | I·II·III | Marge du **« Perfect »** élargie de 0,05 de fraîcheur par palier (0,85 → 0,70) |
 
 `honeyBlood` coûte plus cher que `nectarBlood` à rang égal : ces alvéoles-là se
 paient normalement dans une monnaie sans plafond, et les hériter saute une boucle
 entière (miel → ouvrières → miel). `busyWax` n'a qu'un palier et n'ajoute aucune
 puissance : il retire le clic répété à un joueur qui a déjà bâti ce rayon-là.
+
+`richBloom`, `quickRoots` et `keenEye` montent jusqu'au rang III. Les deux
+premières se lisent sur le pré — une corolle plus grasse, une tige qui repousse —
+et un cran unique s'y noyait dans le bruit d'un tour. `keenEye` y monte aussi,
+mais par pas de 0,05 seulement : au rang III il reste les trois quarts de la
+corolle à ne pas manquer, et la récolte double reste un geste (règle 1).
 
 **Les fleurs de `wideMeadow` sont semées EN PLUS des autres, dans le même
 tirage** : les seize premiers emplacements d'un pré à dix-neuf fleurs sont
@@ -615,7 +633,7 @@ qui décide. Le rayon, lui, se **glisse** : sa course est bornée séparément d
 quatre côtés, parce que la cire monte deux rangées de nappe au-dessus de la ruche
 et que rien ne descend autant.
 
-### 7.6 Le grind : huit branches, 100 alvéoles
+### 7.6 Le grind : neuf branches, 110 alvéoles
 
 Le début de partie apprend le jeu ; le grind est ce qu'on achète **en regardant
 ailleurs**. Aucune de ses alvéoles ne déverrouille quoi que ce soit : elles font
@@ -623,7 +641,8 @@ monter un chiffre de 0,5 % à 5 % à la fois. C'est la différence entre un **pa
 (la réserve : peu de décisions, chacune coûteuse) et un **cran** (le grind : des
 centaines, dont aucune ne se pense).
 
-Quatre thèmes, deux branches chacun. Chaque branche s'amorce contre une alvéole
+Cinq thèmes ; deux branches chacun, sauf la **défense spatiale** qui n'en a
+qu'une. Chaque branche s'amorce contre une alvéole
 du début de partie — son point d'attache appartient à une **autre** branche, il
 sert de départ sans jamais compter comme un cran : la première alvéole du grind se
 montre donc dès que la branche d'accueil est bâtie.
@@ -638,6 +657,7 @@ montre donc dès que la branche d'accueil est bâtie.
 | **Phéromones**           | _Synergy_    | **15** | +5 % sur ce que vaut une ouvrière                       | miel ×1,60 · 200 → 144 k               |
 | **Génétique**            | _Brood_      | **10** | +1 butineuse **fantôme**                                | **mixte** miel ×1,90 + nectar          |
 | **Génétique**            | _Hatchery_   | **10** | +1 ouvrière, offerte                                    | miel ×2,00 · 400 → 205 k               |
+| **Défense spatiale**     | _Patrols_    | **10** | +1 guerrière (élargit le périmètre de retour de 2 px)   | miel ×1,80 · 500 → 99 k                |
 
 **Quinze crans au plus, dix pour la moitié d'entre elles — c'est une contrainte de
 lisibilité, et elle prime sur le nombre total d'alvéoles.** Un rang s'affiche en
@@ -678,20 +698,32 @@ et ne comptent pas dans les effectifs : elles volent le même trajet et multipli
 ce qu'il rapporte. Une seule abeille à l'écran reste lisible, et le tour de
 référence reste le même pour toutes (§5.5).
 
-### 7.7 Les jalons : six alvéoles qui retournent une règle
+**Le périmètre est la seule branche qui joue sur le DIVISEUR.** Un tour est jugé
+au nectar **par seconde** : toutes les autres branches gonflent le butin,
+_Patrols_ raccourcit le vol de **retour**. Chaque guerrière élargit de 2 px la
+zone où le nectar se dépose (§8) — la butineuse ne rentre plus au centre de la
+ruche, elle franchit la ligne de garde et le tour se clôt. Rien n'est
+rétroactif : le trajet déjà enregistré a été volé jusqu'à l'ancien périmètre et
+garde sa durée. Pour toucher le raccourci, il faut **reprendre la souris**. C'est
+une branche de fin de partie qui renvoie au pilotage, et elle reste rigoureusement
+déterministe : le rayon de la hitbox est une constante pendant tout le tour,
+enregistrement comme relecture (§4.3).
+
+### 7.7 Les jalons : sept alvéoles qui retournent une règle
 
 Au **bout** de leur branche — le seul endroit du rayon où une récompense de
 plusieurs heures ne peut pas tomber trop tôt. Leur effet et leur prix sont pesés à
 la main, un par un ; leur place est calculée comme le reste.
 
-| Jalon          | Au bout de   | Ce qu'il retourne                                         | Prix                     |
-| -------------- | ------------ | --------------------------------------------------------- | ------------------------ |
-| **Waggle**     | _Brood_      | +1 butineuse fantôme par **tranche de 10 ouvrières**      | 250 k miel **+ plafond** |
-| **Mutants**    | _Deep Roots_ | Le _Perfect_ passe de ×2 à **×3**                         | 150 k miel               |
-| **Digestion**  | _Airflow_    | Seuil de gelée royale **−20 %** (50 → 40 miel)            | 80 k miel **+ plafond**  |
-| **No Inertia** | _Frenzy_     | L'inertie du pilotage manuel disparaît à **95 %**         | 500 k miel               |
-| **Gold Swarm** | _Hatchery_   | L'essaimage garde **10 %** du miel accumulé               | 300 k miel               |
-| **Bud Clock**  | _Slow Cure_  | Un bourgeon **annonce** son ouverture (losange qui enfle) | plafond de nectar        |
+| Jalon          | Au bout de   | Ce qu'il retourne                                                                                                                      | Prix                     |
+| -------------- | ------------ | -------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
+| **Waggle**     | _Brood_      | +1 butineuse fantôme par **tranche de 10 ouvrières**                                                                                   | 250 k miel **+ plafond** |
+| **Mutants**    | _Deep Roots_ | Le _Perfect_ passe de ×2 à **×3**                                                                                                      | 150 k miel               |
+| **Digestion**  | _Airflow_    | Seuil de gelée royale **−20 %** (50 → 40 miel)                                                                                         | 80 k miel **+ plafond**  |
+| **No Inertia** | _Frenzy_     | L'inertie du pilotage manuel disparaît à **95 %**                                                                                      | 500 k miel               |
+| **Gold Swarm** | _Hatchery_   | L'essaimage garde **10 %** du miel accumulé                                                                                            | 300 k miel               |
+| **Bud Clock**  | _Slow Cure_  | Un bourgeon **annonce** son ouverture (losange qui enfle)                                                                              | plafond de nectar        |
+| **Sentries**   | _Patrols_    | **+10 guerrières d'un coup.** La zone de dépôt s'élargit massivement (+20 px), permettant des trajets en « touch-and-go » très courts. | 40 k miel                |
 
 Chacun dit quelque chose que le grind ne peut pas dire :
 
@@ -709,11 +741,15 @@ Chacun dit quelque chose que le grind ne peut pas dire :
   c'est ce qui fait les meilleurs trajets. Le repère s'allume à 70 % de la pousse et
   enfle jusqu'à l'ouverture — il est piloté par l'**avancement du bourgeon**, jamais
   par l'horloge réelle, sinon deux relectures du même trajet ne se ressembleraient
-  plus (§4.3).
+  plus (§4.3) ;
+- **Sentries** est le seul jalon qui rende du **temps** sans toucher au butin :
+  vingt pixels d'un coup, c'est le passage du retour à la ruche au simple
+  frôlement. Il ne se lit que la souris à la main — acheté puis oublié, il ne
+  change pas un chiffre du trajet en cours.
 
 ### 7.8 Les pièges et les cosmétiques
 
-Quatre alvéoles posées **tout près de la ruche**, contre les branches du début de
+Trois alvéoles posées **tout près de la ruche**, contre les branches du début de
 partie. C'est indispensable : un piège qu'on ne rencontre qu'à la fin n'apprend
 rien. Aucun ne ferme quoi que ce soit — ils sont en bout de course, rien ne pousse
 derrière.
@@ -721,7 +757,6 @@ derrière.
 | Alvéole        | Contre     | Ce qu'elle fait                                | Prix        |
 | -------------- | ---------- | ---------------------------------------------- | ----------- |
 | **Heavy Load** | _Foragers_ | **+0,1 nectar par vol**, à plat, pour toujours | 2,5 k miel  |
-| **Sentries**   | _Workers_  | **+10 guerrières**, mécaniquement inutiles     | 40 k miel   |
 | **Bright Wax** | _Ripening_ | Des étincelles sur la ruche                    | 30 k nectar |
 | **Low Hum**    | _Flight_   | Le son de butinage descend de 120 cents        | 6 k miel    |
 
@@ -731,10 +766,9 @@ excellent au premier tour et risible au centième ; le prix est calé pour être
 tentant au moment où on le croise. Le joueur qui lit ce qu'il achète y coupe,
 l'autre paie sa leçon — une fois.
 
-**Sentries donne enfin un emploi à la caste _Warrior_** : monter la garde
-contre des pillards qui n'existent pas. Le jeu ne le cache pas — les guerrières
-apparaissent dans les effectifs, et c'est la seule chose qu'elles font. C'est du
-roleplay assumé, pas une promesse en attente.
+**L'alvéole _Sentries_ a été retirée des pièges.** Ce qui n'était qu'un
+investissement inutile pour le roleplay est devenu une véritable composante
+d'optimisation (voir §7.7).
 
 **Bright Wax et Low Hum ne touchent à rien.** Ce sont des achats qu'on fait pour
 soi ; les étincelles vivent hors du calendrier du tour, elles ne peuvent donc pas
@@ -760,6 +794,11 @@ verdict, le bilan du meilleur tour (durée, nectar, **nectar/s**) en trois cases
 côte à côte, le compte à rebours (visible **uniquement** pendant un
 enregistrement — un cadran mort ne dit rien à personne) et le bouton.
 
+**La barre d'espace double le bouton** : elle lance le tour (« Record a run » /
+« Beat this run ») et l'abandonne (« Give up »). Le trajet se dessine à la
+souris ; obliger la main à quitter le pré pour aller viser le bouton coûte un
+temps qui compte, puisque c'est le chrono qu'on optimise.
+
 Deux règles de dévoilement s'y appliquent, pour la même raison — **rien à
 l'écran ne doit rester affiché après avoir cessé de parler** :
 
@@ -774,6 +813,11 @@ l'écran ne doit rester affiché après avoir cessé de parler** :
   s'efface au profit de la consigne permanente : passé quelques secondes, il ne
   parle plus du tour que le joueur a en tête, et rien ne le distingue d'une
   consigne.
+
+**Le périmètre de garde.** Un fin liseré pointillé ambré dessine un cercle autour
+de la ruche. Son rayon grandit à chaque ajout de guerrière. Il ne clignote pas
+pour ne pas surcharger l'écran, mais il offre au joueur une cible visuelle exacte
+à frôler lors de l'enregistrement pour optimiser son chrono.
 
 **Le Rayon** occupe **l'union exacte des quatre cadres du bas** et se présente
 comme un cadre de plus, du même bois : regarder sa ruche est une activité du jeu,
@@ -943,15 +987,16 @@ de jeu et ça ne doit surtout pas y ressembler.
 
 **Fait** — pré déterministe et ses huit espèces · enregistrement / jugement /
 relecture du trajet · **dérive du vol piloté, qui fond avec les améliorations**
-(§5.2) · nectar plafonné · le Rayon (**156 alvéoles engendrées** : 8 branches de
-début de partie, 8 branches de grind, 6 jalons, 4 pièges et cosmétiques, sur deux
+(§5.2) · nectar plafonné · le Rayon (**166 alvéoles engendrées** : 8 branches de
+début de partie, 9 branches de grind, 7 jalons, 3 pièges et cosmétiques, sur deux
 monnaies dont des **prix mixtes**, dévoilement, achats) · **usage du miel** : effectifs et réglages des lots ·
 transformation du nectar en miel par lots, sa jauge et ses gains
 flottants · gelée royale par paliers · **la Lignée de la Reine** (9 branches, 16
 nœuds, essaimage en deux clics, guichet ouvert pour toujours ensuite, héritage
 appliqué à la colonie neuve) · HUD complet et infobulles · relances de
 première fois (trajet, rayon) et dévoilement du bandeau · écran-titre complet,
-transitions, audio, pause · **sauvegarde active** : autosave, reprise, bilan sur
+transitions, audio, pause · **le périmètre de dépôt tenu par les guerrières** (§7.6, §8) ·
+**sauvegarde active** : autosave, reprise, bilan sur
 l'écran-titre, invalidation par version · déploiements Pages + itch.
 
 **Manquant, par ordre d'impact design**
@@ -959,12 +1004,10 @@ l'écran-titre, invalidation par version · déploiements Pages + itch.
 1. **Anneau de timing « Perfect »** — la mécanique est le cœur du skill et n'a
    aucun retour visuel autour de la corolle.
 2. **La lignée a une fin** — seize nœuds, et l'arbre se solde. Le rayon, lui, en a
-   désormais 156 : le grind, les six jalons et les quatre pièges (§7.6 à §7.8)
+   désormais 166 : le grind, les sept jalons et les trois pièges (§7.6 à §7.8)
    tiennent l'horizon bien au-delà de la branche Storage. Il manque toujours un
    horizon au-delà de la **lignée**.
-3. **Warrior** — caste sans rôle : aucune menace à garder. _Sentries_ (§7.8) lui
-   donne un emploi de figuration, pas une mécanique.
-4. SFX du dépôt à la ruche et du « Perfect » ; sprites abeille/fleur/ruche encore
+3. SFX du dépôt à la ruche et du « Perfect » ; sprites abeille/fleur/ruche encore
    procéduraux ; migration des couleurs historiques vers la palette.
 
 ## 13. Décisions de design écartées (et pourquoi)
@@ -989,7 +1032,7 @@ l'écran-titre, invalidation par version · déploiements Pages + itch.
 | **Essaimage sur un clic sec**                                               | Le geste détruit une partie entière. Il s'arme d'abord (_Click again to leave_) et se désamorce seul ; une pop-up de confirmation aurait caché l'arbre dont elle parle.                                                                                                                           |
 | **Bouton d'essaimage masqué quand rien n'est payable**                      | Un bouton qui disparaît laisse croire à un bug. La gelée n'est plus perdue par l'essaimage : partir tôt reste un choix, pas un piège.                                                                                                                                                             |
 | **Lignée pannable et zoomable comme le rayon**                              | Un plan doit se lire d'un coup d'œil : neuf branches tiennent sur un écran, et un arbre qu'on explore au glissé se compare mal à lui-même.                                                                                                                                                        |
-| **Un rayon d'environ 250 alvéoles**                                         | Le brief visait 250 nœuds ; les branches de trente et cinquante crans qu'il fallait pour y arriver se lisaient « XXXVII » et s'achetaient sans qu'on choisisse rien. Le plafond est **quinze crans** (dix pour la moitié), le rayon fait 156 alvéoles, et les prix se durcissent d'autant (§7.6). |
+| **Un rayon d'environ 250 alvéoles**                                         | Le brief visait 250 nœuds ; les branches de trente et cinquante crans qu'il fallait pour y arriver se lisaient « XXXVII » et s'achetaient sans qu'on choisisse rien. Le plafond est **quinze crans** (dix pour la moitié), le rayon fait 166 alvéoles, et les prix se durcissent d'autant (§7.6). |
 | **Longueurs de branches proportionnelles au brief** (40/24/24/18…)          | Premier essai du plafond : mise à l'échelle des nombres du brief pour tomber sur 250 pile. Les rangs restaient illisibles en chiffres romains. La lisibilité prime sur le total.                                                                                                                  |
 | **Noms d'améliorations longs** (_Aerodynamics_, _Guard of Honour_…)         | Ils débordaient de l'alvéole et mordaient sur les voisines. L'alvéole est passée de 34 à 40 px de rayon (onze caractères de monogram), et les noms tiennent tous dessous : _Airflow_, _Sentries_, _Brood_, _Waggle_…                                                                              |
 | **Une abeille docile dès le premier tour**                                  | Sans dérive ni inertie sérieuse, le pilotage n'avait rien à rendre : le rayon ne vendait que des chiffres. L'abeille nue vole de travers, et chaque cran de vol lui rend un peu de main (§5.2) — c'est le seul progrès qui se sente au geste.                                                     |

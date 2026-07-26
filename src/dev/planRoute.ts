@@ -29,6 +29,8 @@ export interface PlanContext {
   speed: number
   /** Vitesse du calendrier des fleurs (améliorations comprises). */
   growthMult: number
+  /** Périmètre de dépôt : le tour se clôt là, pas au centre de la ruche. */
+  depositRadius: number
   /** Couperet du tour, en ms (rallongé par la lignée `longDays`). */
   maxLapMs?: number
 }
@@ -83,13 +85,24 @@ export function planRoute(ctx: PlanContext): Route | null {
   const timeTo = (tx: number, ty: number, fromX = x, fromY = y): number =>
     Math.ceil(Math.hypot(tx - fromX, ty - fromY) / stepPx) * ROUTE.sampleMs
 
-  /** Vole en ligne droite jusqu'au point, à vitesse maximale. */
-  const flyTo = (tx: number, ty: number): void => {
+  /** Temps de RETOUR depuis un point : jusqu'au PÉRIMÈTRE, pas jusqu'au centre. */
+  const timeHome = (fromX = x, fromY = y): number =>
+    Math.ceil(
+      Math.max(0, Math.hypot(hive.x - fromX, hive.y - fromY) - ctx.depositRadius) / stepPx,
+    ) * ROUTE.sampleMs
+
+  /**
+   * Vole en ligne droite jusqu'au point, à vitesse maximale.
+   *
+   * @param stopAt distance à laquelle on s'arrête (le périmètre de dépôt, pour le
+   * retour : un tour se clôt au liseré des guerrières, pas au centre de la ruche).
+   */
+  const flyTo = (tx: number, ty: number, stopAt = 0): void => {
     for (let guard = 0; guard < 1000; guard++) {
       const dx = tx - x
       const dy = ty - y
       const d = Math.hypot(dx, dy)
-      if (d <= 0.5) return
+      if (d <= Math.max(0.5, stopAt)) return
       const s = Math.min(stepPx, d)
       x += (dx / d) * s
       y += (dy / d) * s
@@ -113,7 +126,7 @@ export function planRoute(ctx: PlanContext): Route | null {
       const tx = slot.x
       const ty = slot.y - ctx.reachRise
       const eta = timeTo(tx, ty)
-      const home = timeTo(hive.x, hive.y, tx, ty)
+      const home = timeHome(tx, ty)
       // On cherche la PREMIÈRE date d'arrivée où la corolle sera ouverte :
       // c'est aussi la plus fraîche, donc la mieux payée.
       for (let wait = eta; wait + home <= remaining; wait += WAIT_STEP_MS) {
@@ -133,7 +146,7 @@ export function planRoute(ctx: PlanContext): Route | null {
     // Arrivé en avance : on fait du sur-place le temps que la corolle s'ouvre
     // (le butinage est vérifié à chaque pas).
     for (let waited = 0; picked === before && waited < HOVER_CAP_MS; waited += ROUTE.sampleMs) {
-      if (t + timeTo(hive.x, hive.y) >= budget) break
+      if (t + timeHome() >= budget) break
       tick()
     }
   }
@@ -141,8 +154,10 @@ export function planRoute(ctx: PlanContext): Route | null {
   if (picked === 0) return null
 
   // Retour à la ruche : c'est là que le tour se solde, à l'aller comme au
-  // bouclage de la relecture.
-  flyTo(hive.x, hive.y)
+  // bouclage de la relecture. On s'arrête AU PÉRIMÈTRE de garde — c'est là que la
+  // scène clôt le tour, et un planificateur qui rentrerait au centre produirait
+  // un trajet plus long que nécessaire (cf. `GameState.depositRadius`).
+  flyTo(hive.x, hive.y, ctx.depositRadius)
 
   const duration = (pts.length / 2 - 1) * ROUTE.sampleMs
   return { pts, duration, nectar }

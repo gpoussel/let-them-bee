@@ -125,7 +125,7 @@ export const UPGRADE_STR: Record<string, { name: string; tip: string }> = {
     tip: 'Honey capped and cured properly. The very same batch yields more of it.',
   },
 
-  // --- Le grind : huit longues branches, quatre thèmes ---------------------
+  // --- Le grind : neuf longues branches, cinq thèmes -----------------------
   microNaps: {
     name: 'Micro-naps',
     tip: 'The hive learns to sleep in snatches. Every cell shaves one more percent off a batch - a percent of a percent, forever, and it never quite reaches zero.',
@@ -158,6 +158,10 @@ export const UPGRADE_STR: Record<string, { name: string; tip: string }> = {
     name: 'Hatchery',
     tip: 'A worker walks in, free of charge, and stays. The most expensive cells of the comb - and the only ones that pay themselves back.',
   },
+  patrols: {
+    name: 'Patrols',
+    tip: 'One more warrior takes to the air, and the secured ring around the hive widens by two pixels. A lap ends the moment your forager crosses it - so the same route, flown again, ends sooner and scores higher. Nothing changes until you fly it again.',
+  },
 
   // --- Les jalons : ils changent une règle ---------------------------------
   frenzyDance: {
@@ -185,14 +189,15 @@ export const UPGRADE_STR: Record<string, { name: string; tip: string }> = {
     tip: 'You read the meadow before it opens. A bud about to bloom says so, and a lap can be drawn to arrive exactly then.',
   },
 
+  honorGuard: {
+    name: 'Sentries',
+    tip: 'Ten warriors take post at once, and the secured ring jumps twenty pixels outward. Wide enough for a touch-and-go: your forager no longer comes home, she grazes the line and the lap is closed. Take the mouse back and fly it tighter.',
+  },
+
   // --- Les pièges et cosmétiques -------------------------------------------
   heavyPollen: {
     name: 'Heavy Load',
     tip: 'A tenth of a nectar on top of every lap, flat, forever. It multiplies with nothing and it never grows. Read the number, then decide.',
-  },
-  honorGuard: {
-    name: 'Sentries',
-    tip: 'Ten warriors take up post at the entrance. No raider has ever come. They look magnificent.',
   },
   shinyWax: {
     name: 'Bright Wax',
@@ -256,7 +261,7 @@ export const BEE_STR: Record<string, { name: string; tip: string }> = {
   },
   warrior: {
     name: 'Warrior',
-    tip: 'Stands guard at the entrance and keeps the raiders out.',
+    tip: 'Never gathers and never brews. She patrols the airspace around the hive: every warrior widens the secured ring by two pixels, and a lap ends the moment your forager crosses it.',
   },
 }
 

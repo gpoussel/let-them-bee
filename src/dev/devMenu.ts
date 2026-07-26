@@ -36,6 +36,8 @@ interface DevContext {
   forageRadius: number
   speed: number
   growthMult: number
+  /** Périmètre de dépôt, en px (cf. `GameState.depositRadius`). */
+  depositRadius: number
   /** Accélérateur courant du temps de la scène (1 en jeu normal). */
   timeScale: () => number
   setTimeScale: (mult: number) => void
@@ -314,6 +316,7 @@ function programRoute(game: Phaser.Game): string {
     forageRadius: ctx.forageRadius,
     speed: ctx.speed,
     growthMult: ctx.growthMult,
+    depositRadius: ctx.depositRadius,
   })
   if (!route) return 'Aucun trajet trouvé'
 

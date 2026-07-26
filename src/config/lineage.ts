@@ -90,16 +90,26 @@ export const LINEAGE: readonly LineageNode[] = [
   { id: 'wideMeadow-3', kind: 'wideMeadow', tier: 3, cost: 7 },
 
   // Le pré, encore : des corolles plus riches et des repousses plus courtes.
+  // Trois rangs chacune, parce que ces deux branches se lisent directement sur
+  // le pré (une corolle plus grasse, une tige qui repousse) et qu'un seul cran
+  // se noyait dans le bruit d'un tour.
   { id: 'richBloom-1', kind: 'richBloom', tier: 1, cost: 3 },
+  { id: 'richBloom-2', kind: 'richBloom', tier: 2, cost: 6 },
+  { id: 'richBloom-3', kind: 'richBloom', tier: 3, cost: 11 },
   { id: 'quickRoots-1', kind: 'quickRoots', tier: 1, cost: 3 },
+  { id: 'quickRoots-2', kind: 'quickRoots', tier: 2, cost: 6 },
+  { id: 'quickRoots-3', kind: 'quickRoots', tier: 3, cost: 11 },
 
   // Le vol. Les trois nœuds les plus prudents de l'arbre (cf. règle 1) : de
   // l'inertie en moins, une seconde de plus, une fenêtre « Perfect » un peu plus
-  // large. Aucun ne vole le tour à la place du joueur.
+  // large. Aucun ne vole le tour à la place du joueur : `keenEye` monte jusqu'au
+  // rang III, mais 0,05 de fraîcheur à la fois — la fenêtre reste un geste.
   { id: 'steadyWings-1', kind: 'steadyWings', tier: 1, cost: 2 },
   { id: 'longDays-1', kind: 'longDays', tier: 1, cost: 3 },
   { id: 'longDays-2', kind: 'longDays', tier: 2, cost: 6 },
   { id: 'keenEye-1', kind: 'keenEye', tier: 1, cost: 4 },
+  { id: 'keenEye-2', kind: 'keenEye', tier: 2, cost: 8 },
+  { id: 'keenEye-3', kind: 'keenEye', tier: 3, cost: 14 },
 ] as const
 
 /** Nombre de nœuds au total (jauge de l'écran de lignée). */
@@ -123,14 +133,22 @@ export const LINEAGE_EFFECT = {
   /** Rallonge du couperet du tour, par palier (10 s → 11 s → 12 s). */
   longDayMs: 1000,
   /**
-   * Abaissement du seuil de fraîcheur d'un « Perfect » (0,85 → 0,80). La
-   * récolte double reste un geste : c'est la marge qui s'élargit, pas la règle
-   * qui tombe.
+   * Abaissement du seuil de fraîcheur d'un « Perfect », PAR PALIER (0,85 → 0,80
+   * → 0,75 → 0,70). La récolte double reste un geste : même au rang III, il
+   * reste les trois quarts de la corolle à ne pas manquer — c'est la marge qui
+   * s'élargit, pas la règle qui tombe.
    */
   keenEyeFreshness: 0.05,
-  /** Hausse du nectar de base de TOUTES les fleurs, à l'ouverture de la corolle. */
+  /**
+   * Hausse du nectar de base de TOUTES les fleurs, à l'ouverture de la corolle.
+   * Se compose par palier (+10 %, +21 %, +33 %).
+   */
   richBloomMult: 1.1,
-  /** Raccourcissement du temps de repos d'une fleur fanée (cf. `FLOWER.restMs`). */
+  /**
+   * Raccourcissement du temps de repos d'une fleur fanée (cf. `FLOWER.restMs`),
+   * par palier : il en reste 70 %, puis 49 %, puis 34 %. Le pré tourne plus
+   * vite, il ne cesse jamais de faner — une fleur cueillie se paie toujours.
+   */
   quickRootsMult: 0.7,
   /**
    * Fleurs ajoutées au pré par palier de `wideMeadow`. Le RANG vaut le total :

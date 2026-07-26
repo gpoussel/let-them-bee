@@ -17,6 +17,11 @@
 import { FLOWER, FLOWER_KINDS } from '../config/balance'
 import { random } from './rng'
 
+/** Tirages accordés à un emplacement avant qu'on le repousse de force. */
+const PLACE_TRIES = 64
+
+const clamp = (v: number, lo: number, hi: number): number => Math.min(hi, Math.max(lo, v))
+
 /**
  * Les quatre réglages du pré que la LIGNÉE décale (cf. config/lineage).
  *
@@ -140,15 +145,28 @@ export class FlowerField {
     for (let i = 0; i < tuning.count; i++) {
       let x = 0
       let y = 0
-      // Quelques essais suffisent : si l'emplacement tombe sur la ruche, on le
-      // retire plutôt que de le pousser ailleurs — le tirage reste déterministe.
+      // La ruche est AU MILIEU du pré : un tirage sur trois environ y tombe. On
+      // retire donc tant qu'il faut au lieu d'abandonner l'emplacement — sans
+      // quoi le pré perdrait le tiers de ses fleurs, et pas toujours les mêmes
+      // selon les réglages. Le tirage reste déterministe : c'est la MÊME suite
+      // pseudo-aléatoire, on en consomme simplement les termes jusqu'au premier
+      // qui convienne. Au bout de `TRIES`, l'emplacement est REPOUSSÉ hors de la
+      // clairière en ligne droite depuis la ruche : ça ne se produit pas avec le
+      // pré actuel, mais un pré étroit ne doit pas boucler ni perdre une fleur.
       let placed = false
-      for (let tries = 0; tries < 12 && !placed; tries++) {
+      for (let tries = 0; tries < PLACE_TRIES && !placed; tries++) {
         x = bounds.left + rnd() * (bounds.right - bounds.left)
         y = bounds.top + 24 + rnd() * (bounds.bottom - bounds.top - 24)
         placed = Math.hypot(x - avoid.x, y - avoid.y) >= avoid.radius
       }
-      if (!placed) continue
+      if (!placed) {
+        const len = Math.hypot(x - avoid.x, y - avoid.y)
+        // Emplacement pile sur la ruche : on pousse vers la droite, faute de cap.
+        const ux = len === 0 ? 1 : (x - avoid.x) / len
+        const uy = len === 0 ? 0 : (y - avoid.y) / len
+        x = clamp(avoid.x + ux * avoid.radius, bounds.left, bounds.right)
+        y = clamp(avoid.y + uy * avoid.radius, bounds.top + 24, bounds.bottom)
+      }
 
       const seed = Math.floor(rnd() * 0x7fffffff)
       const first = periodOf(speciesAt(seed, 0), tuning.restMs)

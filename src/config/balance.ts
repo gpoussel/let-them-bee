@@ -64,6 +64,13 @@ export const BEE = {
 // quinzième un « +5 % » inaudible, alors qu'ici la dernière vaut à elle seule
 // plus que les cinq premières.
 export const HIVE = {
+  /**
+   * PÉRIMÈTRE DE DÉPÔT, en px : la distance à laquelle un tour se clôt. C'est la
+   * seule grandeur du jeu qui joue sur le DIVISEUR — un tour est jugé au nectar
+   * par seconde, et raccourcir le vol de retour améliore la note sans toucher au
+   * butin. Les guerrières l'élargissent (cf. `UPGRADE_EFFECT.guardRadiusPx`).
+   */
+  depositRadius: 46,
   /** Réserve de nectar au premier lancement, avant toute amélioration. */
   nectarBase: 100,
   /** Coefficient du terme carré : c'est lui qui fait décoller la courbe. */
@@ -196,7 +203,9 @@ export interface BeeKind {
 // La butineuse est l'abeille que l'on pilote : elle ne produit rien toute seule,
 // c'est le joueur qui récolte. L'ouvrière ne récolte rien non plus — elle
 // TRANSFORME (cf. `HONEY`) : aucune caste ne fabrique de ressource à partir de
-// rien, tout ce qui entre dans la ruche a été rapporté par un vol.
+// rien, tout ce qui entre dans la ruche a été rapporté par un vol. La guerrière
+// ne fabrique rien et ne transforme rien : elle tient l'ESPACE — chacune élargit
+// le périmètre de dépôt (cf. `HIVE.depositRadius`), donc raccourcit le retour.
 export const BEE_KINDS: readonly BeeKind[] = [
   { id: 'forager', cost: 0 },
   { id: 'worker', cost: 50 },
