@@ -75,16 +75,16 @@ export const NEIGHBORS: readonly (readonly [number, number])[] = [
 export const COMB: readonly CombCell[] = [
   // Réserve — vers le haut. Les deux derniers paliers relèvent le plafond, donc
   // ce que les rangs V et VI des autres branches peuvent coûter.
-  { id: 'storage-1', kind: 'storage', tier: 1, cost: 30, currency: 'nectar', q: 0, r: -1 },
-  { id: 'storage-2', kind: 'storage', tier: 2, cost: 90, currency: 'nectar', q: 1, r: -2 },
-  { id: 'storage-3', kind: 'storage', tier: 3, cost: 200, currency: 'nectar', q: 1, r: -3 },
-  { id: 'storage-4', kind: 'storage', tier: 4, cost: 330, currency: 'nectar', q: 2, r: -4 },
-  { id: 'storage-5', kind: 'storage', tier: 5, cost: 440, currency: 'nectar', q: 1, r: -4 },
-  { id: 'storage-6', kind: 'storage', tier: 6, cost: 540, currency: 'nectar', q: 1, r: -5 },
+  { id: 'storage-1', kind: 'storage', tier: 1, cost: 45, currency: 'nectar', q: 0, r: -1 },
+  { id: 'storage-2', kind: 'storage', tier: 2, cost: 140, currency: 'nectar', q: 1, r: -2 },
+  { id: 'storage-3', kind: 'storage', tier: 3, cost: 300, currency: 'nectar', q: 1, r: -3 },
+  { id: 'storage-4', kind: 'storage', tier: 4, cost: 460, currency: 'nectar', q: 2, r: -4 },
+  { id: 'storage-5', kind: 'storage', tier: 5, cost: 600, currency: 'nectar', q: 1, r: -4 },
+  { id: 'storage-6', kind: 'storage', tier: 6, cost: 740, currency: 'nectar', q: 1, r: -5 },
 
   // Ouvrières — au bout de la branche « réserve », et nulle part ailleurs.
   //
-  // 430, c'est la réserve pleine des quatre premiers paliers (450) à vingt
+  // 640, c'est la réserve pleine des quatre premiers paliers (650) à dix
   // nectar près : cette alvéole est LA dernière chose que le nectar seul peut
   // payer, et elle n'est même visible qu'une fois ces quatre paliers bâtis. Le
   // jeu bascule là : jusqu'ici le nectar servait à s'améliorer, à partir d'ici
@@ -97,7 +97,7 @@ export const COMB: readonly CombCell[] = [
     id: 'workers-1',
     kind: 'workers',
     tier: 1,
-    cost: 430,
+    cost: 640,
     currency: 'nectar',
     q: 3,
     r: -5,
@@ -115,7 +115,7 @@ export const COMB: readonly CombCell[] = [
     id: 'foragers-1',
     kind: 'foragers',
     tier: 1,
-    cost: 80,
+    cost: 120,
     currency: 'nectar',
     q: 1,
     r: 0,
@@ -143,20 +143,20 @@ export const COMB: readonly CombCell[] = [
   },
 
   // Vol — vers le bas.
-  { id: 'flight-1', kind: 'flight', tier: 1, cost: 40, currency: 'nectar', q: 0, r: 1 },
-  { id: 'flight-2', kind: 'flight', tier: 2, cost: 110, currency: 'nectar', q: -1, r: 2 },
-  { id: 'flight-3', kind: 'flight', tier: 3, cost: 240, currency: 'nectar', q: -1, r: 3 },
-  { id: 'flight-4', kind: 'flight', tier: 4, cost: 400, currency: 'nectar', q: -2, r: 4 },
-  { id: 'flight-5', kind: 'flight', tier: 5, cost: 500, currency: 'nectar', q: -1, r: 4 },
-  { id: 'flight-6', kind: 'flight', tier: 6, cost: 620, currency: 'nectar', q: -1, r: 5 },
+  { id: 'flight-1', kind: 'flight', tier: 1, cost: 60, currency: 'nectar', q: 0, r: 1 },
+  { id: 'flight-2', kind: 'flight', tier: 2, cost: 170, currency: 'nectar', q: -1, r: 2 },
+  { id: 'flight-3', kind: 'flight', tier: 3, cost: 340, currency: 'nectar', q: -1, r: 3 },
+  { id: 'flight-4', kind: 'flight', tier: 4, cost: 600, currency: 'nectar', q: -2, r: 4 },
+  { id: 'flight-5', kind: 'flight', tier: 5, cost: 750, currency: 'nectar', q: -1, r: 4 },
+  { id: 'flight-6', kind: 'flight', tier: 6, cost: 900, currency: 'nectar', q: -1, r: 5 },
 
   // Pousse — vers la gauche.
-  { id: 'growth-1', kind: 'growth', tier: 1, cost: 40, currency: 'nectar', q: -1, r: 0 },
-  { id: 'growth-2', kind: 'growth', tier: 2, cost: 110, currency: 'nectar', q: -2, r: 0 },
-  { id: 'growth-3', kind: 'growth', tier: 3, cost: 240, currency: 'nectar', q: -2, r: -1 },
-  { id: 'growth-4', kind: 'growth', tier: 4, cost: 400, currency: 'nectar', q: -3, r: -1 },
-  { id: 'growth-5', kind: 'growth', tier: 5, cost: 500, currency: 'nectar', q: -3, r: 0 },
-  { id: 'growth-6', kind: 'growth', tier: 6, cost: 620, currency: 'nectar', q: -4, r: 0 },
+  { id: 'growth-1', kind: 'growth', tier: 1, cost: 60, currency: 'nectar', q: -1, r: 0 },
+  { id: 'growth-2', kind: 'growth', tier: 2, cost: 170, currency: 'nectar', q: -2, r: 0 },
+  { id: 'growth-3', kind: 'growth', tier: 3, cost: 340, currency: 'nectar', q: -2, r: -1 },
+  { id: 'growth-4', kind: 'growth', tier: 4, cost: 600, currency: 'nectar', q: -3, r: -1 },
+  { id: 'growth-5', kind: 'growth', tier: 5, cost: 750, currency: 'nectar', q: -3, r: 0 },
+  { id: 'growth-6', kind: 'growth', tier: 6, cost: 900, currency: 'nectar', q: -4, r: 0 },
 
   // Ventilation — les ailes battent au-dessus des rayons : le lot mûrit plus
   // vite. En haut à droite de la ruche, dans le creux de la branche « réserve ».
@@ -213,24 +213,29 @@ export const COMB_TOTAL = COMB.length
  * `storageStep` n'est pas un chiffre libre : c'est LUI qui décide si le rayon
  * est finissable. Tout s'y paie en nectar, or le nectar est PLAFONNÉ — une
  * alvéole plus chère que la réserve du moment est hors d'atteinte, le joueur
- * butine et la réserve sature avant le prix. Avec 100 par palier et quatre
- * alvéoles de réserve, le plafond monte 50 / 150 / 250 / 350 / 450 :
+ * butine et la réserve sature avant le prix. Avec 150 par palier et six
+ * alvéoles de réserve, le plafond monte 50 / 200 / 350 / 500 / 650 / 800 / 950 :
  *
- *   - la branche « réserve » reste toujours payable (30, puis 90 sous 150,
- *     200 sous 250, 330 sous 350) — c'est elle qui déverrouille tout le reste ;
- *   - les alvéoles de rang III (240) demandent deux paliers de réserve, celles
- *     de rang IV (400) les quatre. Ce n'est pas un cul-de-sac, c'est un ORDRE :
+ *   - la branche « réserve » reste toujours payable (45, puis 140 sous 200,
+ *     300 sous 350, 460 sous 500, 600 sous 650, 740 sous 800) — c'est elle qui
+ *     déverrouille tout le reste ;
+ *   - les alvéoles de rang III (340) demandent deux paliers de réserve, celles
+ *     de rang IV (600) les quatre. Ce n'est pas un cul-de-sac, c'est un ORDRE :
  *     on agrandit sa ruche avant de s'offrir le luxe.
+ *
+ * Le pas est à 150 plutôt qu'à 100 parce que les prix en nectar ont monté d'un
+ * bon tiers : le rayon du vol se pilote plus longtemps, mais le plafond monte
+ * avec lui, sinon les rangs hauts seraient devenus inachetables pour toujours.
  *
  * Toute nouvelle alvéole EN NECTAR doit tenir sous le plafond que la branche
  * « réserve » atteint à ce moment-là, sinon elle est inachetable pour toujours.
- * C'est ce qui cale l'alvéole « ouvrières » à 430 (le maximum sous 450, la
- * réserve à quatre paliers), puis les rangs V à 500 (sous 550, cinq paliers) et
- * les rangs VI à 620 (sous 650, six paliers). Le miel, lui, n'a pas de plafond :
+ * C'est ce qui cale l'alvéole « ouvrières » à 640 (le maximum sous 650, la
+ * réserve à quatre paliers), puis les rangs V à 750 (sous 800, cinq paliers) et
+ * les rangs VI à 900 (sous 950, six paliers). Le miel, lui, n'a pas de plafond :
  * les alvéoles de la ruche ne connaissent pas cette contrainte.
  */
 export const UPGRADE_EFFECT = {
-  storageStep: 100,
+  storageStep: 150,
   /**
    * Gain de vitesse de vol par niveau. TRÈS léger, et c'est voulu : le pilotage
    * est ce que le joueur maîtrise, une amélioration qui le rendrait facile

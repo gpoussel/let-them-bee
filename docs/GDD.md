@@ -340,9 +340,9 @@ vers l'extérieur auraient fait huit bras et un écran qu'on ne peut plus lire s
 glissé. Le rayon **s'épaissit** au lieu de s'étendre — et une ruche qui se remplit
 par le milieu est exactement ce que le rayon prétend être.
 
-**Pourquoi l'alvéole de la première ouvrière est là et pas ailleurs.** Elle est la
-plus chère du rayon en nectar (la réserve pleine des quatre premiers paliers à
-vingt nectar près) et n'est **visible** qu'une fois ces quatre paliers bâtis. Deux
+**Pourquoi l'alvéole de la première ouvrière est là et pas ailleurs.** Elle coûte
+la réserve pleine des quatre premiers paliers à dix nectar près, et n'est
+**visible** qu'une fois ces quatre paliers bâtis. Deux
 raisons : c'est la seule place où un tel prix est payable, et l'ordre
 d'apprentissage y gagne — on n'ouvre le second métier de la ruche qu'après avoir
 compris le premier. Elle est aussi la **clé** de toute la moitié en miel : rien de
@@ -360,6 +360,14 @@ joueur butine et la réserve sature avant le prix. D'où :
 - **Toute nouvelle alvéole en nectar doit tenir sous le plafond maximal** (réserve
   complète), sinon elle est inachetable pour toujours. Vérifier `UPGRADE_EFFECT.
 storageStep` avant d'ajouter un prix.
+
+**Le rayon du vol se pilote, il ne se coche pas.** Ses prix en nectar sont
+délibérément élevés — d'un bon tiers au-dessus de ce qu'ils étaient : chaque
+alvéole doit se gagner par des trajets, pas tomber en passant. Ce durcissement ne
+peut pas se faire seul : le plafond monte avec lui (un palier de réserve vaut
+**150** et non plus 100), sinon les rangs les plus hauts passeraient au-dessus de
+la réserve complète et deviendraient inachetables. **Prix et plafond bougent
+ensemble, toujours** — c'est la même décision, pas deux.
 
 Le **miel n'a pas de plafond** : la moitié en miel échappe à cette contrainte, et
 c'est ce qui lui permet de commencer très bas (3 miel, une douzaine de lots) puis

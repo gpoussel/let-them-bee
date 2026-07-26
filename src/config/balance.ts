@@ -98,8 +98,8 @@ export const HONEY = {
   /**
    * Nectar consommé pour lancer un lot. Rien ne démarre en dessous : la
    * transformation attend, et repart d'elle-même dès que la réserve repasse le
-   * seuil. Le montant est franc (un cinquième de la réserve pleine) pour que le
-   * joueur voie ce qu'il paie.
+   * seuil. Le montant est franc (près d'un sixième de la réserve au moment où
+   * la première ouvrière arrive) pour que le joueur voie ce qu'il paie.
    */
   nectarPerBatch: 100,
   /** Durée d'un lot, en ms. C'est le temps que met la jauge à se remplir. */
