@@ -22,44 +22,61 @@ Séparation stricte **moteur / skin UI** (une autre version peut réutiliser le 
   - `game.ts` — version, nom, dimensions du monde
   - `balance.ts` — tuning gameplay (vitesses, combo, économie, coûts)
   - `feel.ts` — timings des entités (battement d'ailes, respiration, autosave)
-  - `strings.ts` — textes UI (FR)
+  - `strings.ts` — textes UI (EN) + liste `CREDITS`
 - `src/ui/theme.ts` — **skin UI** découplé (couleurs, polices, tailles, layout)
-- `src/scenes/` — `BootScene`, `TitleScene`, `GameScene`
+- `src/scenes/` — `BootScene`, `TitleScene`, `GameScene`, `PauseScene`
 - `src/entities/` — `Bee` (suivi souris + inertie), `Flower` (cycle d'ouverture)
-- `src/systems/` — `GameState` (monnaies + save localStorage), `Combo`
-- `src/ui/Hud.ts` — HUD (miel, gelée, nectar, combo, feedbacks flottants)
-- `src/gfx/textures.ts` — textures placeholder procédurales (à remplacer)
+- `src/systems/` — `GameState` (monnaies + save localStorage), `Combo`, `Audio`, `Settings`
+- `src/ui/` — `Hud`, `pixui` (widgets), `prefsPanel`, `cursor`, `text`
+- `src/gfx/` — `font` (monogram bitmap), `logo`, `garden` (tileset Tiny Garden),
+  `ui9` (nine-slice), `transition` (nid d'abeille), `textures.ts` (placeholders procéduraux,
+  encore utilisés pour l'abeille / les fleurs / la ruche)
 
-## État — Jour 1 (socle jouable) ✅
+## Fait ✅
 
-Vérifié de bout en bout dans le navigateur (zéro erreur console) :
+**Socle jouable**
 
 - [x] Setup Vite + Phaser + TS, build & type-check OK
-- [x] Écran-titre : logo, abeille qui orbite, boutons Butiner/Continuer/Recommencer, version
 - [x] Abeille : suivi souris avec inertie + orientation vers la direction de vol, ailes animées
 - [x] Fleurs : cycle bourgeon → mi-ouvert → ouvert, qualités variables, cooldown de recharge
-- [x] Butinage → nectar + combo (multiplicateur croissant)
+- [x] Butinage → nectar + combo (multiplicateur croissant), fenêtre « Perfect » côté logique
 - [x] Dépôt à la ruche → miel (× multiplicateur de combo)
 - [x] Gelée royale qui s'accumule (fraction du miel)
-- [x] HUD complet + feedbacks « +N » / « Parfait ! » + particules de pollen
+- [x] HUD complet + feedbacks « +N » / « Perfect! » + particules de pollen
 - [x] Sauvegarde localStorage + autosave + rechargement
+- [x] Production passive des ouvrières (`GameState.tickWorkers`) — *côté moteur uniquement*
+
+**Écran-titre & habillage**
+
+- [x] Logo animé, jardin en tileset, curseurs custom, UI nine-slice, pied de page + liens
+- [x] Pop-up crédits (`CREDITS` dans `strings.ts`) + panneau de réglages (volumes musique / SFX)
+- [x] Transition titre ↔ jeu en nid d'abeille + fondu musical, menu de pause (Échap)
+- [x] Audio : musiques titre & potager, son de clic UI, fondus croisés, persistance des volumes
+- [x] Textes UI passés en anglais
+
+**Déploiement**
+
+- [x] GitHub Pages (`.github/workflows/deploy-pages.yml`) et itch.io (`deploy-itch.yml`) — vérifiés en ligne
 
 ## Reste à faire
 
-**Jour 1 (fin)**
-- [ ] Ouvrières (production passive) + `HivePanel` (overlay) + `Upgrades` (achats miel)
+**Gameplay — le plus gros manque**
+- [ ] `HivePanel` (overlay ruche) + `Upgrades` : rien ne permet aujourd'hui *d'acheter*
+      des ouvrières ni des améliorations — le champ `workers` existe mais reste à 0
+- [ ] Prestige : gelée royale → reset + arbre de reines (`queens` est sauvegardé mais inutilisé)
+- [ ] Anneau de timing « Perfect » autour des fleurs (la mécanique existe, le retour visuel non)
 
 **Assets**
-- [ ] Porter tout le jeu sur la palette officielle (cf. `CLAUDE.md`) : `src/ui/theme.ts`
-      et la palette pixel de `src/gfx/textures.ts` utilisent encore des teintes hors palette
-- [ ] Remplacer les placeholders par les vrais PNG (tileset Tiny Garden, `objects.png`)
+- [ ] Palette officielle (cf. `CLAUDE.md`) : `src/ui/theme.ts` (cream, honey, amber, bgDark,
+      grassA/B, comboLow, perfect, jelly…) et la palette pixel de `src/gfx/textures.ts`
+      sont encore hors palette
+- [ ] Scène de jeu encore en placeholders : gazon en damier tracé par `drawField()` au lieu du
+      tileset Tiny Garden déjà chargé, sprites abeille / fleur / ruche procéduraux
 - [ ] Créer le sprite d'abeille custom 16×16
 
-**Jour 2**
-- [ ] Anneau de timing « Parfait » autour des fleurs
-- [ ] Prestige : gelée royale → reset + arbre de reines
-- [ ] Charme AV : sons (400 Sounds Pack), musiques (Old Tavern / Moonlit Vale / March of Iron)
-- [ ] Déploiement GitHub Pages (workflow Actions) + publication itch.io
+**Charme AV**
+- [ ] SFX de gameplay : butinage, dépôt, « Perfect », montée de combo (seul `ui-click` existe)
+- [ ] Musique dédiée au potager si besoin (aujourd'hui une seule piste in-game)
 
 ## Note dev
 
