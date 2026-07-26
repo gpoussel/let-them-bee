@@ -113,9 +113,7 @@ export class GameScene extends Phaser.Scene {
     this.drawFieldFrame()
 
     // Ruche (départ et arrivée du trajet), dans le coin bas-droit du pré.
-    this.hive = this.add
-      .sprite(x + w - 60, y + h - 64, TEX.hive)
-      .setDepth(DEPTH.flowers)
+    this.hive = this.add.sprite(x + w - 60, y + h - 64, TEX.hive).setDepth(DEPTH.flowers)
     pixelText(this, this.hive.x, this.hive.y + 34, STR.hive, FONTS.sizeHint, HEX.cream)
       .setOrigin(0.5, 0)
       .setDepth(DEPTH.flowers)
@@ -131,7 +129,9 @@ export class GameScene extends Phaser.Scene {
     this.bee.setScale(BEE_SCALE).setDepth(DEPTH.bee)
 
     this.hud = new Hud(this, {
-      onToggleRecord: () => this.toggleRecord(),
+      onToggleRecord: () => {
+        this.toggleRecord()
+      },
       onOpenComb: () => this.scene.launch('Comb'),
     })
 
@@ -217,7 +217,7 @@ export class GameScene extends Phaser.Scene {
     g.strokeRect(x + 1, y + 1, w - 2, h - 2)
 
     g.lineStyle(2, PALETTE.amber, 1)
-    const corners: Array<[number, number, number, number]> = [
+    const corners: [number, number, number, number][] = [
       [x + 1, y + 1, 1, 1],
       [x + w - 1, y + 1, -1, 1],
       [x + 1, y + h - 1, 1, -1],
@@ -326,7 +326,9 @@ export class GameScene extends Phaser.Scene {
 
     // Affichage du pré, en dernier : les fleurs butinées cette frame ont déjà
     // disparu du calendrier.
-    this.flowers.forEach((f, i) => f.sync(this.fieldFlowers.stateOf(i)))
+    this.flowers.forEach((f, i) => {
+      f.sync(this.fieldFlowers.stateOf(i))
+    })
 
     this.hud.update(this.mode === 'recording')
     this.hud.setElapsed(this.mode === 'recording' ? (this.recorder?.durationMs ?? 0) : null)
@@ -428,7 +430,9 @@ export class GameScene extends Phaser.Scene {
         y: y + Phaser.Math.Between(-24, 24),
         alpha: 0,
         duration: 500,
-        onComplete: () => p.destroy(),
+        onComplete: () => {
+          p.destroy()
+        },
       })
     }
   }

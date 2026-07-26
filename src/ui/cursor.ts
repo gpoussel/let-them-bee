@@ -19,7 +19,7 @@ const HAND = `url(${handUrl}) 3 0, pointer`
 
 // Zones de clic qui doivent afficher la main. On stocke l'objet Phaser porteur
 // de la zone interactive ; le WeakSet évite toute rétention entre scènes.
-const handTargets = new WeakSet<object>()
+const handTargets = new WeakSet()
 
 /** Pose le curseur par défaut du jeu. À appeler une fois au boot. */
 export function installCursors(game: Phaser.Game): void {

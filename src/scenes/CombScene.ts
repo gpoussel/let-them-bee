@@ -141,10 +141,7 @@ export class CombScene extends Phaser.Scene {
 
     // Fond sombre de la seule zone des alvéoles : le pré qui continue de tourner
     // dessous ne doit pas transparaître entre les hexagones.
-    this.add
-      .rectangle(view.x, view.y, view.w, view.h, COLORS.bgDark)
-      .setOrigin(0, 0)
-      .setAlpha(1)
+    this.add.rectangle(view.x, view.y, view.w, view.h, COLORS.bgDark).setOrigin(0, 0).setAlpha(1)
 
     this.layer = this.add.container(view.x + view.w / 2, view.y + view.h / 2)
 
@@ -263,15 +260,22 @@ export class CombScene extends Phaser.Scene {
     hex.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OUT, () => {
       if (this.hovered === cell) this.hovered = null
     })
-    hex.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, (p: Phaser.Input.Pointer) =>
-      this.tryBuy(cell, p),
-    )
+    hex.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, (p: Phaser.Input.Pointer) => {
+      this.tryBuy(cell, p)
+    })
 
     const label = UPGRADE_STR[cell.kind].name
     const tier = tierLabel(cell)
     // Le rang passe à la ligne : « Storage III » d'un seul tenant déborde d'une
     // alvéole et vient mordre sur ses voisines.
-    const name = pixelText(this, 0, -10, tier ? `${label}\n${tier}` : label, FONTS.sizeHint, HEX.cream)
+    const name = pixelText(
+      this,
+      0,
+      -10,
+      tier ? `${label}\n${tier}` : label,
+      FONTS.sizeHint,
+      HEX.cream,
+    )
       .setOrigin(0.5, 0.5)
       .setCenterAlign()
 
@@ -318,7 +322,9 @@ export class CombScene extends Phaser.Scene {
       // et viser à la main laissait le bouton flotter loin du liseré.
       x: -53,
       y: INNER.y + 8,
-      onClick: () => this.close(),
+      onClick: () => {
+        this.close()
+      },
     })
 
     ui.commit()
@@ -365,7 +371,9 @@ export class CombScene extends Phaser.Scene {
     // déforment. Le rayon est dimensionné (cf. `HEX_R`) pour tenir tel quel dans
     // sa fenêtre ; s'il finit par la déborder, c'est le glissé qui y mène.
 
-    this.input.keyboard?.on('keydown-ESC', () => this.close())
+    this.input.keyboard?.on('keydown-ESC', () => {
+      this.close()
+    })
   }
 
   /**
@@ -408,7 +416,10 @@ export class CombScene extends Phaser.Scene {
     // et traitent la même touche dans la même frame. Réactiver tout de suite, et
     // la touche qui ferme le rayon ouvrait aussi le menu de pause derrière.
     const game = this.scene.get('Game')
-    if (game) game.time.delayedCall(0, () => this.setGameInput(true))
+    if (game)
+      game.time.delayedCall(0, () => {
+        this.setGameInput(true)
+      })
     this.scene.stop()
   }
 

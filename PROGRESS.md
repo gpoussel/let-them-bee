@@ -50,7 +50,7 @@ Séparation stricte **moteur / skin UI** (une autre version peut réutiliser le 
 - [x] Gelée royale qui s'accumule (fraction du miel)
 - [x] HUD complet + feedbacks « +N » / « Perfect! » + particules de pollen
 - [x] Sauvegarde localStorage + autosave + rechargement
-- [x] Production passive des castes (`GameState.tickBees`) — *côté moteur uniquement*
+- [x] Production passive des castes (`GameState.tickBees`) — _côté moteur uniquement_
 
 **Écran de jeu**
 
@@ -77,12 +77,14 @@ Séparation stricte **moteur / skin UI** (une autre version peut réutiliser le 
 ## Reste à faire
 
 **Gameplay — le plus gros manque**
+
 - [ ] Achat de recrues + `Upgrades` : les effectifs s'affichent (cf. `ColonyPanel`) mais rien
-      ne permet encore de *dépenser* du miel — la place est réservée sous les castes
+      ne permet encore de _dépenser_ du miel — la place est réservée sous les castes
 - [ ] Prestige : gelée royale → reset + arbre de reines (`queens` est sauvegardé mais inutilisé)
 - [ ] Anneau de timing « Perfect » autour des fleurs (la mécanique existe, le retour visuel non)
 
 **Assets**
+
 - [ ] Palette officielle (cf. `CLAUDE.md`) : `PALETTE` existe dans `src/ui/theme.ts` et sert à
       tout l'écran de jeu, mais les anciennes couleurs (cream, honey, bgDark, grassA/B,
       comboLow, perfect, jelly…) et la palette pixel de `src/gfx/textures.ts` restent à aligner
@@ -90,6 +92,7 @@ Séparation stricte **moteur / skin UI** (une autre version peut réutiliser le 
 - [ ] Créer le sprite d'abeille custom 16×16
 
 **Charme AV**
+
 - [ ] SFX de gameplay : butinage, dépôt, « Perfect », montée de combo (seul `ui-click` existe)
 - [ ] Musique dédiée au potager si besoin (aujourd'hui une seule piste in-game)
 

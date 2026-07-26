@@ -1,7 +1,7 @@
 // Helpers de texte pixel-perfect basés sur la bitmap font monogram.
 // Toujours passer par ici plutôt que scene.add.text (canvas anti-aliasé, flou).
 
-import Phaser from 'phaser'
+import type Phaser from 'phaser'
 import { FONT_KEY } from '../gfx/font'
 
 /** '#rrggbb' -> 0xrrggbb pour le tint des BitmapText. */

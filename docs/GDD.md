@@ -5,16 +5,16 @@
 > (cf. `CLAUDE.md`). Les valeurs chiffrées ne sont jamais recopiées : elles vivent
 > dans `src/config/` et ce document dit **pourquoi** elles sont là.
 
-| | |
-| --- | --- |
-| Titre | **Let Them Bee** |
-| Version | `0.1.0` (`package.json`, injectée dans `GAME.version`) |
-| Jam | DTJ36-28 — thème *abeille* |
-| Genre | Incrémental à **skill** — le pilotage accélère la progression |
-| Plateforme | Navigateur (GitHub Pages + itch.io) |
-| Stack | Phaser 4 + `phaser-pixui` + Vite + TypeScript |
-| Résolution | 960 × 540, mise à l'échelle `FIT` (layout non responsive) |
-| Langue du jeu | Anglais (`src/config/strings.ts`) — code et docs en français |
+|               |                                                               |
+| ------------- | ------------------------------------------------------------- |
+| Titre         | **Let Them Bee**                                              |
+| Version       | `0.1.0` (`package.json`, injectée dans `GAME.version`)        |
+| Jam           | DTJ36-28 — thème _abeille_                                    |
+| Genre         | Incrémental à **skill** — le pilotage accélère la progression |
+| Plateforme    | Navigateur (GitHub Pages + itch.io)                           |
+| Stack         | Phaser 4 + `phaser-pixui` + Vite + TypeScript                 |
+| Résolution    | 960 × 540, mise à l'échelle `FIT` (layout non responsive)     |
+| Langue du jeu | Anglais (`src/config/strings.ts`) — code et docs en français  |
 
 ---
 
@@ -30,7 +30,7 @@ grandi, vous reprenez les commandes pour voler un tour meilleur.
 
 1. **Le pilotage n'est pas le jeu — c'est ce qu'on optimise.**
    Un incrémental ordinaire achète des chiffres. Ici, l'unité de progression est
-   un *geste* : un trajet volé une fois, jugé, puis automatisé. Le joueur habile
+   un _geste_ : un trajet volé une fois, jugé, puis automatisé. Le joueur habile
    progresse plus vite, mais personne n'est condamné à jouer à l'adresse en
    permanence.
 2. **Comparer doit avoir un sens.**
@@ -39,7 +39,7 @@ grandi, vous reprenez les commandes pour voler un tour meilleur.
    seconde. Pas de score composite, pas de chance.
 3. **Le timing paie, la vitesse ne sauve pas.**
    Le nectar d'une corolle décroît dès son ouverture. Un tour est bon parce qu'il
-   *arrive au bon moment*, pas parce qu'il passe partout.
+   _arrive au bon moment_, pas parce qu'il passe partout.
 4. **Ne montrer que le bord de ce qu'on connaît.**
    Castes : celles possédées **+ 1**. Rayon : les alvéoles qui touchent du
    construit. Le joueur ne voit jamais la carte entière.
@@ -64,15 +64,15 @@ grandi, vous reprenez les commandes pour voler un tour meilleur.
 
 - **Macro (minutes)** : la ruche produit seule, le joueur dépense et déverrouille.
 - **Micro (10 s)** : un enregistrement — la seule séquence où le joueur pilote.
-- **Sortie de boucle** : le rayon complet, ou le prestige (§7.4, *non implémenté*).
+- **Sortie de boucle** : le rayon complet, ou le prestige (§7.4, _non implémenté_).
 
 ### 3.1 Les trois modes du pré (`GameScene`, type `Mode`)
 
-| Mode | Ce qui se passe | Pourquoi |
-| --- | --- | --- |
-| `idle` | Aucun trajet connu. La butineuse attend à côté de la ruche, **rien ne rentre**. | Le vide est le tutoriel : il faut enregistrer pour que le jeu démarre. |
-| `replay` | Le meilleur tour est rejoué en boucle et **récolte pour de vrai**. | État normal du jeu. Ce n'est pas une animation par-dessus un gain forfaitaire. |
-| `recording` | Le joueur pilote. **Banc d'essai** : rien n'entre dans la ruche. | Un essai ne doit ni enrichir ni être faussé par le plafond de réserve. |
+| Mode        | Ce qui se passe                                                                 | Pourquoi                                                                       |
+| ----------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `idle`      | Aucun trajet connu. La butineuse attend à côté de la ruche, **rien ne rentre**. | Le vide est le tutoriel : il faut enregistrer pour que le jeu démarre.         |
+| `replay`    | Le meilleur tour est rejoué en boucle et **récolte pour de vrai**.              | État normal du jeu. Ce n'est pas une animation par-dessus un gain forfaitaire. |
+| `recording` | Le joueur pilote. **Banc d'essai** : rien n'entre dans la ruche.                | Un essai ne doit ni enrichir ni être faussé par le plafond de réserve.         |
 
 ## 4. Le pré
 
@@ -90,7 +90,7 @@ survoler l'UI sans que la butineuse s'échappe.
 `bud` (pousse) → `bloom` (floraison) → `gone` (fanée) → repos → repousse.
 
 - Le nectar est **maximal à l'ouverture** et décroît linéairement avec la
-  *fraîcheur* jusqu'à un plancher de 1. Arriver tôt est tout l'enjeu.
+  _fraîcheur_ jusqu'à un plancher de 1. Arriver tôt est tout l'enjeu.
 - Au-dessus d'un seuil de fraîcheur, la récolte est **« Perfect »** et double.
 - Une fleur butinée est **épuisée jusqu'à la fin de sa floraison**, puis reprend
   son cycle **à l'heure prévue** : récolter ne décale jamais le calendrier.
@@ -113,7 +113,7 @@ Garden). Chacune a son rythme : **les plus voyantes sont les plus lentes à veni
 et les plus brèves, mais paient beaucoup mieux** (marguerite ×1 / orchidée ×3,5).
 La couleur annonce le comportement — le joueur apprend le pré à l'œil.
 
-Une fleur **ne repousse jamais à l'identique** : l'espèce du cycle *n* d'un
+Une fleur **ne repousse jamais à l'identique** : l'espèce du cycle _n_ d'un
 emplacement est un mélange de bits de sa graine (imprévisible à l'œil, totalement
 reproductible). Sans ça, le terrain s'apprendrait une fois pour toutes et le tour
 optimal se figerait.
@@ -130,7 +130,7 @@ déplacement du pré, et la sauvegarde reste compacte.
 
 - Départ propre : abeille à la ruche, sacoche vide, pré remis à zéro.
 - **Couperet de 10 s** : le tour se clôt en l'état, rentré ou pas. Un tour rejoué
-  en boucle *doit* être court — dix secondes bien remplies valent mieux qu'une
+  en boucle _doit_ être court — dix secondes bien remplies valent mieux qu'une
   minute de promenade. Le compteur passe au rouge dans les deux dernières.
 - Rentrer à la ruche avec du nectar **clôt le tour** (au-delà de la durée
   minimale). En dessous de cette durée, le tour est rejeté (« too short »).
@@ -139,8 +139,8 @@ déplacement du pré, et la sauvegarde reste compacte.
 ### 5.3 Juger
 
 **Un seul critère : le nectar par seconde.** Un tour plus long peut donc gagner
-s'il récolte assez. Le premier tour gagne toujours. Verdicts affichés : *New best
-run!* / *Slower than your best* / *Time's up*.
+s'il récolte assez. Le premier tour gagne toujours. Verdicts affichés : _New best
+run!_ / _Slower than your best_ / _Time's up_.
 
 ### 5.4 Rejouer
 
@@ -159,11 +159,11 @@ définition le même tour de référence.
 
 ## 6. Économie
 
-| Ressource | Origine | Usage | Plafond |
-| --- | --- | --- | --- |
-| **Nectar** | Récolté par la butineuse, versé à la ruche | **Toutes** les alvéoles du rayon | Oui — `nectarCapacity` |
-| **Miel** | Production passive des castes (1 nectar déposé = 1 miel côté moteur) | Monnaie de la colonie : castes, prestige | Non |
-| **Gelée royale** | Fraction infime du miel gagné | Prestige (§7.4) | Non |
+| Ressource        | Origine                                                              | Usage                                    | Plafond                |
+| ---------------- | -------------------------------------------------------------------- | ---------------------------------------- | ---------------------- |
+| **Nectar**       | Récolté par la butineuse, versé à la ruche                           | **Toutes** les alvéoles du rayon         | Oui — `nectarCapacity` |
+| **Miel**         | Production passive des castes (1 nectar déposé = 1 miel côté moteur) | Monnaie de la colonie : castes, prestige | Non                    |
+| **Gelée royale** | Fraction infime du miel gagné                                        | Prestige (§7.4)                          | Non                    |
 
 **Pourquoi le rayon se paie en nectar.** Le miel est l'affaire de la colonie ; le
 rayon est l'affaire de la butineuse. Son prix se lit dans la seule ressource
@@ -177,13 +177,13 @@ l'annonce (« Full! »), sur la ruche ou sur la fleur concernée.
 
 ### 6.1 Castes (`BEE_KINDS`, l'ordre fait foi)
 
-| Caste | Rôle | Statut |
-| --- | --- | --- |
-| **Forager** | L'abeille que l'on pilote. Ne produit rien seule. | Effectif porté par la branche `foragers` du rayon |
-| **Worker** | Ne quitte jamais la ruche, transforme les stocks en miel. | Production passive **implémentée**, **achat non implémenté** |
-| **Warrior** | Garde l'entrée. | Coquille : aucun effet, non achetable |
+| Caste       | Rôle                                                      | Statut                                                       |
+| ----------- | --------------------------------------------------------- | ------------------------------------------------------------ |
+| **Forager** | L'abeille que l'on pilote. Ne produit rien seule.         | Effectif porté par la branche `foragers` du rayon            |
+| **Worker**  | Ne quitte jamais la ruche, transforme les stocks en miel. | Production passive **implémentée**, **achat non implémenté** |
+| **Warrior** | Garde l'entrée.                                           | Coquille : aucun effet, non achetable                        |
 
-Le panneau *Colony* affiche les castes possédées **+ la suivante**
+Le panneau _Colony_ affiche les castes possédées **+ la suivante**
 (`visibleKinds`) : au premier lancement, butineuse et ouvrière ; la guerrière
 n'existe pas encore aux yeux du joueur.
 
@@ -208,27 +208,27 @@ s'achète **une fois, et pour de bon**.
 
 ### 7.3 Les quatre branches
 
-| Branche | Effet d'une alvéole | Forme | Intention |
-| --- | --- | --- | --- |
-| **Storage** | + un palier de réserve de nectar | 4 alvéoles, vers le haut | Le déverrouilleur : c'est elle qui rend le reste payable |
-| **Foragers** | +1 butineuse sur le trajet | 1 alvéole, à droite | Le doublement sec — la récompense la plus lisible |
-| **Flight** | Vitesse de vol, **très** légèrement | 4 alvéoles, vers le bas | Assez pour raser un virage, jamais pour voler le tour à votre place |
-| **Growth** | Accélère le calendrier du pré | 4 alvéoles, vers la gauche | Les fleurs reviennent plus tôt : un tour croise plus de corolles ouvertes |
+| Branche      | Effet d'une alvéole                 | Forme                      | Intention                                                                 |
+| ------------ | ----------------------------------- | -------------------------- | ------------------------------------------------------------------------- |
+| **Storage**  | + un palier de réserve de nectar    | 4 alvéoles, vers le haut   | Le déverrouilleur : c'est elle qui rend le reste payable                  |
+| **Foragers** | +1 butineuse sur le trajet          | 1 alvéole, à droite        | Le doublement sec — la récompense la plus lisible                         |
+| **Flight**   | Vitesse de vol, **très** légèrement | 4 alvéoles, vers le bas    | Assez pour raser un virage, jamais pour voler le tour à votre place       |
+| **Growth**   | Accélère le calendrier du pré       | 4 alvéoles, vers la gauche | Les fleurs reviennent plus tôt : un tour croise plus de corolles ouvertes |
 
 **Règle d'équilibrage structurante.** Tout se paie en nectar, or le nectar est
 plafonné : une alvéole plus chère que la réserve du moment est **inatteignable à
 jamais** — le joueur butine et la réserve sature avant le prix. D'où :
 
-- la branche *Storage* reste toujours payable sous le plafond courant : c'est
+- la branche _Storage_ reste toujours payable sous le plafond courant : c'est
   elle qui ouvre tout le reste ;
 - les rangs III demandent deux paliers de réserve, les rangs IV les quatre. Ce
   n'est pas un cul-de-sac, c'est un **ordre** : on agrandit sa ruche avant de
   s'offrir le luxe.
 - **Toute nouvelle alvéole doit tenir sous le plafond maximal** (réserve
   complète), sinon elle est inachetable pour toujours. Vérifier `UPGRADE_EFFECT.
-  storageStep` avant d'ajouter un prix.
+storageStep` avant d'ajouter un prix.
 
-### 7.4 Prestige — *conçu, non implémenté*
+### 7.4 Prestige — _conçu, non implémenté_
 
 La gelée royale nourrit la reine suivante : reset de la partie contre un arbre de
 reines permanent. `queens` et `royalJelly` sont persistés et accumulés, mais
@@ -236,16 +236,16 @@ aucune interface ne les dépense. **C'est le plus gros manque de design actif.**
 
 ## 8. Écrans & interface
 
-| Scène | Contenu |
-| --- | --- |
-| `Boot` | Chargement, cuisson des textures procédurales et du fond de prairie |
-| `Title` | Logo animé, jardin en tileset, boutons *New Game* / *Continue*, pop-up crédits, panneau de réglages (volumes), pied de page (version, crédit jam, liens itch/GitHub) |
-| `Game` | Barre de ressources · panneau *Colony* · bouton du Rayon · le pré · bandeau d'état |
-| `Comb` | Le Rayon. **Scène** superposée, pas pop-up (voir ci-dessous) |
-| `Pause` | Échap, en surimpression : reprendre, réglages, retour au titre |
+| Scène   | Contenu                                                                                                                                                              |
+| ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Boot`  | Chargement, cuisson des textures procédurales et du fond de prairie                                                                                                  |
+| `Title` | Logo animé, jardin en tileset, boutons _New Game_ / _Continue_, pop-up crédits, panneau de réglages (volumes), pied de page (version, crédit jam, liens itch/GitHub) |
+| `Game`  | Barre de ressources · panneau _Colony_ · bouton du Rayon · le pré · bandeau d'état                                                                                   |
+| `Comb`  | Le Rayon. **Scène** superposée, pas pop-up (voir ci-dessous)                                                                                                         |
+| `Pause` | Échap, en surimpression : reprendre, réglages, retour au titre                                                                                                       |
 
 **Découpe de l'écran de jeu** (`SCREEN`, coordonnées absolues) : barre de
-ressources en haut ; à gauche la colonne *Colony* surmontant le bouton du Rayon ;
+ressources en haut ; à gauche la colonne _Colony_ surmontant le bouton du Rayon ;
 à droite le pré, surmontant le bandeau d'état.
 
 **Le bandeau d'état** est le poste de commande du trajet : message / consigne /
@@ -282,10 +282,10 @@ jeu, et le jeu n'en montre une que lorsque le joueur n'a **aucun moyen de
 deviner** le geste attendu. Une flèche ambrée qui va et vient — immobile, elle
 se confondrait avec le décor — désigne alors le bouton concerné :
 
-| Relance | Condition | S'éteint |
-| --- | --- | --- |
-| Flèche sur *Record a run* | aucun tour enregistré, et pas d'enregistrement en cours | au premier tour enregistré |
-| Flèche + « New upgrade! » sur le Rayon | une alvéole payable **et aucune encore bâtie** | au premier achat |
+| Relance                                | Condition                                               | S'éteint                   |
+| -------------------------------------- | ------------------------------------------------------- | -------------------------- |
+| Flèche sur _Record a run_              | aucun tour enregistré, et pas d'enregistrement en cours | au premier tour enregistré |
+| Flèche + « New upgrade! » sur le Rayon | une alvéole payable **et aucune encore bâtie**          | au premier achat           |
 
 La relance du Rayon ne vise **que le premier achat** : ensuite le joueur sait où
 est le rayon, et le battement de la ruche reprend seul le relais pour toutes les
@@ -361,23 +361,23 @@ transitions, audio, pause · déploiements Pages + itch.
 
 ## 13. Décisions de design écartées (et pourquoi)
 
-| Écarté | Raison |
-| --- | --- |
+| Écarté                                                                   | Raison                                                                                                                                          |
+| ------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Combo / multiplicateur d'enchaînement** (`systems/Combo.ts`, supprimé) | Récompensait le pilotage en direct, alors que le jeu automatise le pilotage. Le trajet, jugé au nectar/s, joue ce rôle mieux et une seule fois. |
-| **Plafond de sacoche sur la butineuse** | Se traduisait par des corolles survolées sans effet ni explication. Le plafond est passé à la **ruche**, où il est lisible et améliorable. |
-| **Améliorations de vol généreuses** | Rendre le pilotage facile viderait l'enregistrement de son intérêt. Le gain est volontairement minuscule. |
-| **Rayon en pop-up** | Une parenthèse modale disait « le jeu s'arrête ». Le rayon est un cadre de l'écran de jeu, et le pré tourne dessous. |
-| **Bilan chiffré en bas de colonne** (production, record, reines) | Trois nombres inertes que personne ne lisait. Remplacés par la porte du Rayon. Le bilan reviendra quand il aura quelque chose à dire. |
+| **Plafond de sacoche sur la butineuse**                                  | Se traduisait par des corolles survolées sans effet ni explication. Le plafond est passé à la **ruche**, où il est lisible et améliorable.      |
+| **Améliorations de vol généreuses**                                      | Rendre le pilotage facile viderait l'enregistrement de son intérêt. Le gain est volontairement minuscule.                                       |
+| **Rayon en pop-up**                                                      | Une parenthèse modale disait « le jeu s'arrête ». Le rayon est un cadre de l'écran de jeu, et le pré tourne dessous.                            |
+| **Bilan chiffré en bas de colonne** (production, record, reines)         | Trois nombres inertes que personne ne lisait. Remplacés par la porte du Rayon. Le bilan reviendra quand il aura quelque chose à dire.           |
 
 ---
 
 ## Annexe — où sont les chiffres
 
-| Fichier | Contenu |
-| --- | --- |
-| `src/config/balance.ts` | Abeille, ruche, fleurs et espèces, trajet, économie, castes |
+| Fichier                  | Contenu                                                          |
+| ------------------------ | ---------------------------------------------------------------- |
+| `src/config/balance.ts`  | Abeille, ruche, fleurs et espèces, trajet, économie, castes      |
 | `src/config/upgrades.ts` | Alvéoles du rayon (position, prix, monnaie) et effets par niveau |
-| `src/config/feel.ts` | Timings d'entités (battement d'ailes, respiration, autosave) |
-| `src/config/game.ts` | Version, nom, clé de sauvegarde, dimensions du monde |
-| `src/config/strings.ts` | Textes EN, infobulles, `CREDITS` |
-| `src/ui/theme.ts` | Palette, polices, découpe de l'écran, feedbacks |
+| `src/config/feel.ts`     | Timings d'entités (battement d'ailes, respiration, autosave)     |
+| `src/config/game.ts`     | Version, nom, clé de sauvegarde, dimensions du monde             |
+| `src/config/strings.ts`  | Textes EN, infobulles, `CREDITS`                                 |
+| `src/ui/theme.ts`        | Palette, polices, découpe de l'écran, feedbacks                  |

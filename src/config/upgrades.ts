@@ -31,7 +31,7 @@ export interface CombCell {
 }
 
 /** Les six voisines d'une alvéole, en axial. */
-export const NEIGHBORS: ReadonlyArray<readonly [number, number]> = [
+export const NEIGHBORS: readonly (readonly [number, number])[] = [
   [1, 0],
   [1, -1],
   [0, -1],

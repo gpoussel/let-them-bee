@@ -5,7 +5,7 @@ import { COLORS, FONTS } from '../ui/theme'
 import { FONT_KEY } from '../gfx/font'
 import {
   Ui,
-  Panel,
+  type Panel,
   button,
   iconButton,
   ninePanel,
@@ -79,7 +79,9 @@ export class TitleScene extends Phaser.Scene {
       color: COLORS.darkBrown,
       x: 0,
       y: buttonY - cy,
-      onClick: () => this.startGame(),
+      onClick: () => {
+        this.startGame()
+      },
     })
 
     if (hasSave) {
@@ -161,7 +163,9 @@ export class TitleScene extends Phaser.Scene {
       originX: OriginX.Right,
       originY: OriginY.Top,
       tintHover: COLORS.amberSoft,
-      onClick: () => this.togglePrefs(true),
+      onClick: () => {
+        this.togglePrefs(true)
+      },
     })
   }
 
@@ -196,7 +200,9 @@ export class TitleScene extends Phaser.Scene {
       height: jam.height + 6,
       originX: OriginX.Center,
       originY: OriginY.Bottom,
-      onClick: () => this.openLink(STR.jamUrl),
+      onClick: () => {
+        this.openLink(STR.jamUrl)
+      },
       onUpdate: () => {
         jam.tint = jamHit.hovered ? COLORS.amberSoft : COLORS.cream
       },
@@ -205,14 +211,28 @@ export class TitleScene extends Phaser.Scene {
 
     // Icônes de droite à gauche : about, GitHub, itch.io. Elles sont crème au
     // repos et prennent leur couleur de marque au survol.
-    const icons: Array<{ texture: string; tintHover: number; onClick: () => void }> = [
-      { texture: TEX.iconAbout, tintHover: COLORS.amberSoft, onClick: () => this.toggleAbout(true) },
+    const icons: { texture: string; tintHover: number; onClick: () => void }[] = [
+      {
+        texture: TEX.iconAbout,
+        tintHover: COLORS.amberSoft,
+        onClick: () => {
+          this.toggleAbout(true)
+        },
+      },
       {
         texture: TEX.iconGithub,
         tintHover: COLORS.amberSoft,
-        onClick: () => this.openLink(STR.githubUrl),
+        onClick: () => {
+          this.openLink(STR.githubUrl)
+        },
       },
-      { texture: TEX.iconItch, tintHover: ITCH_RED, onClick: () => this.openLink(STR.itchUrl) },
+      {
+        texture: TEX.iconItch,
+        tintHover: ITCH_RED,
+        onClick: () => {
+          this.openLink(STR.itchUrl)
+        },
+      },
     ]
     icons.forEach((icon, i) => {
       iconButton(ui.bottomRight, {
@@ -249,7 +269,9 @@ export class TitleScene extends Phaser.Scene {
     overlay.center.clickable({
       width: WORLD.width,
       height: WORLD.height,
-      onClick: () => this.toggleAbout(false),
+      onClick: () => {
+        this.toggleAbout(false)
+      },
     })
 
     // Cadre de la pop-up (tileset d'interface, étiré en nine-slice).
@@ -307,7 +329,9 @@ export class TitleScene extends Phaser.Scene {
       padY: 6,
       x: 0,
       y: frameY + ABOUT_H - 26 - WORLD.height / 2,
-      onClick: () => this.toggleAbout(false),
+      onClick: () => {
+        this.toggleAbout(false)
+      },
     })
 
     this.about = overlay
@@ -318,7 +342,11 @@ export class TitleScene extends Phaser.Scene {
 
   /** Pop-up de réglages (masquée par défaut), partagée avec le menu de pause. */
   private buildPrefs(ui: Ui): Panel {
-    const overlay = buildPrefsPanel(this, ui, { onClose: () => this.togglePrefs(false) })
+    const overlay = buildPrefsPanel(this, ui, {
+      onClose: () => {
+        this.togglePrefs(false)
+      },
+    })
     this.prefs = overlay
     return overlay
   }

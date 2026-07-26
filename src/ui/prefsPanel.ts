@@ -1,9 +1,9 @@
-import Phaser from 'phaser'
+import type Phaser from 'phaser'
 import { WORLD } from '../config/game'
 import { STR } from '../config/strings'
 import { COLORS, FONTS } from './theme'
 import { FONT_KEY } from '../gfx/font'
-import { Ui, Panel, button, ninePanel, slider, UI9, OriginX, OriginY } from './pixui'
+import { type Ui, type Panel, button, ninePanel, slider, UI9, OriginX, OriginY } from './pixui'
 import { audio } from '../systems/Audio'
 import { settings } from '../systems/Settings'
 
@@ -22,7 +22,7 @@ const SFX_PREVIEW_MS = 150
 
 export interface PrefsPanelOpts {
   /** Boutons intercalés entre les curseurs et le bouton Done. */
-  extraButtons?: Array<{ label: string; onClick: () => void }>
+  extraButtons?: { label: string; onClick: () => void }[]
   /** Fermeture : bouton Done et clic hors du cadre. */
   onClose: () => void
 }
@@ -54,7 +54,9 @@ export function buildPrefsPanel(scene: Phaser.Scene, ui: Ui, o: PrefsPanelOpts):
   overlay.center.clickable({
     width: WORLD.width,
     height: WORLD.height,
-    onClick: () => o.onClose(),
+    onClick: () => {
+      o.onClose()
+    },
   })
 
   ninePanel(overlay.center, { width: PREFS_W, height, skin: UI9.insetDark })
@@ -84,11 +86,13 @@ export function buildPrefsPanel(scene: Phaser.Scene, ui: Ui, o: PrefsPanelOpts):
     audio.playClick()
   }
 
-  const rows: Array<{ label: string; value: number; onChange: (v: number) => void }> = [
+  const rows: { label: string; value: number; onChange: (v: number) => void }[] = [
     {
       label: STR.musicVolume,
       value: settings.musicVolume,
-      onChange: (v) => settings.setMusicVolume(v),
+      onChange: (v) => {
+        settings.setMusicVolume(v)
+      },
     },
     {
       label: STR.sfxVolume,
@@ -144,7 +148,9 @@ export function buildPrefsPanel(scene: Phaser.Scene, ui: Ui, o: PrefsPanelOpts):
     padY: 6,
     x: 0,
     y: frameY + height - 26 - WORLD.height / 2,
-    onClick: () => o.onClose(),
+    onClick: () => {
+      o.onClose()
+    },
   })
 
   return overlay

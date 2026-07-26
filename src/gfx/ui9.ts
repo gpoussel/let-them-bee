@@ -41,7 +41,7 @@ export const UI9 = {
 export type Ui9Skin = (typeof UI9)[keyof typeof UI9]
 
 // Position (colonne, ligne) de chaque tuile dans la planche.
-const LAYOUT: Array<[Ui9Skin, number, number]> = [
+const LAYOUT: [Ui9Skin, number, number][] = [
   [UI9.plainDark, 0, 0],
   [UI9.plainAmber, 1, 0],
   [UI9.plainLight, 2, 0],
@@ -72,7 +72,7 @@ export function bakeSlider(scene: Phaser.Scene): void {
   const texture = scene.textures.get(TEX.uiSlider)
   texture.setFilter(Phaser.Textures.FilterMode.NEAREST)
 
-  const rails: Array<[string, number]> = [
+  const rails: [string, number][] = [
     [SLIDER.railDark, 0],
     [SLIDER.railAmber, 50],
     [SLIDER.railLight, 100],
@@ -88,7 +88,7 @@ export function bakeSlider(scene: Phaser.Scene): void {
     frame.customData = { scale9Borders: { x: SLIDER_CAP, y: 0, w: center, h: SLIDER_H } }
   }
 
-  const knobs: Array<[string, number]> = [
+  const knobs: [string, number][] = [
     [SLIDER.knob, 150],
     [SLIDER.knobHover, 168],
   ]

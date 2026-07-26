@@ -24,7 +24,7 @@ const PULSE_MS = 900
 /** Interpolation linéaire entre deux couleurs 0xrrggbb. */
 function mix(a: number, b: number, t: number): number {
   const ch = (shift: number) =>
-    Math.round((((a >> shift) & 0xff) * (1 - t) + ((b >> shift) & 0xff) * t)) & 0xff
+    Math.round(((a >> shift) & 0xff) * (1 - t) + ((b >> shift) & 0xff) * t) & 0xff
   return (ch(16) << 16) | (ch(8) << 8) | ch(0)
 }
 
@@ -104,7 +104,9 @@ export class CombButton {
       y,
       width: w,
       height: h,
-      onClick: () => o.onOpen(),
+      onClick: () => {
+        o.onOpen()
+      },
     })
     handCursor(this.hit.events)
   }
