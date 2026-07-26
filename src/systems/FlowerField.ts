@@ -68,15 +68,45 @@ export const BASE_TUNING: FieldTuning = {
  * optimal se figerait. C'est un mélange de bits (façon xorshift), pas un
  * tirage : la suite est imprévisible à l'œil, mais entièrement reproductible —
  * la même graine et le même numéro de cycle donnent toujours la même fleur.
+ *
+ * Mais l'espèce n'est pas TIRÉE à chaque cycle : elle est PIOCHÉE dans un sac.
+ * Les huit espèces sont battues, puis servies une par une ; le sac se rebat
+ * quand il est vide. Un emplacement voit donc chaque espèce exactement une fois
+ * par tranche de huit cycles — jamais quatre orchidées d'affilée, jamais une
+ * série de marguerites. Un tirage indépendant laissait la QUALITÉ du pré varier
+ * d'une partie à l'autre : à dix-neuf emplacements, une graine malheureuse
+ * semait un pré pauvre pour toute la partie, et le gain espéré d'un bon trajet
+ * n'était plus le même pour deux joueurs. Avec le sac, la composition du pré est
+ * la même pour tout le monde ; ce que la graine décide, c'est seulement OÙ et
+ * QUAND — le hasard reste dans la géographie, pas dans le butin.
  */
 function speciesAt(seed: number, cycle: number): number {
-  let h = (seed ^ (cycle * 0x9e3779b1)) >>> 0
-  h ^= h << 13
-  h >>>= 0
-  h ^= h >>> 17
-  h ^= h << 5
-  h >>>= 0
-  return h % FLOWER_KINDS.length
+  const n = FLOWER_KINDS.length
+  // Numéro du sac, et rang du tirage dans ce sac.
+  const bagIndex = Math.floor(cycle / n)
+  const draw = cycle - bagIndex * n
+
+  // Un sac se bat avec sa propre suite de bits : deux sacs du même emplacement
+  // ne se ressemblent pas, et le même sac se rebat toujours à l'identique.
+  let h = (seed ^ (bagIndex * 0x9e3779b1) ^ 0x2545f491) >>> 0
+  if (h === 0) h = 0x9e3779b1 // xorshift resterait bloqué sur zéro
+  const next = (): number => {
+    h ^= h << 13
+    h >>>= 0
+    h ^= h >>> 17
+    h ^= h << 5
+    h >>>= 0
+    return h
+  }
+
+  const bag = Array.from({ length: n }, (_, i) => i)
+  for (let i = n - 1; i > 0; i--) {
+    const j = next() % (i + 1)
+    const swap = bag[i]
+    bag[i] = bag[j]
+    bag[j] = swap
+  }
+  return bag[draw]
 }
 
 /** Durée d'un cycle complet d'une espèce : pousse + floraison + repos. */
@@ -212,10 +242,10 @@ export class FlowerField {
    */
   stateOf(i: number, at: number = this.t): SlotState {
     const slot = this.slots[i]
-    // Les cycles n'ont plus tous la même durée — une orchidée met trois fois
-    // plus longtemps qu'une marguerite —, donc on les déroule depuis le début
-    // du tour. C'est bon marché : un tour dure 10 s, un cycle jamais moins de
-    // 5, cela fait deux ou trois pas.
+    // Les cycles n'ont plus tous la même durée — une orchidée met près de trois
+    // fois plus longtemps à venir qu'une marguerite —, donc on les déroule
+    // depuis le début du tour. C'est bon marché : un tour dure 10 s, un cycle
+    // jamais moins de 7,5, cela fait un ou deux pas.
     const { cycle, local } = this.cycleAt(slot, at)
     const species = speciesAt(slot.seed, cycle)
     const kind = FLOWER_KINDS[species]
