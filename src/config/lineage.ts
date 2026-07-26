@@ -118,10 +118,31 @@ export const LINEAGE_TOTAL = LINEAGE.length
 /**
  * Effet d'UN palier de chaque branche.
  *
- * `nectarBlood` et `honeyBlood` n'ont pas de valeur ici : leur palier EST un
- * rang d'alvéole du rayon (rang I, II ou III), et c'est `GameState.applyLineage`
- * qui les verse.
+ * `nectarBlood` et `honeyBlood` versent des alvéoles du rayon : leur palier est
+ * une PORTÉE, lue dans `BLOOD_RADIUS`, et c'est `GameState.applyLineage` qui les
+ * verse.
  */
+/**
+ * PORTÉE HÉRITÉE, par palier de sang (I, II, III) : la distance au centre du
+ * rayon jusqu'où les alvéoles sont versées (cf. `combDistance`).
+ *
+ * Une distance, pas un rang de branche : le rang disait « la deuxième alvéole de
+ * chaque branche », et certaines branches ont leur deuxième alvéole à six
+ * couronnes du centre — la lignée bâtissait alors des îlots injoignables. La
+ * portée dit « tout ce qui est à N alvéoles de la reine », donc toujours un
+ * disque plein autour du centre.
+ *
+ * Les paliers ne se suivent pas d'un pas régulier (1, 2, 4) : les couronnes ne
+ * portent pas le même nombre d'alvéoles, et le troisième palier — le plus cher
+ * de la branche — doit s'en payer nettement plus que le deuxième.
+ */
+export const BLOOD_RADIUS = [1, 2, 4] as const
+
+/** Portée héritée pour un nombre de paliers de sang. Zéro palier ne verse rien. */
+export function bloodRadius(level: number): number {
+  return level <= 0 ? 0 : (BLOOD_RADIUS[Math.min(level, BLOOD_RADIUS.length) - 1] ?? 0)
+}
+
 export const LINEAGE_EFFECT = {
   /**
    * Multiplicateur du lissage de l'abeille (cf. `BEE.lerp`). PLUS GRAND = moins

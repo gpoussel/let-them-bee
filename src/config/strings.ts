@@ -215,11 +215,11 @@ export const UPGRADE_STR: Record<string, { name: string; tip: string }> = {
 export const LINEAGE_STR: Record<string, { name: string; tip: string }> = {
   nectarBlood: {
     name: 'Nectar Blood',
-    tip: 'Your daughters are born knowing the flight. Every nectar cell of the comb up to this tier stands built on the first morning - the same cells, only sooner.',
+    tip: 'Your daughters are born knowing the flight. Every nectar cell within reach of the queen stands built on the first morning - the same cells, only sooner. Each tier reaches one ring further out.',
   },
   honeyBlood: {
     name: 'Honey Blood',
-    tip: 'Your daughters are born knowing the hive. Every honey cell of the comb up to this tier stands built on the first morning: workers, fanning, thrift, ripening.',
+    tip: 'Your daughters are born knowing the hive. Every honey cell within reach of the queen stands built on the first morning: fanning, thrift, ripening, workers. Each tier reaches further out.',
   },
   busyWax: {
     name: 'Busy Wax',
