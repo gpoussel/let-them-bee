@@ -69,6 +69,15 @@ export const NEIGHBORS: readonly (readonly [number, number])[] = [
 // aussi le débouché qui manquait au miel — il se produisait sans jamais se
 // dépenser.
 //
+// Ses prix sont VOLONTAIREMENT BAS au départ, et l'inverse exact du rayon du vol :
+// le nectar se pilote, le miel se récompense. Le premier réglage (ventilation I,
+// 1 miel) tombe après QUATRE lots — la première ouvrière se fait sentir presque
+// tout de suite. Les rangs II et III des effectifs (ouvrières, butineuses) sont
+// bas pour la même raison : ils ferment la boucle (plus de miel → plus
+// d'ouvrières → plus de miel), et une boucle qui met trop longtemps à se fermer
+// ne se lit pas comme une boucle. Le miel n'ayant pas de plafond, la courbe peut
+// démarrer aussi bas qu'on veut sans jamais bloquer le joueur.
+//
 // Ces alvéoles-là sont serrées CONTRE la ruche, dans les creux laissés par les
 // quatre premières branches : le rayon s'épaissit au centre au lieu de pousser
 // quatre bras de plus, et l'écran reste lisible sans glissé.
@@ -103,9 +112,9 @@ export const COMB: readonly CombCell[] = [
     r: -5,
     bees: 1,
   },
-  { id: 'workers-2', kind: 'workers', tier: 2, cost: 6, currency: 'honey', q: 2, r: -5, bees: 1 },
-  { id: 'workers-3', kind: 'workers', tier: 3, cost: 15, currency: 'honey', q: 3, r: -6, bees: 1 },
-  { id: 'workers-4', kind: 'workers', tier: 4, cost: 35, currency: 'honey', q: 2, r: -6, bees: 2 },
+  { id: 'workers-2', kind: 'workers', tier: 2, cost: 4, currency: 'honey', q: 2, r: -5, bees: 1 },
+  { id: 'workers-3', kind: 'workers', tier: 3, cost: 9, currency: 'honey', q: 3, r: -6, bees: 1 },
+  { id: 'workers-4', kind: 'workers', tier: 4, cost: 26, currency: 'honey', q: 2, r: -6, bees: 2 },
 
   // Butineuses — à droite de la ruche. La première se paie au nectar (c'est le
   // doublement le plus lisible du jeu) ; les deux suivantes au miel, et elles
@@ -125,7 +134,7 @@ export const COMB: readonly CombCell[] = [
     id: 'foragers-2',
     kind: 'foragers',
     tier: 2,
-    cost: 8,
+    cost: 5,
     currency: 'honey',
     q: 2,
     r: 0,
@@ -135,7 +144,7 @@ export const COMB: readonly CombCell[] = [
     id: 'foragers-3',
     kind: 'foragers',
     tier: 3,
-    cost: 30,
+    cost: 18,
     currency: 'honey',
     q: 2,
     r: -1,
@@ -164,14 +173,14 @@ export const COMB: readonly CombCell[] = [
     id: 'fanning-1',
     kind: 'fanning',
     tier: 1,
-    cost: 3,
+    cost: 1,
     currency: 'honey',
     q: 1,
     r: -1,
   },
-  { id: 'fanning-2', kind: 'fanning', tier: 2, cost: 8, currency: 'honey', q: 2, r: -2 },
-  { id: 'fanning-3', kind: 'fanning', tier: 3, cost: 18, currency: 'honey', q: 2, r: -3 },
-  { id: 'fanning-4', kind: 'fanning', tier: 4, cost: 40, currency: 'honey', q: 3, r: -3 },
+  { id: 'fanning-2', kind: 'fanning', tier: 2, cost: 5, currency: 'honey', q: 2, r: -2 },
+  { id: 'fanning-3', kind: 'fanning', tier: 3, cost: 12, currency: 'honey', q: 2, r: -3 },
+  { id: 'fanning-4', kind: 'fanning', tier: 4, cost: 30, currency: 'honey', q: 3, r: -3 },
 
   // Économie — un lot prend moins de nectar. En bas à gauche, contre la branche
   // « vol » : c'est la moitié du jeu qui rend du temps de vol au joueur.
@@ -179,14 +188,14 @@ export const COMB: readonly CombCell[] = [
     id: 'thrift-1',
     kind: 'thrift',
     tier: 1,
-    cost: 4,
+    cost: 2,
     currency: 'honey',
     q: -1,
     r: 1,
   },
-  { id: 'thrift-2', kind: 'thrift', tier: 2, cost: 10, currency: 'honey', q: -2, r: 2 },
-  { id: 'thrift-3', kind: 'thrift', tier: 3, cost: 22, currency: 'honey', q: -2, r: 3 },
-  { id: 'thrift-4', kind: 'thrift', tier: 4, cost: 45, currency: 'honey', q: -3, r: 4 },
+  { id: 'thrift-2', kind: 'thrift', tier: 2, cost: 6, currency: 'honey', q: -2, r: 2 },
+  { id: 'thrift-3', kind: 'thrift', tier: 3, cost: 15, currency: 'honey', q: -2, r: 3 },
+  { id: 'thrift-4', kind: 'thrift', tier: 4, cost: 34, currency: 'honey', q: -3, r: 4 },
 
   // Maturation — le même lot rend plus de miel. Au-dessus à gauche, dans le
   // dernier creux du centre.
@@ -194,14 +203,14 @@ export const COMB: readonly CombCell[] = [
     id: 'ripening-1',
     kind: 'ripening',
     tier: 1,
-    cost: 5,
+    cost: 3,
     currency: 'honey',
     q: -1,
     r: -1,
   },
-  { id: 'ripening-2', kind: 'ripening', tier: 2, cost: 12, currency: 'honey', q: 0, r: -2 },
-  { id: 'ripening-3', kind: 'ripening', tier: 3, cost: 26, currency: 'honey', q: 0, r: -3 },
-  { id: 'ripening-4', kind: 'ripening', tier: 4, cost: 55, currency: 'honey', q: -1, r: -3 },
+  { id: 'ripening-2', kind: 'ripening', tier: 2, cost: 8, currency: 'honey', q: 0, r: -2 },
+  { id: 'ripening-3', kind: 'ripening', tier: 3, cost: 18, currency: 'honey', q: 0, r: -3 },
+  { id: 'ripening-4', kind: 'ripening', tier: 4, cost: 42, currency: 'honey', q: -1, r: -3 },
 ] as const
 
 /** Nombre d'alvéoles achetables au total (jauge du bouton d'accès). */
