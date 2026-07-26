@@ -152,9 +152,16 @@ export const LINEAGE_EFFECT = {
   quickRootsMult: 0.7,
   /**
    * Fleurs ajoutées au pré par palier de `wideMeadow`. Le RANG vaut le total :
-   * le rang II donne deux fleurs de plus, pas trois.
+   * le rang II donne six fleurs de plus, pas neuf.
+   *
+   * TROIS par palier, et non une : une corolle de plus sur dix-neuf ne se voyait
+   * pas. Le pré est ce que le joueur REGARDE pendant tout le jeu — un héritage
+   * qui le change doit se voir à l'œil dès la première seconde de la colonie
+   * suivante, sinon il ne raconte rien. Au rang III le pré passe de dix-neuf à
+   * vingt-huit fleurs : la prairie est visiblement plus dense, et le même trajet
+   * croise plus de corolles sans durer une seconde de plus.
    */
-  meadowPerTier: 1,
+  meadowPerTier: 3,
 } as const
 
 const ROMAN = ['', 'I', 'II', 'III'] as const

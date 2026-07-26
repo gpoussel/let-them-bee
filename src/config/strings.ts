@@ -227,7 +227,7 @@ export const LINEAGE_STR: Record<string, { name: string; tip: string }> = {
   },
   wideMeadow: {
     name: 'Wide Meadow',
-    tip: 'One more flower takes root out there, for good. The same lap meets more corollas without taking a second longer.',
+    tip: 'Three more flowers take root out there, for good. The same lap meets more corollas without taking a second longer.',
   },
   richBloom: {
     name: 'Rich Bloom',

@@ -526,7 +526,7 @@ C'est la seule chose du jeu qui survive à une remise à zéro.
 | `nectarBlood` | I·II·III | La colonie naît avec les alvéoles **nectar** du rang correspondant             |
 | `honeyBlood`  | I·II·III | La colonie naît avec les alvéoles **miel** du rang correspondant               |
 | `busyWax`     | 1        | Débloque le bouton **_Buy all_** du Rayon                                      |
-| `wideMeadow`  | I·II·III | **+1 fleur** au pré par palier                                                 |
+| `wideMeadow`  | I·II·III | **+3 fleurs** au pré par palier (19 → 28 au rang III)                          |
 | `richBloom`   | I·II·III | Nectar de base de toutes les corolles **+10 %** par palier                     |
 | `quickRoots`  | I·II·III | Repos d'une fleur fanée **× 0,7** par palier : elle repousse plus vite         |
 | `steadyWings` | 1        | Inertie de l'abeille **très légèrement** réduite (pilotage seulement)          |
@@ -548,6 +548,11 @@ corolle à ne pas manquer, et la récolte double reste un geste (règle 1).
 tirage** : les dix-neuf premiers emplacements d'un pré à vingt-deux fleurs sont
 rigoureusement ceux d'un pré à dix-neuf. Un héritage n'invalide pas le terrain appris
 à la colonie précédente, il lui ajoute des corolles.
+
+Elles vont par **trois**, et pas à l'unité : le pré est ce que le joueur regarde
+pendant tout le jeu, et une corolle de plus sur dix-neuf ne se voyait pas. Un
+héritage qui change le terrain doit se voir **à l'œil dès la première seconde**
+de la colonie suivante — au rang III, la prairie est visiblement plus dense.
 
 **Les prix.** La gelée tombe par doses de 0,5 tous les 50 miel : une première
 colonie menée au bout de son rayon en rapporte quelques unités, pas quelques
