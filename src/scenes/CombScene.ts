@@ -63,6 +63,16 @@ const DIM_ALPHA = 0.65
 /** Au-delà de ce déplacement, un clic est un glissé et n'achète rien. */
 const DRAG_SLOP = 8
 
+/**
+ * Air qu'on peut dégager autour de l'alvéole la plus éloignée, en pixels.
+ *
+ * Sans elle, le glissé s'arrête pile quand le bord du rayon touche le bord du
+ * cadre : la dernière alvéole reste collée au liseré, et on ne sait pas si on
+ * est au bout du rayon ou au bout de la course. Une demi-alvéole de blanc suffit
+ * à dire « c'est fini ».
+ */
+const PAN_MARGIN = 24
+
 /** Côté de la vignette de monnaie (icône de la barre, bakée au point d'art). */
 const COIN = 16
 /** Blanc entre la vignette et le chiffre. */
@@ -142,6 +152,7 @@ export class CombScene extends Phaser.Scene {
     for (const cell of COMB) this.views.push(this.buildCell(cell))
 
     this.buildChrome()
+    this.clipToView()
     this.clampPan()
     this.wireInput()
     wireHandCursors(this)
@@ -163,27 +174,59 @@ export class CombScene extends Phaser.Scene {
   }
 
   /**
-   * Recale le rayon dans sa fenêtre. C'est ce qui tient lieu de découpe : rien
-   * ne déborde parce que rien ne peut sortir.
+   * Découpe la fenêtre des alvéoles avec une caméra dédiée.
    *
-   * Un masque aurait été plus direct, mais `Container.setMask` ne fait rien en
-   * Phaser 4 (il renvoie le conteneur, `mask` reste nul) ; une seconde caméra
-   * découpe bien, mais le survol et le clic cessent alors d'atteindre les
-   * alvéoles — la caméra principale les ignore, et c'est elle que consulte le
-   * test de pointage. Borner le déplacement ne coûte, lui, aucune entrée.
+   * Un masque aurait été plus direct, mais en Phaser 4 les masques ne vivent
+   * plus que sur les caméras : `Container.setMask` existe (le mixin est là) et
+   * ne fait rien, le rendu du conteneur ne le lit jamais. Une caméra, elle,
+   * découpe par son propre viewport — c'est un ciseau matériel, gratuit.
    *
-   * Plus grand que sa fenêtre, le rayon peut glisser mais jamais assez pour
-   * laisser un bord découvert ; plus petit, il reste centré.
+   * Le survol et le clic y survivent : le test de pointage passe en revue
+   * TOUTES les caméras sous le pointeur, de la plus haute à la plus basse, et
+   * respecte leurs listes d'ignorés. La caméra du rayon est au-dessus et ne voit
+   * que le calque ; la principale voit tout le reste (cadre, titre, bouton de
+   * fermeture) et ignore le calque. Chaque objet a donc exactement une caméra
+   * qui le dessine et le pointe.
+   */
+  private clipToView(): void {
+    const view = this.hiveView()
+
+    // Tout ce qui est déjà posé sauf le calque : c'est le décor fixe, et il
+    // reste à la caméra principale. Rien n'est créé après ce point.
+    const chrome = this.children.list.filter((o) => o !== this.layer)
+
+    this.cameras.main.ignore(this.layer)
+    const clip = this.cameras.add(view.x, view.y, view.w, view.h)
+    // Le viewport est décalé dans l'écran : sans ce défilement, la caméra
+    // afficherait le monde à partir de (0, 0) dans le coin de la fenêtre et le
+    // rayon partirait en biais. Ce calage aligne les deux caméras au pixel.
+    clip.setScroll(view.x, view.y)
+    clip.ignore(chrome)
+  }
+
+  /**
+   * Recale le rayon dans sa fenêtre, en lui laissant `PAN_MARGIN` d'air autour
+   * de son alvéole la plus éloignée.
+   *
+   * Plus grand que sa fenêtre sur un axe, le rayon glisse le long de cet axe ;
+   * plus petit, il y reste centré — la marge ne sert qu'à respirer au bout de la
+   * course, pas à faire flotter un rayon qui tient déjà tout entier.
    */
   private clampPan(): void {
     const view = this.hiveView()
     const half = this.halfExtent()
     const cx = view.x + view.w / 2
     const cy = view.y + view.h / 2
-    const slackX = Math.max(0, half.w * this.layer.scaleX - view.w / 2)
-    const slackY = Math.max(0, half.h * this.layer.scaleY - view.h / 2)
+    const slackX = this.slack(half.w * this.layer.scaleX, view.w)
+    const slackY = this.slack(half.h * this.layer.scaleY, view.h)
     this.layer.x = Phaser.Math.Clamp(this.layer.x, cx - slackX, cx + slackX)
     this.layer.y = Phaser.Math.Clamp(this.layer.y, cy - slackY, cy + slackY)
+  }
+
+  /** Jeu de glissement sur un axe : le débord, plus la marge s'il y a débord. */
+  private slack(halfExtent: number, viewSize: number): number {
+    const overflow = halfExtent - viewSize / 2
+    return overflow > 0 ? overflow + PAN_MARGIN : 0
   }
 
   /** Fenêtre où vivent les alvéoles : l'intérieur du cadre, titre et détail ôtés. */
