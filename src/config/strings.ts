@@ -15,6 +15,8 @@ export const STR = {
   hive: 'Hive',
   best: 'Best',
   queens: 'Queens',
+  /** Ligne de stats de l'écran-titre : des libellés courts, sans pluriel à accorder. */
+  bees: 'Bees',
   jamCredit: 'Made for #DTJ36-28',
   jamUrl: 'https://itch.io/jam/dtj36-28',
   controlsHint: 'Guide the bee with your mouse. Hover open flowers to forage.',
