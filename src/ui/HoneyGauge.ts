@@ -9,11 +9,10 @@
 // ruche ne sait pas transformer, et une jauge morte ne dit rien à personne.
 //
 // Un clic la coupe et la relance : la transformation mord sur la réserve, et le
-// joueur doit pouvoir économiser pour une alvéole de rang IV sans la voir se
+// joueur doit pouvoir économiser pour une alvéole des rangs les plus hauts sans la voir se
 // faire manger lot après lot.
 
 import type Phaser from 'phaser'
-import { HONEY } from '../config/balance'
 import { gameState } from '../systems/GameState'
 import { handCursor } from './cursor'
 import { HONEY_GAUGE, PALETTE } from './theme'
@@ -66,7 +65,7 @@ export class HoneyGauge {
     // éteinte : la ruche sait transformer, elle ne transforme pas — ce n'est
     // pas pareil.
     const running = gameState.brewing
-    const idle = !running && (!gameState.brewEnabled || gameState.nectar < HONEY.nectarPerBatch)
+    const idle = !running && (!gameState.brewEnabled || gameState.nectar < gameState.nectarPerBatch)
 
     this.g.clear()
     this.g.fillStyle(PALETTE.darkGreen, 0.85)
