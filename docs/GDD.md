@@ -295,13 +295,22 @@ Une alvéole se dévoile quand **ce qui la précède est bâti**, dans cet ordre
 
 - son **prérequis explicite** s'il en a un (`CombCell.needs`) ;
 - sinon, à partir du **rang 2**, le rang précédent de **sa branche** ;
+- sinon, toujours au-delà du rang 1, le contact avec une alvéole bâtie **de sa
+  propre branche** ;
 - au **rang 1**, le simple contact avec du construit (la ruche, ou une alvéole
   payée) : c'est lui qui amorce une branche.
 
-C'est la **branche** qui fait l'ordre, plus le voisinage. Le rayon s'est épaissi
-au centre (§7.3) : une alvéole en touche désormais plusieurs d'autres branches, et
-au voisinage seul, acheter la ventilation dévoilerait le troisième palier de
-réserve. Le prérequis explicite, lui, dit ce que la géométrie ne peut pas dire :
+C'est la **branche** qui fait l'ordre, plus le voisinage toutes branches
+confondues. Le rayon s'est épaissi au centre (§7.3) : une alvéole en touche
+désormais plusieurs d'autres branches, et au voisinage seul, acheter la
+ventilation dévoilerait le troisième palier de réserve.
+
+**Le voisinage de branche**, lui, est là parce que les branches s'incurvent : le
+rang V se recolle contre le rang III, et une alvéole qu'on touche du doigt mais
+qui n'existe pas encore se lit comme un trou dans la cire. Elle se montre donc
+dès que la branche arrive à côté d'elle — quitte à s'acheter **avant** le rang
+qui la précède. Ce n'est pas un raccourci : les deux se paient de toute façon, et
+le plafond de réserve (§7.4) reste le vrai ordonnanceur. Le prérequis explicite, lui, dit ce que la géométrie ne peut pas dire :
 les alvéoles en miel touchent la ruche, elles seraient visibles à la première
 seconde, prix en miel affiché, alors que le miel n'existe pas encore. Elles
 attendent donc la première ouvrière.
@@ -312,13 +321,13 @@ Une alvéole s'achète **une fois, et pour de bon**.
 
 **Le rayon du vol**, payé en nectar, part de quatre voisines de la ruche :
 
-| Branche      | Effet d'une alvéole                               | Forme                                                                   | Intention                                                                               |
-| ------------ | ------------------------------------------------- | ----------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| **Storage**  | + un palier de réserve de nectar                  | 6 alvéoles, vers le haut                                                | Le déverrouilleur : c'est elle qui rend le reste payable                                |
-| **Foragers** | +1 butineuse sur le trajet (rang I)               | 3 alvéoles, à droite (les rangs II-III en miel)                         | Le doublement sec — la récompense la plus lisible                                       |
-| **Flight**   | Vitesse de vol, **très** légèrement               | 6 alvéoles, vers le bas                                                 | Assez pour raser un virage, jamais pour voler le tour à votre place                     |
-| **Growth**   | Accélère le calendrier du pré                     | 6 alvéoles, vers la gauche                                              | Les fleurs reviennent plus tôt : un tour croise plus de corolles ouvertes               |
-| **Workers**  | Donne une ouvrière, donc la transformation (§6.1) | 4 alvéoles, **au bout de la branche Storage** (les rangs II-IV en miel) | Le basculement du jeu : jusque-là le nectar s'améliore, à partir de là il se transforme |
+| Branche      | Effet d'une alvéole                               | Forme                                                                   | Intention                                                                                                                                               |
+| ------------ | ------------------------------------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Storage**  | + un palier de réserve de nectar                  | 6 alvéoles, vers le haut                                                | Le déverrouilleur : c'est elle qui rend le reste payable                                                                                                |
+| **Foragers** | +1 butineuse sur le trajet (rang I)               | 3 alvéoles, à droite (les rangs II-III en miel)                         | Le doublement sec — la récompense la plus lisible                                                                                                       |
+| **Flight**   | Vitesse de vol, **très** légèrement               | 6 alvéoles, vers le bas                                                 | Assez pour raser un virage, jamais pour voler le tour à votre place                                                                                     |
+| **Growth**   | Accélère le calendrier du pré                     | 6 alvéoles, vers la gauche                                              | Les fleurs reviennent plus tôt : un tour croise plus de corolles ouvertes                                                                               |
+| **Workers**  | Donne une ouvrière, donc la transformation (§6.1) | 4 alvéoles, **au bout de la branche Storage** (les rangs II-IV en miel) | Le basculement du jeu : jusque-là le nectar s'améliore, à partir de là il se transforme ; son rang I exige **Storage IV**, écrit en prérequis explicite |
 
 **Le rayon de la ruche**, payé en miel, remplit les **creux du centre** laissés
 par les quatre premières branches. Il ne se dévoile qu'avec la première ouvrière.
@@ -409,6 +418,13 @@ coupées, pour que le glissé du rayon ne pilote pas l'abeille. Le rayon se
 déplace au glissé (un glissé n'achète rien) et la barre de ressources reste
 découverte au-dessus : le joueur doit voir sa réserve fondre à l'achat.
 
+**Le détail de l'alvéole survolée** se lit dans une **colonne à droite** des
+alvéoles, et non sur une ligne sous elles. Sous le rayon, il n'avait qu'une ligne
+en travers de tout l'écran : les infobulles longues (les ouvrières, l'économie) y
+tenaient à peine, et une seconde ligne aurait mangé la fenêtre sur toute sa
+largeur. Sur le côté, la même place rend six lignes, avec le **nom** de
+l'alvéole en tête. Rien ne s'y affiche quand rien n'est survolé.
+
 **La jauge de transformation** coiffe **le toit de la ruche**, dans le pré, et
 pas dans la barre du haut : le miel est une affaire de ruche, et le joueur doit
 faire le lien entre la réserve qui tombe et le pot qui monte. Elle est
@@ -464,8 +480,10 @@ alvéoles.
   une fleur butinée, un lot de miel versé. **Le butinage sonne moins fort en
   rejeu qu'en enregistrement** — le trajet tourne en boucle sans le joueur, à
   plein volume il deviendrait un métronome ; pendant un enregistrement, chaque
-  corolle prise est un geste du joueur et s'entend en entier. Manquent le son du
-  dépôt à la ruche et celui du « Perfect ».
+  corolle prise est un geste du joueur et s'entend en entier. **Un troisième SFX
+  récompense le tour qui bat le meilleur connu**, et lui seul : sonner à chaque
+  fin d'enregistrement dirait « c'est fini », pas « c'est mieux ». Manquent le son
+  du dépôt à la ruche et celui du « Perfect ».
 - **Crédits** : tout asset entre dans `CREDITS` (`strings.ts`) **en même temps
   que l'asset**, avec auteur et licence.
 

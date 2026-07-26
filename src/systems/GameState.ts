@@ -112,26 +112,34 @@ export class GameState {
    * Une alvéole se dévoile quand ce qui la précède est bâti :
    *
    *   - son prérequis explicite, s'il y en a un (cf. `CombCell.needs`) ;
-   *   - le rang précédent de SA branche, à partir du rang 2. C'est la branche qui
-   *     fait l'ordre, pas le voisinage : le rayon est désormais serré au centre,
-   *     et une alvéole en touche plusieurs d'autres branches — au voisinage seul,
-   *     acheter la ventilation dévoilerait le troisième palier de réserve ;
-   *   - pour un rang 1, le simple contact avec du construit (la ruche au départ,
-   *     puis n'importe quelle alvéole payée) : c'est lui qui amorce une branche.
+   *   - le rang précédent de SA branche, à partir du rang 2 ;
+   *   - à défaut, le contact avec une alvéole bâtie DE SA BRANCHE. Les branches
+   *     s'incurvent : le rang V se recolle contre le rang III, et une alvéole
+   *     qu'on touche du doigt mais qui n'existe pas encore se lit comme un trou
+   *     dans le rayon. Le voisinage de branche la montre dès que la cire arrive
+   *     à côté d'elle — quitte à ce qu'elle s'achète avant le rang qui la
+   *     précède : ce n'est pas un raccourci, les deux se paient de toute façon ;
+   *   - pour un rang 1, le contact avec n'importe quel construit (la ruche au
+   *     départ, puis toute alvéole payée) : c'est lui qui amorce une branche.
+   *
+   * Le voisinage TOUTES branches confondues reste réservé au rang 1 : le rayon
+   * est serré au centre, et sinon acheter la ventilation dévoilerait le
+   * troisième palier de réserve.
    *
    * Le joueur ne voit donc jamais la carte entière, seulement le bord de sa ruche.
    */
   isRevealed(cell: CombCell): boolean {
     if (cell.needs !== undefined && !this.comb.has(cell.needs)) return false
     const prev = previousTier(cell)
-    if (prev) return this.comb.has(prev.id)
+    if (prev && this.comb.has(prev.id)) return true
     for (const [dq, dr] of NEIGHBORS) {
       const q = cell.q + dq
       const r = cell.r + dr
       // La ruche compte comme construite : c'est elle qui amorce le rayon.
-      if (q === 0 && r === 0) return true
+      if (q === 0 && r === 0 && !prev) return true
       const neighbor = COMB.find((c) => c.q === q && c.r === r)
-      if (neighbor && this.comb.has(neighbor.id)) return true
+      if (!neighbor || !this.comb.has(neighbor.id)) continue
+      if (!prev || neighbor.kind === cell.kind) return true
     }
     return false
   }

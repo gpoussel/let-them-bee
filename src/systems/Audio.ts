@@ -10,6 +10,8 @@ export const SND = {
   click: 'snd-ui-click',
   forage: 'snd-forage',
   honey: 'snd-honey',
+  /** Un tour vient de battre le meilleur connu. */
+  newBest: 'snd-new-best',
   titleTheme: 'snd-title-theme',
   gameTheme: 'snd-game-theme',
 } as const

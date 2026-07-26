@@ -111,6 +111,11 @@ export const COMB: readonly CombCell[] = [
     q: 3,
     r: -5,
     bees: 1,
+    // La réserve à quatre paliers, dite NOIR SUR BLANC plutôt que laissée à la
+    // géométrie. L'alvéole touche `storage-4` et le voisinage suffirait —
+    // jusqu'au jour où on pousse une alvéole d'un cran : le basculement du jeu
+    // ne doit pas dépendre d'un coude du rayon.
+    needs: 'storage-4',
   },
   { id: 'workers-2', kind: 'workers', tier: 2, cost: 6, currency: 'honey', q: 2, r: -5, bees: 1 },
   { id: 'workers-3', kind: 'workers', tier: 3, cost: 15, currency: 'honey', q: 3, r: -6, bees: 1 },
@@ -150,6 +155,9 @@ export const COMB: readonly CombCell[] = [
     q: 2,
     r: -1,
     bees: 2,
+    // Elle touche `foragers-1`, donc le voisinage de branche la montrerait dès
+    // la première butineuse — prix en miel affiché avant que le miel existe.
+    needs: 'workers-1',
   },
 
   // Vol — vers le bas.
