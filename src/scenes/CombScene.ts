@@ -50,8 +50,25 @@ const INNER = {
 
 /** Hauteur réservée en haut du cadre au titre et à la jauge. */
 const HEADER_H = 40
-/** Hauteur réservée en bas à la ligne de détail. */
-const FOOTER_H = 24
+
+/**
+ * COLONNE DE DÉTAIL — à DROITE des alvéoles, et non plus sous elles.
+ *
+ * En bas, le détail n'avait qu'une ligne : les infobulles les plus utiles (les
+ * ouvrières, l'économie) y tenaient sur 76 colonnes ou pas du tout, et une
+ * seconde ligne aurait mangé la fenêtre du rayon sur toute sa largeur. Sur le
+ * côté, elle mange une bande étroite et rend six lignes en échange — le texte
+ * respire, et la hauteur gagnée en bas revient aux alvéoles.
+ */
+const SIDE_W = 246
+/** Blanc entre la fenêtre des alvéoles et la colonne de détail. */
+const SIDE_GAP = 12
+/**
+ * Largeur du détail en CARACTÈRES. La police est à chasse fixe : une cellule
+ * fait la moitié de la taille du texte, donc `SIDE_W / (sizeHint / 2)`, moins
+ * une colonne pour ne pas coller au liseré.
+ */
+const SIDE_COLS = Math.floor(SIDE_W / (FONTS.sizeHint / 2)) - 1
 
 /** Écart entre deux centres d'alvéoles voisines (hexagones pointe en haut). */
 const STEP_X = HEX_R * Math.sqrt(3)
@@ -105,6 +122,7 @@ export class CombScene extends Phaser.Scene {
   private layer!: Phaser.GameObjects.Container
   private views: CellView[] = []
   private detail!: Phaser.GameObjects.BitmapText
+  private detailName!: Phaser.GameObjects.BitmapText
   private progress!: Phaser.GameObjects.BitmapText
   private hovered: CombCell | null = null
   private dragged = false
@@ -231,8 +249,8 @@ export class CombScene extends Phaser.Scene {
     return {
       x: INNER.x,
       y: INNER.y + HEADER_H,
-      w: INNER.w,
-      h: INNER.h - HEADER_H - FOOTER_H,
+      w: INNER.w - SIDE_W - SIDE_GAP,
+      h: INNER.h - HEADER_H,
     }
   }
 
@@ -336,14 +354,22 @@ export class CombScene extends Phaser.Scene {
       0,
       0,
     )
+    // La colonne de détail : le nom de l'alvéole survolée, puis ce qu'elle fait.
+    // Les deux textes partent du haut de la colonne — un texte de six lignes qui
+    // grandirait vers le haut ferait sauter son titre à chaque survol.
+    const side = this.hiveView()
+    const sideX = side.x + side.w + SIDE_GAP
+    this.detailName = pixelText(this, sideX, side.y, '', FONTS.sizeHint, HEX.cream)
+      .setOrigin(0, 0)
+      .setTint(PALETTE.amber)
     this.detail = pixelText(
       this,
-      INNER.x + INNER.w / 2,
-      INNER.y + INNER.h,
+      sideX,
+      side.y + FONTS.sizeHint + 6,
       '',
       FONTS.sizeHint,
       HEX.cream,
-    ).setOrigin(0.5, 1)
+    ).setOrigin(0, 0)
   }
 
   // --- Entrées -------------------------------------------------------------
@@ -488,6 +514,11 @@ export class CombScene extends Phaser.Scene {
     // Rien sous le rayon quand rien n'est survolé : la ligne ne sert qu'à dire
     // ce que fait l'alvéole visée, et une consigne permanente n'y avait pas sa
     // place.
-    this.detail.setText(this.hovered ? wrap(UPGRADE_STR[this.hovered.kind].tip, 76) : '')
+    const hovered = this.hovered
+    const tier = hovered ? tierLabel(hovered) : ''
+    this.detailName.setText(
+      hovered ? `${UPGRADE_STR[hovered.kind].name}${tier ? ` ${tier}` : ''}` : '',
+    )
+    this.detail.setText(hovered ? wrap(UPGRADE_STR[hovered.kind].tip, SIDE_COLS) : '')
   }
 }

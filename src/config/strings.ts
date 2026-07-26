@@ -137,7 +137,7 @@ export const CREDITS: readonly { label?: string; value: string }[] = [
   { label: 'UI & cursors', value: 'Cozyland UI - RoleyMoth (roleymoth.itch.io)' },
   { label: 'Garden tiles', value: '16x16 Tiny Garden - kathychow (kathychow.itch.io)' },
   { label: 'Music', value: 'Castle Tales - alkakrab (alkakrab.itch.io)' },
-  { label: 'UI sounds', value: 'Universal UI Soundpack - Cyrex Studios' },
+  { label: 'UI sounds', value: 'Universal UI Soundpack - Nathan Gibson (CC BY 4.0)' },
   { label: 'Game SFX', value: 'Essentials Series - Nox Sound Design' },
   { label: 'Engine', value: 'Phaser 4 + Vite + phaser-pixui' },
 ] as const

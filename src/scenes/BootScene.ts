@@ -25,6 +25,7 @@ export class BootScene extends Phaser.Scene {
     this.load.audio(SND.click, 'audio/ui-click.ogg')
     this.load.audio(SND.forage, 'audio/sfx-forage.ogg')
     this.load.audio(SND.honey, 'audio/sfx-honey.ogg')
+    this.load.audio(SND.newBest, 'audio/sfx-new-best.ogg')
     this.load.audio(SND.titleTheme, 'audio/title-theme.ogg')
     this.load.audio(SND.gameTheme, 'audio/game-theme.ogg')
   }

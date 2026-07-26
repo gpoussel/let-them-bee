@@ -3,7 +3,6 @@ import { GAME } from '../config/game'
 import {
   COMB,
   NEIGHBORS,
-  previousTier,
   UPGRADE_EFFECT,
   type CombCell,
   type UpgradeKind,
@@ -109,22 +108,27 @@ export class GameState {
   }
 
   /**
-   * Une alvéole se dévoile quand ce qui la précède est bâti :
+   * Une alvéole se dévoile quand la cire arrive CONTRE elle : elle touche la
+   * ruche, ou une alvéole payée. C'est tout, et c'est voulu — le rayon est une
+   * carte, pas un arbre de compétences, et ce qu'on voit doit s'expliquer par ce
+   * qu'on voit. Aucune règle ne nomme d'alvéole ni de rang : un ordre écrit
+   * ailleurs que dans la géométrie serait invisible au joueur, et se casserait
+   * au premier coude déplacé.
    *
-   *   - son prérequis explicite, s'il y en a un (cf. `CombCell.needs`) ;
-   *   - le rang précédent de SA branche, à partir du rang 2. C'est la branche qui
-   *     fait l'ordre, pas le voisinage : le rayon est désormais serré au centre,
-   *     et une alvéole en touche plusieurs d'autres branches — au voisinage seul,
-   *     acheter la ventilation dévoilerait le troisième palier de réserve ;
-   *   - pour un rang 1, le simple contact avec du construit (la ruche au départ,
-   *     puis n'importe quelle alvéole payée) : c'est lui qui amorce une branche.
+   * L'ORDRE, c'est donc la FORME du rayon qui le fait. Une branche se parcourt
+   * dans l'ordre parce que ses alvéoles se touchent ; l'ouvrière attend la
+   * réserve à quatre paliers parce qu'elle est posée au bout de cette
+   * branche-là, et rien d'autre ne la touche.
+   *
+   * SEULE exception, et elle ne parle pas d'alvéoles mais de MONNAIE : ce qui se
+   * paie en miel n'apparaît pas tant que la ruche ne sait pas en faire. Les
+   * alvéoles en miel touchent la ruche : sans ça, elles seraient là à la
+   * première seconde, prix affiché dans une ressource qui n'existe pas encore.
    *
    * Le joueur ne voit donc jamais la carte entière, seulement le bord de sa ruche.
    */
   isRevealed(cell: CombCell): boolean {
-    if (cell.needs !== undefined && !this.comb.has(cell.needs)) return false
-    const prev = previousTier(cell)
-    if (prev) return this.comb.has(prev.id)
+    if (cell.currency === 'honey' && !this.canBrew) return false
     for (const [dq, dr] of NEIGHBORS) {
       const q = cell.q + dq
       const r = cell.r + dr

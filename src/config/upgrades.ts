@@ -41,15 +41,6 @@ export interface CombCell {
    * lit ici plutôt que dans une table à part.
    */
   bees?: number
-  /**
-   * Alvéole d'une AUTRE branche à posséder pour que celle-ci se dévoile.
-   *
-   * Le voisinage seul ne suffit pas toujours : une alvéole qui se paie en miel et
-   * qui touche la ruche serait visible dès la première seconde, prix en miel
-   * affiché, alors que le miel n'existe pas encore. Le prérequis dit l'ordre que
-   * la géométrie ne peut pas dire.
-   */
-  needs?: string
 }
 
 /** Les six voisines d'une alvéole, en axial. */
@@ -139,7 +130,6 @@ export const COMB: readonly CombCell[] = [
     q: 2,
     r: 0,
     bees: 1,
-    needs: 'workers-1',
   },
   {
     id: 'foragers-3',
@@ -178,7 +168,6 @@ export const COMB: readonly CombCell[] = [
     currency: 'honey',
     q: 1,
     r: -1,
-    needs: 'workers-1',
   },
   { id: 'fanning-2', kind: 'fanning', tier: 2, cost: 8, currency: 'honey', q: 2, r: -2 },
   { id: 'fanning-3', kind: 'fanning', tier: 3, cost: 18, currency: 'honey', q: 2, r: -3 },
@@ -194,7 +183,6 @@ export const COMB: readonly CombCell[] = [
     currency: 'honey',
     q: -1,
     r: 1,
-    needs: 'workers-1',
   },
   { id: 'thrift-2', kind: 'thrift', tier: 2, cost: 10, currency: 'honey', q: -2, r: 2 },
   { id: 'thrift-3', kind: 'thrift', tier: 3, cost: 22, currency: 'honey', q: -2, r: 3 },
@@ -210,7 +198,6 @@ export const COMB: readonly CombCell[] = [
     currency: 'honey',
     q: -1,
     r: -1,
-    needs: 'workers-1',
   },
   { id: 'ripening-2', kind: 'ripening', tier: 2, cost: 12, currency: 'honey', q: 0, r: -2 },
   { id: 'ripening-3', kind: 'ripening', tier: 3, cost: 26, currency: 'honey', q: 0, r: -3 },
@@ -277,9 +264,4 @@ const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI'] as const
 export function tierLabel(cell: CombCell): string {
   const branch = COMB.filter((c) => c.kind === cell.kind)
   return branch.length > 1 ? ROMAN[cell.tier] : ''
-}
-
-/** L'alvéole qui précède celle-ci dans sa branche (rien pour un rang 1). */
-export function previousTier(cell: CombCell): CombCell | undefined {
-  return COMB.find((c) => c.kind === cell.kind && c.tier === cell.tier - 1)
 }

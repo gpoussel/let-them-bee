@@ -321,6 +321,10 @@ export class GameScene extends Phaser.Scene {
       return
     }
     const adopted = gameState.proposeRoute(route)
+    // Le seul son qui récompense : il ne sonne QUE si le tour a battu l'ancien.
+    // Un jingle à chaque fin d'enregistrement dirait « c'est fini », pas
+    // « c'est mieux », et le joueur n'entendrait plus rien.
+    if (adopted) audio.playSfx(SND.newBest)
     gameState.save()
     const verdict = adopted ? STR.newBest : STR.keptOld
     this.enterReplayOrIdle(timeUp ? `${STR.timeUp} ${verdict}` : verdict)
