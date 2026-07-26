@@ -226,6 +226,13 @@ export class GameScene extends Phaser.Scene {
       this.scene.launch('Pause')
     })
 
+    // Espace : le même geste que le bouton d'action — il lance le tour, ou
+    // l'abandonne s'il est en cours. La main qui tient la souris n'a pas à
+    // quitter le pré pour aller viser le bouton.
+    this.input.keyboard?.on('keydown-SPACE', () => {
+      this.toggleRecord()
+    })
+
     // Au démarrage : on rejoue le meilleur tour connu, s'il y en a un.
     this.enterReplayOrIdle()
 

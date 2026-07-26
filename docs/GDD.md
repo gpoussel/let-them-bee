@@ -788,6 +788,11 @@ verdict, le bilan du meilleur tour (durée, nectar, **nectar/s**) en trois cases
 côte à côte, le compte à rebours (visible **uniquement** pendant un
 enregistrement — un cadran mort ne dit rien à personne) et le bouton.
 
+**La barre d'espace double le bouton** : elle lance le tour (« Record a run » /
+« Beat this run ») et l'abandonne (« Give up »). Le trajet se dessine à la
+souris ; obliger la main à quitter le pré pour aller viser le bouton coûte un
+temps qui compte, puisque c'est le chrono qu'on optimise.
+
 Deux règles de dévoilement s'y appliquent, pour la même raison — **rien à
 l'écran ne doit rester affiché après avoir cessé de parler** :
 
