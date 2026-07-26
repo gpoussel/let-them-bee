@@ -16,9 +16,35 @@ export const DEFAULT_VOLUME = 0.5
 // continue, inutile de persister 15 décimales.
 const clamp01 = (v: number): number => Math.round(Math.min(1, Math.max(0, v)) * 100) / 100
 
+/**
+ * Exposant de la courbe position de curseur → gain audio.
+ *
+ * L'oreille perçoit l'intensité de façon logarithmique : appliquée telle quelle
+ * comme amplitude, une position de curseur donne un curseur « tout se joue dans
+ * les 20 premiers pourcents », la moitié haute paraissant plate. Élever la
+ * position à cette puissance (loi de Stevens, sonie ∝ amplitude^0.6) répartit
+ * la variation perçue à peu près uniformément sur toute la course.
+ */
+const VOLUME_CURVE = 1 / 0.6
+
+/** Position de curseur (0..1) → gain à passer au moteur audio. */
+export const volumeToGain = (value: number): number => Math.pow(value, VOLUME_CURVE)
+
 export class Settings {
+  /** Position du curseur musique (0..1) — voir {@link musicGain} pour le gain. */
   musicVolume = DEFAULT_VOLUME
+  /** Position du curseur SFX (0..1) — voir {@link sfxGain} pour le gain. */
   sfxVolume = DEFAULT_VOLUME
+
+  /** Gain musique à appliquer aux sons (courbe perceptive appliquée). */
+  get musicGain(): number {
+    return volumeToGain(this.musicVolume)
+  }
+
+  /** Gain SFX à appliquer aux sons (courbe perceptive appliquée). */
+  get sfxGain(): number {
+    return volumeToGain(this.sfxVolume)
+  }
 
   /** Appelé à chaque changement de volume (branché par le gestionnaire audio). */
   onChange?: (settings: Settings) => void
