@@ -66,7 +66,7 @@ export const UPGRADE_STR: Record<string, { name: string; tip: string }> = {
   },
   foragers: {
     name: 'Foragers',
-    tip: 'A second forager flies your recorded lap alongside the first. Twice the nectar, same run.',
+    tip: 'One more forager flies your recorded lap alongside the others. More nectar, same run.',
   },
   flight: {
     name: 'Flight',
@@ -74,11 +74,23 @@ export const UPGRADE_STR: Record<string, { name: string; tip: string }> = {
   },
   workers: {
     name: 'Workers',
-    tip: 'Your first worker moves in. From now on the hive turns stored nectar into honey, one batch at a time. Click the bar above the hive to stop or restart it.',
+    tip: 'One more worker moves into the hive. Workers never fly: they turn stored nectar into honey, one batch at a time, and a batch yields more the more of them there are. Click the bar above the hive to stop or restart it.',
   },
   growth: {
     name: 'Growth',
     tip: 'The meadow runs a little faster. Flowers come back sooner, so a lap meets more of them open.',
+  },
+  fanning: {
+    name: 'Fanning',
+    tip: 'Wings beat over the cells. Each batch ripens faster - same nectar in, same honey out, less waiting.',
+  },
+  thrift: {
+    name: 'Thrift',
+    tip: 'Not a drop wasted. A batch takes less nectar out of the stores, so the comb and the honey stop fighting over it.',
+  },
+  ripening: {
+    name: 'Ripening',
+    tip: 'Honey capped and cured properly. The very same batch yields more of it.',
   },
 }
 
@@ -106,7 +118,7 @@ export const RESOURCE_STR = {
   },
   honey: {
     name: STR.honey,
-    tip: 'Honey, the currency of the colony. Brewed from nectar by your workers, one batch at a time.',
+    tip: 'Honey, the currency of the colony. Brewed from nectar by your workers, one batch at a time - and it pays for the inner comb: more bees, better brewing.',
   },
   royalJelly: {
     name: STR.royalJelly,
@@ -124,5 +136,6 @@ export const CREDITS: readonly { label?: string; value: string }[] = [
   { label: 'Garden tiles', value: '16x16 Tiny Garden - kathychow (kathychow.itch.io)' },
   { label: 'Music', value: 'Castle Tales - alkakrab (alkakrab.itch.io)' },
   { label: 'UI sounds', value: 'Universal UI Soundpack - Cyrex Studios' },
+  { label: 'Game SFX', value: 'Essentials Series - Nox Sound Design' },
   { label: 'Engine', value: 'Phaser 4 + Vite + phaser-pixui' },
 ] as const

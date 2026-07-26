@@ -3,6 +3,7 @@ import { GAME } from '../config/game'
 import {
   COMB,
   NEIGHBORS,
+  previousTier,
   UPGRADE_EFFECT,
   type CombCell,
   type UpgradeKind,
@@ -60,7 +61,7 @@ export class GameState {
   /**
    * Interrupteur de la transformation. Elle tourne toute seule dès qu'il y a de
    * quoi, c'est le comportement par défaut — mais elle mord sur la réserve, et
-   * une réserve qui ne monte plus ne paie plus les alvéoles de rang IV. Le
+   * une réserve qui ne monte plus ne paie plus les alvéoles des rangs les plus hauts. Le
    * joueur doit donc pouvoir la couper le temps d'économiser, sinon le premier
    * lot le priverait pour toujours de ce qu'il n'a pas encore acheté.
    */
@@ -95,11 +96,22 @@ export class GameState {
   }
 
   /**
-   * Une alvéole n'apparaît que si elle touche du construit : la ruche au départ,
-   * puis n'importe quelle alvéole payée. Le rayon se découvre en s'étendant —
-   * le joueur ne voit jamais la carte entière, seulement le bord de sa ruche.
+   * Une alvéole se dévoile quand ce qui la précède est bâti :
+   *
+   *   - son prérequis explicite, s'il y en a un (cf. `CombCell.needs`) ;
+   *   - le rang précédent de SA branche, à partir du rang 2. C'est la branche qui
+   *     fait l'ordre, pas le voisinage : le rayon est désormais serré au centre,
+   *     et une alvéole en touche plusieurs d'autres branches — au voisinage seul,
+   *     acheter la ventilation dévoilerait le troisième palier de réserve ;
+   *   - pour un rang 1, le simple contact avec du construit (la ruche au départ,
+   *     puis n'importe quelle alvéole payée) : c'est lui qui amorce une branche.
+   *
+   * Le joueur ne voit donc jamais la carte entière, seulement le bord de sa ruche.
    */
   isRevealed(cell: CombCell): boolean {
+    if (cell.needs !== undefined && !this.comb.has(cell.needs)) return false
+    const prev = previousTier(cell)
+    if (prev) return this.comb.has(prev.id)
     for (const [dq, dr] of NEIGHBORS) {
       const q = cell.q + dq
       const r = cell.r + dr
@@ -131,13 +143,25 @@ export class GameState {
     if (cell.currency === 'honey') this.honey -= cell.cost
     else this.nectar -= cell.cost
     this.comb.add(cell.id)
-    // La branche « butineuses » n'améliore rien : elle ajoute une abeille de
-    // plus sur le trajet, donc c'est l'effectif qu'il faut bouger.
-    if (cell.kind === 'foragers') this.bees.forager += 1
-    // Idem pour l'ouvrière : l'alvéole n'ouvre pas un achat, elle DONNE la
-    // première ouvrière. Le miel n'existe pas encore pour la payer.
-    if (cell.kind === 'workers') this.bees.worker += 1
+    this.grantCellBees(cell)
     return true
+  }
+
+  /**
+   * Verse les abeilles d'une alvéole (`CombCell.bees`).
+   *
+   * Les branches « butineuses » et « ouvrières » n'améliorent rien : elles
+   * ajoutent un effectif. Une alvéole n'ouvre donc pas un achat, elle DONNE
+   * l'abeille — le miel n'existait pas encore pour payer la première ouvrière, et
+   * les suivantes se paient au rayon comme tout le reste.
+   *
+   * Séparé de l'achat parce que le menu de triche offre les alvéoles sans les
+   * payer et doit produire exactement les mêmes effets.
+   */
+  grantCellBees(cell: CombCell): void {
+    if (cell.bees === undefined) return
+    if (cell.kind === 'foragers') this.bees.forager += cell.bees
+    if (cell.kind === 'workers') this.bees.worker += cell.bees
   }
 
   // --- Ressources ---------------------------------------------------------
@@ -180,9 +204,30 @@ export class GameState {
     return BEE_KINDS.slice(0, Math.min(last + 2, BEE_KINDS.length)).map((k) => k.id)
   }
 
-  /** Miel rendu par un lot, effectif d'ouvrières compris. */
+  /**
+   * Miel rendu par un lot : l'effectif d'ouvrières, puis la maturation.
+   *
+   * Arrondi au centième, la précision qu'affiche le gain flottant (`fmtFine`) :
+   * un `+0.31` annoncé pour 0,3125 versé ferait mentir le compte du joueur, et
+   * c'est le compte qui a raison.
+   */
   get honeyPerBatch(): number {
-    return this.bees.worker * HONEY.honeyPerWorker
+    const ripening = 1 + this.levelOf('ripening') * UPGRADE_EFFECT.ripeningStep
+    return Math.round(this.bees.worker * HONEY.honeyPerWorker * ripening * 100) / 100
+  }
+
+  /**
+   * Nectar qu'un lot engage, l'économie déduite. Arrondi : ce montant est celui
+   * que le joueur voit tomber en haut de l'écran, il n'a pas de décimales.
+   */
+  get nectarPerBatch(): number {
+    const thrift = 1 - this.levelOf('thrift') * UPGRADE_EFFECT.thriftStep
+    return Math.round(HONEY.nectarPerBatch * thrift)
+  }
+
+  /** Durée d'un lot, la ventilation déduite. */
+  get batchMs(): number {
+    return HONEY.batchMs / (1 + this.levelOf('fanning') * UPGRADE_EFFECT.fanningStep)
   }
 
   /** La ruche sait-elle transformer ? (au moins une ouvrière) */
@@ -204,7 +249,7 @@ export class GameState {
     if (on || !this.brewing) return
     this.brewing = false
     this.brewProgress = 0
-    this.nectar = Math.min(this.nectarCapacity, this.nectar + HONEY.nectarPerBatch)
+    this.nectar = Math.min(this.nectarCapacity, this.nectar + this.nectarPerBatch)
   }
 
   /**
@@ -243,13 +288,13 @@ export class GameState {
 
     if (!this.brewing) {
       if (!this.brewEnabled) return null
-      if (this.nectar < HONEY.nectarPerBatch) return null
-      this.nectar -= HONEY.nectarPerBatch
+      if (this.nectar < this.nectarPerBatch) return null
+      this.nectar -= this.nectarPerBatch
       this.brewing = true
       this.brewProgress = 0
     }
 
-    this.brewProgress += (dt * 1000) / HONEY.batchMs
+    this.brewProgress += (dt * 1000) / this.batchMs
     if (this.brewProgress < 1) return null
 
     this.brewing = false

@@ -8,6 +8,8 @@ import { settings } from './Settings'
 /** Clés des sons chargés au boot. */
 export const SND = {
   click: 'snd-ui-click',
+  forage: 'snd-forage',
+  honey: 'snd-honey',
   titleTheme: 'snd-title-theme',
   gameTheme: 'snd-game-theme',
 } as const
@@ -55,6 +57,17 @@ class AudioManager {
   /** SFX de clic, joué par tous les boutons de l'interface. */
   playClick(): void {
     this.manager?.play(SND.click, { volume: settings.sfxGain })
+  }
+
+  /**
+   * SFX de jeu, joué par-dessus la musique.
+   *
+   * @param gain atténuation relative au volume SFX du joueur (1 = plein pot).
+   *   C'est ce qui distingue un geste du joueur d'un geste rejoué par le jeu :
+   *   le trajet en boucle tourne en fond, il ne doit pas couvrir la partie.
+   */
+  playSfx(key: string, gain = 1): void {
+    this.manager?.play(key, { volume: settings.sfxVolume * gain })
   }
 
   /**

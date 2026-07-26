@@ -293,9 +293,8 @@ function unlockAllUpgrades(): string {
   for (const cell of COMB) {
     if (gameState.comb.has(cell.id)) continue
     gameState.comb.add(cell.id)
-    // Mêmes effets secondaires que l'achat : ces deux branches donnent une abeille.
-    if (cell.kind === 'foragers') gameState.bees.forager += 1
-    if (cell.kind === 'workers') gameState.bees.worker += 1
+    // Mêmes effets secondaires que l'achat : certaines branches donnent des abeilles.
+    gameState.grantCellBees(cell)
     added++
   }
   gameState.save()

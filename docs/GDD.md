@@ -53,11 +53,16 @@ grandi, vous reprenez les commandes pour voler un tour meilleur.
                     ┌──────────────────────────────────────────┐
                     ▼                                          │
    [ pré en RELECTURE ]  ──►  nectar dans la réserve  ──►  achat d'alvéoles
-     le meilleur tour               (plafonnée)            (Le Rayon, en nectar)
-     rejoué en boucle                                             │
-            ▲                                                     │
+     le meilleur tour               (plafonnée)             (le rayon du VOL)
+     rejoué en boucle                  │                           │
+            ▲                          ▼                           │
+            │                  TRANSFORMATION ──► miel ──► achat d'alvéoles
+            │                   (les ouvrières)             (le rayon de la RUCHE)
+            │                          ▲                           │
+            │                          └── ouvrières, lots ◄───────┤
+            │                                                      │
             │                              réserve ↑, vol ↑, pousse ↑, butineuses ↑
-            │                                                     │
+            │                                                      │
      nouveau meilleur tour  ◄── comparaison nectar/s ◄── [ ENREGISTREMENT ] ◄─┘
                                                           ≤ 10 s, piloté
 ```
@@ -165,15 +170,23 @@ définition le même tour de référence.
 
 ## 6. Économie
 
-| Ressource        | Origine                                              | Usage                                                           | Plafond                |
-| ---------------- | ---------------------------------------------------- | --------------------------------------------------------------- | ---------------------- |
-| **Nectar**       | Récolté par la butineuse, versé à la ruche           | **Toutes** les alvéoles du rayon, puis la transformation (§6.2) | Oui — `nectarCapacity` |
-| **Miel**         | **Transformé** du nectar par les ouvrières, par lots | Monnaie de la colonie : castes, prestige                        | Non                    |
-| **Gelée royale** | Une dose tous les `jellyThreshold` de miel gagné     | Prestige (§7.4)                                                 | Non                    |
+| Ressource        | Origine                                              | Usage                                                          | Plafond                |
+| ---------------- | ---------------------------------------------------- | -------------------------------------------------------------- | ---------------------- |
+| **Nectar**       | Récolté par la butineuse, versé à la ruche           | Le rayon **du vol** (§7.3), puis la transformation (§6.1)      | Oui — `nectarCapacity` |
+| **Miel**         | **Transformé** du nectar par les ouvrières, par lots | Le rayon **de la ruche** (§7.3) : effectifs, réglages des lots | Non                    |
+| **Gelée royale** | Une dose tous les `jellyThreshold` de miel gagné     | Prestige (§7.4)                                                | Non                    |
 
-**Pourquoi le rayon se paie en nectar.** Le miel est l'affaire de la colonie ; le
-rayon est l'affaire de la butineuse. Son prix se lit dans la seule ressource
-qu'un bon trajet fait monter — améliorer son vol se paie en volant.
+**Deux moitiés, deux monnaies.** Le rayon du vol (réserve, vol, pousse, première
+butineuse, première ouvrière) se paie en **nectar** : améliorer son vol se paie en
+volant, et son prix se lit dans la seule ressource qu'un bon trajet fait monter.
+Le rayon de la ruche — tout ce qui règle la transformation et les effectifs — se
+paie en **miel**, ce que la ruche produit elle-même.
+
+Ce partage règle le manque le plus criant de la version précédente : le miel se
+produisait sans jamais se dépenser. Il a maintenant un débouché, et ce débouché
+**boucle** : plus de miel achète plus d'ouvrières et de meilleurs lots, donc plus
+de miel ; il achète aussi des butineuses, donc plus de nectar, donc plus de lots.
+Le joueur n'attend plus, il choisit dans quel sens investir.
 
 **Le plafond de nectar est la vraie horloge du jeu.** La sacoche de la butineuse,
 elle, est **illimitée** : un plafond de sacoche se traduisait à l'écran par des
@@ -201,12 +214,21 @@ Le miel se fabrique donc par **lots**, et un lot est un **engagement** :
   converti, c'est une ressource d'un autre ordre, et son prix se compte en
   réserves entières.
 
+**Ces trois nombres sont les trois leviers du rayon de la ruche** (§7.3) : le
+coût du lot descend (_Thrift_), sa durée raccourcit (_Fanning_), son rendement
+monte (_Ripening_), et l'effectif d'ouvrières multiplie ce rendement. Trois
+leviers plutôt qu'un seul « +10 % de miel », parce qu'ils ne se ressemblent pas à
+l'usage : l'économie rend du nectar au rayon du vol, la ventilation rend du temps,
+la maturation rend du miel. Le rendement est **arrondi au centième**, la précision
+qu'affiche le gain flottant — un `+0.31` annoncé pour 0,3125 versé ferait mentir
+le compte.
+
 La **gelée royale** n'a plus de taux continu : une dose (`jellyPerThreshold`)
 se dépose tous les `jellyThreshold` de miel gagné, reliquat conservé. Un
 événement rare et visible plutôt qu'une décimale qui bouge.
 
 **L'interrupteur.** La transformation mord sur la réserve, or une réserve qui ne
-monte plus ne paie plus les alvéoles de rang IV — le premier lot priverait à
+monte plus ne paie plus les alvéoles des rangs les plus hauts — le premier lot priverait à
 jamais le joueur de ce qu'il n'a pas encore acheté. On peut donc couper et
 relancer la transformation. C'est le seul réglage manuel du jeu, et il existe
 uniquement pour que rien ne devienne inatteignable (cf. la règle d'équilibrage de
@@ -238,11 +260,17 @@ clique ici — pas la main du navigateur : une seule main à l'écran.
 
 ### 6.2 Castes (`BEE_KINDS`, l'ordre fait foi)
 
-| Caste       | Rôle                                                            | Statut                                                                      |
-| ----------- | --------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| **Forager** | L'abeille que l'on pilote. Ne produit rien seule.               | Effectif porté par la branche `foragers` du rayon                           |
-| **Worker**  | Ne quitte jamais la ruche, transforme le nectar en miel (§6.1). | Donnée par la branche `workers` du rayon ; **achat au miel non implémenté** |
-| **Warrior** | Garde l'entrée.                                                 | Coquille : aucun effet, non achetable                                       |
+| Caste       | Rôle                                                            | Statut                                                           |
+| ----------- | --------------------------------------------------------------- | ---------------------------------------------------------------- |
+| **Forager** | L'abeille que l'on pilote. Ne produit rien seule.               | Effectif porté par la branche `foragers` du rayon (1 + 1 + 2)    |
+| **Worker**  | Ne quitte jamais la ruche, transforme le nectar en miel (§6.1). | Effectif porté par la branche `workers` du rayon (1 + 1 + 1 + 2) |
+| **Warrior** | Garde l'entrée.                                                 | Coquille : aucun effet, non achetable                            |
+
+**Les effectifs se recrutent au rayon, pas dans un panneau.** `BEE_KINDS.cost`
+existe toujours mais ne sert à rien : un second guichet de recrutement à côté du
+rayon aurait fait deux endroits pour une seule décision. Une alvéole ne
+déverrouille donc pas un achat, elle **donne** les abeilles (`CombCell.bees`) — et
+le panneau _Colony_ reste ce qu'il est, un état, pas une boutique.
 
 Le panneau _Colony_ affiche les castes possédées **+ la suivante**
 (`visibleKinds`) : au premier lancement, butineuse et ouvrière ; la guerrière
@@ -263,40 +291,76 @@ rayons droits auraient fait une étoile, pas un rayon de miel.
 
 ### 7.2 Dévoilement
 
-Une alvéole n'apparaît que si elle **touche du construit** (la ruche, ou une
-alvéole payée). Acheter une case ouvre ses voisines, et rien d'autre. Une alvéole
-s'achète **une fois, et pour de bon**.
+Une alvéole se dévoile quand **ce qui la précède est bâti**, dans cet ordre :
 
-### 7.3 Les cinq branches
+- son **prérequis explicite** s'il en a un (`CombCell.needs`) ;
+- sinon, à partir du **rang 2**, le rang précédent de **sa branche** ;
+- au **rang 1**, le simple contact avec du construit (la ruche, ou une alvéole
+  payée) : c'est lui qui amorce une branche.
 
-| Branche      | Effet d'une alvéole                                       | Forme                                        | Intention                                                                               |
-| ------------ | --------------------------------------------------------- | -------------------------------------------- | --------------------------------------------------------------------------------------- |
-| **Storage**  | + un palier de réserve de nectar                          | 4 alvéoles, vers le haut                     | Le déverrouilleur : c'est elle qui rend le reste payable                                |
-| **Foragers** | +1 butineuse sur le trajet                                | 1 alvéole, à droite                          | Le doublement sec — la récompense la plus lisible                                       |
-| **Flight**   | Vitesse de vol, **très** légèrement                       | 4 alvéoles, vers le bas                      | Assez pour raser un virage, jamais pour voler le tour à votre place                     |
-| **Growth**   | Accélère le calendrier du pré                             | 4 alvéoles, vers la gauche                   | Les fleurs reviennent plus tôt : un tour croise plus de corolles ouvertes               |
-| **Workers**  | Donne la première ouvrière, donc la transformation (§6.1) | 1 alvéole, **au bout de la branche Storage** | Le basculement du jeu : jusque-là le nectar s'améliore, à partir de là il se transforme |
+C'est la **branche** qui fait l'ordre, plus le voisinage. Le rayon s'est épaissi
+au centre (§7.3) : une alvéole en touche désormais plusieurs d'autres branches, et
+au voisinage seul, acheter la ventilation dévoilerait le troisième palier de
+réserve. Le prérequis explicite, lui, dit ce que la géométrie ne peut pas dire :
+les alvéoles en miel touchent la ruche, elles seraient visibles à la première
+seconde, prix en miel affiché, alors que le miel n'existe pas encore. Elles
+attendent donc la première ouvrière.
 
-**Pourquoi l'alvéole des ouvrières est là et pas ailleurs.** Elle est la plus
-chère du rayon (la réserve pleine à vingt nectar près) et n'est **visible**
-qu'une fois les quatre paliers de réserve bâtis. Deux raisons : c'est la seule
-place où un tel prix est payable, et l'ordre d'apprentissage y gagne — on
-n'ouvre le second métier de la ruche qu'après avoir compris le premier.
-L'alvéole ne déverrouille pas un achat, elle **donne** l'ouvrière : le miel
-n'existe pas encore pour la payer.
+Une alvéole s'achète **une fois, et pour de bon**.
 
-**Règle d'équilibrage structurante.** Tout se paie en nectar, or le nectar est
-plafonné : une alvéole plus chère que la réserve du moment est **inatteignable à
-jamais** — le joueur butine et la réserve sature avant le prix. D'où :
+### 7.3 Les huit branches
+
+**Le rayon du vol**, payé en nectar, part de quatre voisines de la ruche :
+
+| Branche      | Effet d'une alvéole                               | Forme                                                                   | Intention                                                                               |
+| ------------ | ------------------------------------------------- | ----------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| **Storage**  | + un palier de réserve de nectar                  | 6 alvéoles, vers le haut                                                | Le déverrouilleur : c'est elle qui rend le reste payable                                |
+| **Foragers** | +1 butineuse sur le trajet (rang I)               | 3 alvéoles, à droite (les rangs II-III en miel)                         | Le doublement sec — la récompense la plus lisible                                       |
+| **Flight**   | Vitesse de vol, **très** légèrement               | 6 alvéoles, vers le bas                                                 | Assez pour raser un virage, jamais pour voler le tour à votre place                     |
+| **Growth**   | Accélère le calendrier du pré                     | 6 alvéoles, vers la gauche                                              | Les fleurs reviennent plus tôt : un tour croise plus de corolles ouvertes               |
+| **Workers**  | Donne une ouvrière, donc la transformation (§6.1) | 4 alvéoles, **au bout de la branche Storage** (les rangs II-IV en miel) | Le basculement du jeu : jusque-là le nectar s'améliore, à partir de là il se transforme |
+
+**Le rayon de la ruche**, payé en miel, remplit les **creux du centre** laissés
+par les quatre premières branches. Il ne se dévoile qu'avec la première ouvrière.
+
+| Branche      | Effet d'une alvéole                  | Forme                        | Intention                                                           |
+| ------------ | ------------------------------------ | ---------------------------- | ------------------------------------------------------------------- |
+| **Fanning**  | Lot plus court (`batchMs`)           | 4 alvéoles, en haut à droite | Rend du **temps** : le miel arrive plus souvent                     |
+| **Thrift**   | Lot moins cher (`nectarPerBatch`)    | 4 alvéoles, en bas à gauche  | Rend du **nectar** : la transformation cesse d'assécher le rayon    |
+| **Ripening** | Lot plus généreux (`honeyPerWorker`) | 4 alvéoles, en haut à gauche | Rend du **miel** : elle multiplie tout le reste, donc la plus chère |
+| _+ Workers_  | +1 (ou +2) ouvrières                 | rangs II-IV                  | Le seul investissement qui se rembourse tout seul                   |
+| _+ Foragers_ | +1 (ou +2) butineuses                | rangs II-III                 | Ramène le joueur au pré : plus de nectar, donc plus de lots         |
+
+**Pourquoi ces alvéoles sont serrées au centre.** Trois branches de plus tirées
+vers l'extérieur auraient fait huit bras et un écran qu'on ne peut plus lire sans
+glissé. Le rayon **s'épaissit** au lieu de s'étendre — et une ruche qui se remplit
+par le milieu est exactement ce que le rayon prétend être.
+
+**Pourquoi l'alvéole de la première ouvrière est là et pas ailleurs.** Elle est la
+plus chère du rayon en nectar (la réserve pleine des quatre premiers paliers à
+vingt nectar près) et n'est **visible** qu'une fois ces quatre paliers bâtis. Deux
+raisons : c'est la seule place où un tel prix est payable, et l'ordre
+d'apprentissage y gagne — on n'ouvre le second métier de la ruche qu'après avoir
+compris le premier. Elle est aussi la **clé** de toute la moitié en miel : rien de
+ce qui règle la transformation n'apparaît avant elle.
+
+**Règle d'équilibrage structurante.** Le nectar est plafonné : une alvéole en
+nectar plus chère que la réserve du moment est **inatteignable à jamais** — le
+joueur butine et la réserve sature avant le prix. D'où :
 
 - la branche _Storage_ reste toujours payable sous le plafond courant : c'est
   elle qui ouvre tout le reste ;
-- les rangs III demandent deux paliers de réserve, les rangs IV les quatre. Ce
-  n'est pas un cul-de-sac, c'est un **ordre** : on agrandit sa ruche avant de
-  s'offrir le luxe.
-- **Toute nouvelle alvéole doit tenir sous le plafond maximal** (réserve
+- les rangs III demandent deux paliers de réserve, les rangs IV les quatre, les
+  rangs V le cinquième, les rangs VI le sixième. Ce n'est pas un cul-de-sac, c'est
+  un **ordre** : on agrandit sa ruche avant de s'offrir le luxe.
+- **Toute nouvelle alvéole en nectar doit tenir sous le plafond maximal** (réserve
   complète), sinon elle est inachetable pour toujours. Vérifier `UPGRADE_EFFECT.
 storageStep` avant d'ajouter un prix.
+
+Le **miel n'a pas de plafond** : la moitié en miel échappe à cette contrainte, et
+c'est ce qui lui permet de commencer très bas (3 miel, une douzaine de lots) puis
+de monter sans borne. Le premier achat en miel doit tomber peu après la première
+ouvrière — sinon la ressource qu'on vient de débloquer resterait muette.
 
 ### 7.4 Prestige — _conçu, non implémenté_
 
@@ -396,8 +460,12 @@ alvéoles.
   volumes musique/SFX persistés. La position d'un curseur n'est **pas** le gain :
   elle est élevée à la puissance 1/0,6 (loi de Stevens) avant d'atteindre le
   moteur audio, sinon toute la variation perçue se concentrerait dans les
-  premiers pourcents et la moitié haute paraîtrait plate. Manquent les SFX de
-  gameplay (butinage, dépôt, Perfect).
+  premiers pourcents et la moitié haute paraîtrait plate. Deux SFX de gameplay :
+  une fleur butinée, un lot de miel versé. **Le butinage sonne moins fort en
+  rejeu qu'en enregistrement** — le trajet tourne en boucle sans le joueur, à
+  plein volume il deviendrait un métronome ; pendant un enregistrement, chaque
+  corolle prise est un geste du joueur et s'entend en entier. Manquent le son du
+  dépôt à la ruche et celui du « Perfect ».
 - **Crédits** : tout asset entre dans `CREDITS` (`strings.ts`) **en même temps
   que l'asset**, avec auteur et licence.
 
@@ -437,8 +505,9 @@ de jeu et ça ne doit surtout pas y ressembler.
 ## 12. État d'implémentation
 
 **Fait** — pré déterministe et ses huit espèces · enregistrement / jugement /
-relecture du trajet · nectar plafonné · le Rayon (5 branches, dévoilement,
-achats) · transformation du nectar en miel par lots, sa jauge et ses gains
+relecture du trajet · nectar plafonné · le Rayon (8 branches sur deux monnaies,
+dévoilement, achats) · **usage du miel** : effectifs et réglages des lots ·
+transformation du nectar en miel par lots, sa jauge et ses gains
 flottants · gelée royale par paliers · HUD complet et infobulles · relances de
 première fois (trajet, rayon) et dévoilement du bandeau · écran-titre complet,
 transitions, audio, pause · déploiements Pages + itch.
@@ -447,13 +516,13 @@ transitions, audio, pause · déploiements Pages + itch.
 
 1. **Prestige** — gelée royale et reines accumulées mais indépensables : le jeu
    n'a pas de fin.
-2. **Achat de castes** — la première ouvrière s'obtient au rayon, mais rien ne
-   permet d'en recruter une seconde. Le miel n'a donc toujours **aucun usage** :
-   il se produit et s'accumule, sa seule sortie est la gelée royale.
-3. **Anneau de timing « Perfect »** — la mécanique est le cœur du skill et n'a
+2. **Anneau de timing « Perfect »** — la mécanique est le cœur du skill et n'a
    aucun retour visuel autour de la corolle.
-4. SFX de gameplay ; sprites abeille/fleur/ruche encore procéduraux ; migration
-   des couleurs historiques vers la palette.
+3. **Le rayon a une fin** — 37 alvéoles et puis plus rien. Tant que le prestige
+   n'existe pas, la dernière alvéole bâtie est la fin de fait du jeu.
+4. **Warrior** — caste sans rôle : aucune menace à garder.
+5. SFX du dépôt à la ruche et du « Perfect » ; sprites abeille/fleur/ruche encore
+   procéduraux ; migration des couleurs historiques vers la palette.
 
 ## 13. Décisions de design écartées (et pourquoi)
 
@@ -466,6 +535,9 @@ transitions, audio, pause · déploiements Pages + itch.
 | **Production de miel passive** (0,5/s/ouvrière, sans intrant)            | Du miel créé à partir de rien : le nectar rapporté ne servait qu'au rayon, et une fois le rayon bâti plus rien ne justifiait de voler. Le miel se transforme désormais depuis la réserve (§6.1). |
 | **Taux continu de gelée royale** (0,05 % du miel gagné)                  | Une décimale qui bouge n'est pas un événement. Remplacé par une dose franche tous les 50 miel, annoncée au-dessus de la ruche.                                                                   |
 | **Bilan chiffré en bas de colonne** (production, record, reines)         | Trois nombres inertes que personne ne lisait. Remplacés par la porte du Rayon. Le bilan reviendra quand il aura quelque chose à dire.                                                            |
+| **Recrutement des castes dans le panneau _Colony_** (`BEE_KINDS.cost`)   | Un second guichet à côté du Rayon : deux endroits pour une seule décision. Les effectifs se paient au rayon comme tout le reste (§6.2), et le panneau reste un état.                             |
+| **Un rayon en nectar uniquement**                                        | Le miel se produisait sans jamais se dépenser. Le rayon se paie désormais dans deux monnaies (§6, §7.3) — le vol en nectar, la ruche en miel — et la boucle se ferme.                            |
+| **Trois branches en miel tirées vers l'extérieur**                       | Huit bras auraient rendu le rayon illisible sans glissé. Elles remplissent les creux du centre : le rayon s'épaissit au lieu de s'étendre.                                                       |
 
 ---
 
