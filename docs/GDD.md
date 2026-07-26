@@ -8,7 +8,7 @@
 |               |                                                               |
 | ------------- | ------------------------------------------------------------- |
 | Titre         | **Let Them Bee**                                              |
-| Version       | `0.5.0` (`package.json`, injectée dans `GAME.version`)        |
+| Version       | `0.6.0` (`package.json`, injectée dans `GAME.version`)        |
 | Jam           | DTJ36-28 — thème _abeille_                                    |
 | Genre         | Incrémental à **skill** — le pilotage accélère la progression |
 | Plateforme    | Navigateur (GitHub Pages + itch.io)                           |
@@ -300,7 +300,7 @@ du construit est ce qu'on peut acheter.
 La géométrie porte donc l'ordre à elle seule. Une branche longue s'ouvre alvéole
 par alvéole ; là où elle s'incurve et revient contre elle-même, le rang V se
 montre en même temps que le IV et peut s'acheter **avant** lui. Ce n'est pas un
-raccourci : les deux se paient de toute façon, et le plafond de réserve (§7.4)
+raccourci : les deux se paient de toute façon, et le plafond de réserve (§7.5)
 reste le vrai ordonnanceur. À l'inverse, une alvéole que rien ne touche encore
 reste invisible, quel que soit son prix — c'est ainsi que le bout de la branche
 Storage garde ce qui suit sous clé.
@@ -318,7 +318,7 @@ Une alvéole s'achète **une fois, et pour de bon**.
 
 | Branche      | Effet d'une alvéole                               | Forme                                                                   | Intention                                                                                                                                                                                                          |
 | ------------ | ------------------------------------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Storage**  | + un palier de réserve de nectar                  | 6 alvéoles, vers le haut                                                | Le déverrouilleur : c'est elle qui rend le reste payable                                                                                                                                                           |
+| **Storage**  | + un palier de réserve, **quadratique** (§7.5)    | **15 alvéoles** (I à XV), vers le haut, en nappe                        | Le déverrouilleur : c'est elle qui rend le reste payable — courte, mais chaque palier prend les trois quarts de la réserve qu'a offerte le précédent                                                               |
 | **Foragers** | +1 butineuse sur le trajet (rang I)               | 3 alvéoles, à droite (les rangs II-III en miel)                         | Le doublement sec — la récompense la plus lisible                                                                                                                                                                  |
 | **Flight**   | Vitesse de vol, **très** légèrement               | 6 alvéoles, vers le bas                                                 | Assez pour raser un virage, jamais pour voler le tour à votre place                                                                                                                                                |
 | **Growth**   | Accélère le calendrier du pré                     | 6 alvéoles, vers la gauche                                              | Les fleurs reviennent plus tôt : un tour croise plus de corolles ouvertes                                                                                                                                          |
@@ -353,21 +353,19 @@ nectar plus chère que la réserve du moment est **inatteignable à jamais** —
 joueur butine et la réserve sature avant le prix. D'où :
 
 - la branche _Storage_ reste toujours payable sous le plafond courant : c'est
-  elle qui ouvre tout le reste ;
-- les rangs III demandent deux paliers de réserve, les rangs IV les quatre, les
-  rangs V le cinquième, les rangs VI le sixième. Ce n'est pas un cul-de-sac, c'est
-  un **ordre** : on agrandit sa ruche avant de s'offrir le luxe.
-- **Toute nouvelle alvéole en nectar doit tenir sous le plafond maximal** (réserve
-  complète), sinon elle est inachetable pour toujours. Vérifier `UPGRADE_EFFECT.
-storageStep` avant d'ajouter un prix.
+  elle qui ouvre tout le reste, et c'est désormais **garanti par construction**
+  (§7.5) et non plus vérifié à la main ;
+- les rangs III demandent deux paliers de réserve, les rangs IV trois. Ce n'est
+  pas un cul-de-sac, c'est un **ordre** : on agrandit sa ruche avant de s'offrir
+  le luxe.
+- **Toute nouvelle alvéole en nectar doit tenir sous `getNectarCapacity(n)`** pour
+  le niveau de réserve `n` auquel elle se dévoile, sinon elle est inachetable pour
+  toujours.
 
 **Le rayon du vol se pilote, il ne se coche pas.** Ses prix en nectar sont
-délibérément élevés — d'un bon tiers au-dessus de ce qu'ils étaient : chaque
-alvéole doit se gagner par des trajets, pas tomber en passant. Ce durcissement ne
-peut pas se faire seul : le plafond monte avec lui (un palier de réserve vaut
-**150** et non plus 100), sinon les rangs les plus hauts passeraient au-dessus de
-la réserve complète et deviendraient inachetables. **Prix et plafond bougent
-ensemble, toujours** — c'est la même décision, pas deux.
+délibérément élevés : chaque alvéole doit se gagner par des trajets, pas tomber en
+passant. Ce durcissement ne peut pas se faire seul — **le plafond monte avec lui,
+toujours** ; c'est la même décision, pas deux.
 
 Le **miel n'a pas de plafond** : la moitié en miel échappe à cette contrainte, et
 c'est ce qui lui permet de commencer très bas (1 miel, **quatre lots**) puis de
@@ -474,6 +472,72 @@ l'inertie sont ceux de la nouvelle lignée quand le joueur y revient.
 Un nœud brille dès qu'il est payable et atteignable, **y compris avant
 l'essaimage** : c'est l'invitation, et c'est précisément ce que le joueur est venu
 regarder.
+
+### 7.5 La branche Storage : une courbe, pas un pas
+
+La réserve est la branche la plus **longue** du rayon — quinze alvéoles, _Storage
+I_ à _Storage XV_ — mais elle reste courte, et c'est un choix : cinquante paliers
+se lisaient comme une corvée, cinquante clics dont aucun ne pesait. Quinze paliers
+sur une courbe **raide** font le contraire : peu de décisions, chacune coûteuse.
+Ni son effet ni son prix ne sont linéaires — les deux suivent une courbe en
+$O(n^2)$.
+
+**L'effet** (`getNectarCapacity`, dans `config/balance.ts`) :
+
+$$\text{capacité}(n) = 100 + 200\,n^2 + 100\,n$$
+
+soit 100 / 400 / 1100 / 2200 / 3700 / 5600 / 7900… jusqu'à **46 600** au quinzième
+et dernier palier. Un pas fixe aurait fait de la quinzième alvéole un « +5 % »
+inaudible ; ici la dernière vaut à elle seule plus que les cinq premières.
+
+**Le prix** (`storageCost`, dans `config/upgrades.ts`) :
+$150\,n^2 - 225\,n + 150$, soit 75 / 300 / 825 / 1650 / 2775… jusqu'à 30 525.
+
+**LA RÈGLE D'OR — anti-blocage.** Le prix du rang $n$ doit rester **strictement
+inférieur à la capacité offerte par le rang $n-1$** :
+
+$$\text{coût}(n) < \text{capacité}(n-1)$$
+
+Sans elle, le jeu se **bloque définitivement** : le nectar est plafonné, une
+alvéole plus chère que la réserve pleine ne peut jamais être payée — le joueur
+butine, la réserve sature avant le prix — et comme c'est cette branche qui relève
+le plafond, un seul rang trop cher fige tout le rayon du vol.
+
+Ces coefficients-là sont exactement les **trois quarts** de $\text{capacité}(n-1)$
+— $0{,}75 \times (200\,n^2 - 300\,n + 200)$ : le prix le plus dur que la règle
+autorise, et pourtant sans risque. Chaque alvéole coûte les trois quarts d'une
+réserve pleine, la marge restante est le quart, et un quart d'une quantité positive
+est positif pour tout $n$ : la règle tient par construction, sans avoir à discuter
+d'un discriminant. Le code **plafonne en plus** le prix à `capacité(n-1) - 10` : ce
+n'est pas un réglage d'équilibrage mais un **filet**, pour que retoucher A, B ou C
+ne puisse au pire qu'aplatir la courbe de prix, jamais bloquer une partie.
+
+**La forme.** Quinze alvéoles pourraient s'écrire à la main, mais leur prix sort
+d'une formule et la géométrie suit la même règle : elle est **générée**, pour que
+changer le nombre de paliers ne demande jamais de replacer des coordonnées. Les six
+premières gardent exactement leur tracé d'origine — le coude qui remonte à droite,
+et surtout l'alvéole contre laquelle pousse la première ouvrière : ce tracé porte
+l'ordre de dévoilement du début de partie. Au-delà, la branche cesse d'être un fil
+et devient un **pavage** : elle remplit le haut du rayon en serpentin, cinq
+colonnes de large, ligne après ligne. Un fil de quinze alvéoles aurait tiré une
+antenne de 500 px hors de la fenêtre ; le serpentin fait ce que fait un vrai
+rayon — il s'étend en **nappe**. Chaque alvéole touche la précédente : le
+dévoilement (§7.2) reste ce qu'il est, une cire qui avance de proche en proche.
+
+**Ce que cela change ailleurs.** Le plafond monte bien plus haut et bien plus vite
+qu'avec l'ancien pas fixe de 150. Les prix en nectar des autres branches n'ont pas
+bougé : les rangs III à VI se paient donc un ou deux paliers de réserve plus tôt
+qu'auparavant. C'est assumé — ce qui borne la progression n'est plus le plafond de
+la réserve mais le **prix du palier suivant**, qui en prend les trois quarts.
+
+**Ce que cela change à l'écran.** La réserve atteint cinq chiffres (46 600 au rang
+XV) et les prix aussi (30,5 k). Tout nombre affiché dans un contenant étroit —
+prix d'une alvéole, jauge de réserve, bilan d'un trajet — passe par `fmtBig` :
+exact jusqu'à 9 999, abrégé au-delà (`15.4k`). Le seuil est haut **exprès** : ces
+chiffres-là se comparent (« il me manque combien ? »), et « 1.4k » perd la centaine
+qui décide. Le rayon, lui, se **glisse** : sa course est bornée séparément des
+quatre côtés, parce que la cire monte deux rangées de nappe au-dessus de la ruche
+et que rien ne descend autant.
 
 ## 8. Écrans & interface
 
@@ -691,9 +755,10 @@ l'écran-titre, invalidation par version · déploiements Pages + itch.
 
 1. **Anneau de timing « Perfect »** — la mécanique est le cœur du skill et n'a
    aucun retour visuel autour de la corolle.
-2. **La lignée a une fin** — seize nœuds, et l'arbre se solde. Le rayon, lui, a
-   désormais une sortie (§7.4) ; c'est la lignée complète qui est la fin de fait
-   du jeu.
+2. **La lignée a une fin** — seize nœuds, et l'arbre se solde. Le rayon aussi : la
+   branche Storage a quinze alvéoles, et sa courbe quadratique (§7.5) fait tenir la
+   fin de partie sur le prix de ses derniers paliers plutôt que sur leur nombre.
+   Passé XV, plus rien à bâtir — il manque toujours un horizon au-delà du rayon.
 3. **Warrior** — caste sans rôle : aucune menace à garder.
 4. SFX du dépôt à la ruche et du « Perfect » ; sprites abeille/fleur/ruche encore
    procéduraux ; migration des couleurs historiques vers la palette.
@@ -712,6 +777,9 @@ l'écran-titre, invalidation par version · déploiements Pages + itch.
 | **Recrutement des castes dans le panneau _Colony_** (`BEE_KINDS.cost`)      | Un second guichet à côté du Rayon : deux endroits pour une seule décision. Les effectifs se paient au rayon comme tout le reste (§6.2), et le panneau reste un état.                                                               |
 | **Un rayon en nectar uniquement**                                           | Le miel se produisait sans jamais se dépenser. Le rayon se paie désormais dans deux monnaies (§6, §7.3) — le vol en nectar, la ruche en miel — et la boucle se ferme.                                                              |
 | **Trois branches en miel tirées vers l'extérieur**                          | Huit bras auraient rendu le rayon illisible sans glissé. Elles remplissent les creux du centre : le rayon s'épaissit au lieu de s'étendre.                                                                                         |
+| **Paliers de réserve à pas fixe** (`storageStep`, 150 par alvéole)          | Six alvéoles et la branche était soldée ; au-delà, un pas constant aurait fait de la quinzième un « +5 % » inaudible. La contenance suit une courbe quadratique (§7.5), raide, sur quinze paliers.                                 |
+| **Une branche Storage de cinquante paliers**                                | Premier essai de la refonte quadratique : cinquante alvéoles à cliquer, dont aucune ne pesait vraiment. Quinze paliers sur une courbe deux fois plus raide donnent le même horizon avec quinze décisions au lieu de cinquante.     |
+| **Branche Storage écrite alvéole par alvéole**                              | Les prix sortent d'une formule ; garder les coordonnées à la main rendait tout changement de longueur ou de courbe manuel. La branche est générée, et la règle d'or est vérifiée par le code (§7.5).                               |
 | **Arbre de lignée ouvert seulement après l'essaimage**                      | Il aurait fallu signer le reset sans voir ce qu'on achète. L'arbre se lit à tout moment ; seule la dépense attend le départ de la reine (§7.4).                                                                                    |
 | **Fenêtre de dépense ouverte par l'essaimage, fermée par un second bouton** | Deux boutons pour un seul écran, et une fenêtre qui obligeait à tout dépenser sur-le-champ : impossible de mettre de côté pour un rang III. Un seul bouton (l'essaimage), et le guichet reste ouvert dès la première reine (§7.4). |
 | **Essaimage sur un clic sec**                                               | Le geste détruit une partie entière. Il s'arme d'abord (_Click again to leave_) et se désamorce seul ; une pop-up de confirmation aurait caché l'arbre dont elle parle.                                                            |
@@ -723,12 +791,13 @@ l'écran-titre, invalidation par version · déploiements Pages + itch.
 
 ## Annexe — où sont les chiffres
 
-| Fichier                  | Contenu                                                            |
-| ------------------------ | ------------------------------------------------------------------ |
-| `src/config/balance.ts`  | Abeille, ruche, fleurs et espèces, trajet, économie, castes        |
-| `src/config/upgrades.ts` | Alvéoles du rayon (position, prix, monnaie) et effets par niveau   |
-| `src/config/lineage.ts`  | Branches de la Lignée de la Reine : paliers, prix en gelée, effets |
-| `src/config/feel.ts`     | Timings d'entités (battement d'ailes, respiration, autosave)       |
-| `src/config/game.ts`     | Version, nom, clé de sauvegarde, dimensions du monde               |
-| `src/config/strings.ts`  | Textes EN, infobulles, `CREDITS`                                   |
-| `src/ui/theme.ts`        | Palette, polices, découpe de l'écran, feedbacks                    |
+| Fichier                  | Contenu                                                                                    |
+| ------------------------ | ------------------------------------------------------------------------------------------ |
+| `src/config/balance.ts`  | Abeille, ruche, fleurs et espèces, trajet, économie, castes                                |
+| `src/config/upgrades.ts` | Alvéoles du rayon (position, prix, monnaie), la branche Storage générée, effets par niveau |
+| `src/ui/format.ts`       | Mise en forme des nombres affichés (`fmt`, `fmtBig`, `fmtCount`)                           |
+| `src/config/lineage.ts`  | Branches de la Lignée de la Reine : paliers, prix en gelée, effets                         |
+| `src/config/feel.ts`     | Timings d'entités (battement d'ailes, respiration, autosave)                               |
+| `src/config/game.ts`     | Version, nom, clé de sauvegarde, dimensions du monde                                       |
+| `src/config/strings.ts`  | Textes EN, infobulles, `CREDITS`                                                           |
+| `src/ui/theme.ts`        | Palette, polices, découpe de l'écran, feedbacks                                            |

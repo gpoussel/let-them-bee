@@ -25,3 +25,22 @@ export function fmtFine(n: number): string {
 export function fmtCount(n: number): string {
   return n < 1000 ? `${Math.floor(n)}` : fmt(n)
 }
+
+/**
+ * Seuil d'abréviation des GROS nombres. Plus haut que celui de `fmt` (1000) et
+ * c'est voulu : les prix du rayon et la jauge de réserve sont des chiffres qu'on
+ * COMPARE (« il me manque combien ? »), et « 1.4k » perd la centaine qui décide.
+ * Au-delà de cinq chiffres, en revanche, le texte déborde de son alvéole ou de sa
+ * ligne — l'abrégé devient le moindre mal.
+ */
+const ABBREV_FROM = 10000
+
+/**
+ * Un nombre entier tel qu'il s'affiche dans un CONTENANT étroit : exact jusqu'à
+ * 9999, abrégé au-delà (`15.4k`). C'est la mise en forme des prix du rayon et de
+ * la réserve, que la courbe quadratique de la branche « réserve » emmène à cinq
+ * chiffres (46,6 k de contenance, 30,5 k pour la dernière alvéole).
+ */
+export function fmtBig(n: number): string {
+  return n < ABBREV_FROM ? `${Math.floor(n)}` : fmt(n)
+}

@@ -10,7 +10,7 @@ import { RESOURCE_STR } from '../config/strings'
 import { FONT_KEY } from '../gfx/font'
 import { TEX } from '../gfx/textures'
 import { gameState } from '../systems/GameState'
-import { fmtFine } from './format'
+import { fmtBig, fmtFine } from './format'
 import { Nudge } from './Nudge'
 import { handCursor, ninePanel, OriginX, OriginY, setText, UI9 } from './pixui'
 import { COLORS, FONTS, PALETTE, PANEL_TINT, SCREEN } from './theme'
@@ -132,7 +132,9 @@ export class ResourceBar {
   update(): void {
     // Le nectar affiché est celui de la RÉSERVE, pas celui que porte l'abeille :
     // c'est lui qu'on dépense dans le rayon, et lui qui sature.
-    setText(this.values[0], `${Math.floor(gameState.nectar)}/${gameState.nectarCapacity}`)
+    // Réserve et plafond passent par `fmtBig` : la contenance monte à six
+    // chiffres en fin de partie, et la ligne « 130100/130100 » sortait du cadre.
+    setText(this.values[0], `${fmtBig(gameState.nectar)}/${fmtBig(gameState.nectarCapacity)}`)
     setText(this.values[1], fmtFine(gameState.honey))
     setText(this.values[2], fmtFine(gameState.royalJelly))
 

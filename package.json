@@ -1,6 +1,6 @@
 {
   "name": "let-them-bee",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Let them bee, an incremental game made for DTJ36 Game Jam",
   "type": "module",
   "scripts": {

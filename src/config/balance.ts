@@ -17,10 +17,34 @@ export const BEE = {
 // ce qu'elle veut. Un plafond de sacoche se traduisait à l'écran par des fleurs
 // survolées sans effet et sans explication — le stock, lui, est lisible en haut
 // de l'écran, et se débloque dans l'arbre.
+//
+// La contenance n'est plus un palier fixe multiplié par un niveau : elle suit une
+// courbe QUADRATIQUE, et RAIDE. La branche « réserve » est courte (quinze
+// alvéoles) : chacune doit donc peser. Un pas constant aurait fait de la
+// quinzième un « +5 % » inaudible, alors qu'ici la dernière vaut à elle seule
+// plus que les cinq premières.
 export const HIVE = {
   /** Réserve de nectar au premier lancement, avant toute amélioration. */
-  nectarCapacity: 50,
+  nectarBase: 100,
+  /** Coefficient du terme carré : c'est lui qui fait décoller la courbe. */
+  nectarQuad: 200,
+  /** Coefficient du terme linéaire : il porte les premiers paliers. */
+  nectarLinear: 100,
 } as const
+
+/**
+ * Contenance de la réserve pour un niveau de réserve donné (= nombre d'alvéoles
+ * « réserve » bâties).
+ *
+ * `100 + 200 n² + 100 n` : 100 / 400 / 1100 / 2200 / 3700 / 5600 / 7900…
+ * jusqu'à 46 600 au quinzième et dernier palier.
+ *
+ * C'est LA fonction dont dépend la finissabilité du rayon : tout ce qui se paie
+ * en nectar est borné par elle (cf. `storageCost` dans `config/upgrades`).
+ */
+export function getNectarCapacity(storageLevel: number): number {
+  return HIVE.nectarBase + HIVE.nectarQuad * storageLevel ** 2 + HIVE.nectarLinear * storageLevel
+}
 
 // Cycle d'une fleur : elle pousse, s'ouvre, puis se fane et disparaît. Le nectar
 // est MAXIMAL à l'instant où la corolle s'ouvre et décroît jusqu'à zéro : tout
