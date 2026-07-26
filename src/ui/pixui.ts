@@ -11,7 +11,7 @@
 // L'INTÉRIEUR depuis ce coin. Son propre origin définit son point d'alignement.
 
 import Phaser from 'phaser'
-import { Container, ComponentFactory, Image, OriginX, OriginY } from 'phaser-pixui'
+import { Container, ComponentFactory, BitmapText, Image, OriginX, OriginY } from 'phaser-pixui'
 import type { ComponentConfig } from 'phaser-pixui'
 import { WORLD } from '../config/game'
 import { TEX } from '../gfx/textures'
@@ -41,7 +41,7 @@ class Anchored {
   private readonly factories = new Map<string, ComponentFactory>()
 
   constructor(
-    protected readonly scene: Phaser.Scene,
+    readonly scene: Phaser.Scene,
     readonly container: Container,
   ) {}
 
@@ -139,6 +139,23 @@ export class Ui extends Anchored {
   }
 }
 
+/**
+ * Réécrit le texte d'un `BitmapText` pixui SANS que sa largeur ne se referme
+ * sur lui.
+ *
+ * Le setter `text` de pixui mesure le texte puis fixe la largeur du composant
+ * dessus ; au layout suivant, cette largeur est reposée en `maxWidth` sur le
+ * texte Phaser. Un libellé plus long que le précédent se retrouve donc replié
+ * dans la largeur de l'ancien — et comme le repli le rend encore plus étroit,
+ * la largeur se rétracte à chaque écriture : « Beat this run » finit sur trois
+ * lignes. On relâche donc la contrainte avant d'écrire.
+ */
+export function setText(target: BitmapText, text: string): void {
+  const inner = (target as unknown as { internal: Phaser.GameObjects.BitmapText }).internal
+  inner.setMaxWidth(0)
+  target.text = text
+}
+
 export interface IconButtonOpts {
   x?: number
   y?: number
@@ -190,6 +207,8 @@ export interface NinePanelOpts {
   height: number
   /** Tuile du tileset d'interface (défaut : cadre brun à liseré). */
   skin?: Ui9Skin
+  /** Teinte multipliée sur la tuile (défaut : aucune). */
+  tint?: number
   originX?: OriginX
   originY?: OriginY
 }
@@ -203,6 +222,7 @@ export function ninePanel(f: ComponentFactory, o: NinePanelOpts): Image {
   return f.image({
     texture: TEX.ui,
     frame: o.skin ?? UI9.insetDark,
+    tint: o.tint,
     x: o.x ?? 0,
     y: o.y ?? 0,
     width: Math.max(UI9_MIN, o.width),
@@ -249,7 +269,7 @@ const labelOffsetX = (size: number): number => Math.round(size / 24)
  * fabrique ancrée. Le fond change de tuile au survol/appui. Générique : aucune
  * dépendance à une scène particulière. À appeler AVANT Ui.commit().
  */
-export function button(f: ComponentFactory, o: ButtonOpts): void {
+export function button(f: ComponentFactory, o: ButtonOpts): BitmapText {
   const padX = o.padX ?? 20
   const padY = o.padY ?? 10
   const x = o.x ?? 0
@@ -272,7 +292,10 @@ export function button(f: ComponentFactory, o: ButtonOpts): void {
   const bg = ninePanel(f, { x, y, width: w, height: h, skin })
   const bgHover = ninePanel(f, { x, y, width: w, height: h, skin: skinHover })
   bgHover.visible = false
-  f.bitmapText({
+  // Le libellé est renvoyé : un bouton dont l'action change d'état (enregistrer
+  // / abandonner) se contente de le réécrire. Il est centré, donc il se
+  // recentre tout seul — d'où l'intérêt d'imposer `width` dans ce cas.
+  const label = f.bitmapText({
     font: o.font,
     size: o.size,
     text: o.label,
@@ -301,6 +324,7 @@ export function button(f: ComponentFactory, o: ButtonOpts): void {
     },
   })
   handCursor(hit.events)
+  return label
 }
 
 export interface SliderOpts {

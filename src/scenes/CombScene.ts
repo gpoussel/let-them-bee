@@ -1,0 +1,439 @@
+import Phaser from 'phaser'
+import { STR, UPGRADE_STR } from '../config/strings'
+import { COMB, COMB_TOTAL, tierLabel, type CombCell, type Currency } from '../config/upgrades'
+import { FONT_KEY } from '../gfx/font'
+import { HEX_R, TEX } from '../gfx/textures'
+import { audio } from '../systems/Audio'
+import { gameState } from '../systems/GameState'
+import { handCursor, wireHandCursors } from '../ui/cursor'
+import { button, ninePanel, OriginX, OriginY, Ui, UI9 } from '../ui/pixui'
+import { pixelText } from '../ui/text'
+import { COLORS, FONTS, HEX, PALETTE, PANEL_PAD, PANEL_TINT, SCREEN } from '../ui/theme'
+import { wrap } from '../ui/tooltip'
+
+// LE RAYON — l'écran d'améliorations.
+//
+// Ce n'est PAS une pop-up posée par-dessus le jeu : le rayon prend la place des
+// quatre cadres du bas (effectifs, accès, pré, bandeau) et se présente comme un
+// cadre de plus, du même bois qu'eux. Regarder sa ruche est une activité du jeu,
+// pas une parenthèse — la fenêtre ne s'interrompt pas, elle change de contenu.
+//
+// C'est quand même une SCÈNE et non un panneau de la GameScene, pour trois
+// raisons :
+//   - elle couvre le HUD et les textes flottants sans avoir à surenchérir sur
+//     les profondeurs (un « +3 » qui traversait la pop-up venait de là) ;
+//   - le rayon se déplace et se met à l'échelle, ce que le layout pixui — posé
+//     en coordonnées absolues du monde — ne sait pas faire ;
+//   - le pré continue de tourner dessous : la ruche ne s'arrête pas parce qu'on
+//     la regarde. Seules ses entrées sont coupées, pour que le glissé du rayon
+//     ne pilote pas l'abeille en même temps.
+
+/**
+ * Emprise du rayon : l'union EXACTE des quatre cadres du bas de l'écran de jeu.
+ * Elle est calculée à partir d'eux plutôt que recopiée en dur, pour qu'un
+ * remaniement de la découpe (cf. `SCREEN`) l'emmène avec lui.
+ */
+const VIEW = {
+  x: SCREEN.colony.x,
+  y: SCREEN.colony.y,
+  w: SCREEN.field.x + SCREEN.field.w - SCREEN.colony.x,
+  h: SCREEN.status.y + SCREEN.status.h - SCREEN.colony.y,
+} as const
+
+/** Intérieur utile du cadre : ce qui reste une fois le nine-slice déduit. */
+const INNER = {
+  x: VIEW.x + PANEL_PAD,
+  y: VIEW.y + PANEL_PAD,
+  w: VIEW.w - PANEL_PAD * 2,
+  h: VIEW.h - PANEL_PAD * 2,
+} as const
+
+/** Hauteur réservée en haut du cadre au titre et à la jauge. */
+const HEADER_H = 40
+/** Hauteur réservée en bas à la ligne de détail. */
+const FOOTER_H = 24
+
+/** Écart entre deux centres d'alvéoles voisines (hexagones pointe en haut). */
+const STEP_X = HEX_R * Math.sqrt(3)
+const STEP_Y = HEX_R * 1.5
+
+/** Opacité du texte d'une alvéole hors de prix : en retrait, mais lisible. */
+const DIM_ALPHA = 0.65
+
+/** Au-delà de ce déplacement, un clic est un glissé et n'achète rien. */
+const DRAG_SLOP = 8
+
+/** Côté de la vignette de monnaie (icône de la barre, bakée au point d'art). */
+const COIN = 16
+/** Blanc entre la vignette et le chiffre. */
+const COIN_GAP = 3
+
+/**
+ * Monnaie d'une alvéole, reprise TELLE QUELLE de la barre de ressources :
+ * même dessin, même teinte. Le joueur n'a pas à apprendre un second code — la
+ * goutte verte du haut de l'écran est la goutte verte du prix.
+ */
+const COIN_TEX: Record<Currency, string> = {
+  nectar: TEX.iconNectarSmall,
+  honey: TEX.iconHoneySmall,
+}
+const COIN_TINT: Record<Currency, number> = {
+  nectar: PALETTE.lime,
+  honey: PALETTE.amber,
+}
+
+interface CellView {
+  cell: CombCell
+  root: Phaser.GameObjects.Container
+  hex: Phaser.GameObjects.Image
+  name: Phaser.GameObjects.BitmapText
+  coin: Phaser.GameObjects.Image
+  cost: Phaser.GameObjects.BitmapText
+}
+
+export class CombScene extends Phaser.Scene {
+  private layer!: Phaser.GameObjects.Container
+  private views: CellView[] = []
+  private detail!: Phaser.GameObjects.BitmapText
+  private progress!: Phaser.GameObjects.BitmapText
+  private hovered: CombCell | null = null
+  private dragged = false
+
+  constructor() {
+    super('Comb')
+  }
+
+  create(): void {
+    // Phaser réutilise l'INSTANCE de scène d'une ouverture à l'autre : sans ce
+    // remise à zéro, on garderait les alvéoles de la fois précédente, détruites
+    // avec leur scène, et le premier rafraîchissement planterait dessus.
+    this.views = []
+    this.hovered = null
+    this.dragged = false
+
+    const view = this.hiveView()
+
+    // Le cadre du rayon, dessiné AVANT le calque : même nine-slice et même
+    // teinte que les cadres qu'il remplace. La barre de ressources reste
+    // découverte au-dessus — le joueur doit voir sa réserve fondre à l'achat.
+    const frame = new Ui(this)
+    ninePanel(frame.topLeft, {
+      originX: OriginX.Left,
+      originY: OriginY.Top,
+      x: VIEW.x,
+      y: VIEW.y,
+      width: VIEW.w,
+      height: VIEW.h,
+      skin: UI9.insetDark,
+      tint: PANEL_TINT,
+    })
+    frame.commit()
+
+    // Fond sombre de la seule zone des alvéoles : le pré qui continue de tourner
+    // dessous ne doit pas transparaître entre les hexagones.
+    this.add
+      .rectangle(view.x, view.y, view.w, view.h, COLORS.bgDark)
+      .setOrigin(0, 0)
+      .setAlpha(1)
+
+    this.layer = this.add.container(view.x + view.w / 2, view.y + view.h / 2)
+
+    this.buildHive()
+    for (const cell of COMB) this.views.push(this.buildCell(cell))
+
+    this.buildChrome()
+    this.clampPan()
+    this.wireInput()
+    wireHandCursors(this)
+    this.refresh()
+  }
+
+  // --- Construction --------------------------------------------------------
+
+  /** Demi-encombrement du rayon entier, à l'échelle 1, hexagones compris. */
+  private halfExtent(): { w: number; h: number } {
+    let w = HEX_R
+    let h = HEX_R
+    for (const cell of COMB) {
+      const { x, y } = this.posOf(cell.q, cell.r)
+      w = Math.max(w, Math.abs(x) + HEX_R)
+      h = Math.max(h, Math.abs(y) + HEX_R)
+    }
+    return { w, h }
+  }
+
+  /**
+   * Recale le rayon dans sa fenêtre. C'est ce qui tient lieu de découpe : rien
+   * ne déborde parce que rien ne peut sortir.
+   *
+   * Un masque aurait été plus direct, mais `Container.setMask` ne fait rien en
+   * Phaser 4 (il renvoie le conteneur, `mask` reste nul) ; une seconde caméra
+   * découpe bien, mais le survol et le clic cessent alors d'atteindre les
+   * alvéoles — la caméra principale les ignore, et c'est elle que consulte le
+   * test de pointage. Borner le déplacement ne coûte, lui, aucune entrée.
+   *
+   * Plus grand que sa fenêtre, le rayon peut glisser mais jamais assez pour
+   * laisser un bord découvert ; plus petit, il reste centré.
+   */
+  private clampPan(): void {
+    const view = this.hiveView()
+    const half = this.halfExtent()
+    const cx = view.x + view.w / 2
+    const cy = view.y + view.h / 2
+    const slackX = Math.max(0, half.w * this.layer.scaleX - view.w / 2)
+    const slackY = Math.max(0, half.h * this.layer.scaleY - view.h / 2)
+    this.layer.x = Phaser.Math.Clamp(this.layer.x, cx - slackX, cx + slackX)
+    this.layer.y = Phaser.Math.Clamp(this.layer.y, cy - slackY, cy + slackY)
+  }
+
+  /** Fenêtre où vivent les alvéoles : l'intérieur du cadre, titre et détail ôtés. */
+  private hiveView(): { x: number; y: number; w: number; h: number } {
+    return {
+      x: INNER.x,
+      y: INNER.y + HEADER_H,
+      w: INNER.w,
+      h: INNER.h - HEADER_H - FOOTER_H,
+    }
+  }
+
+  /** Position à l'écran (locale au calque) d'une alvéole axiale. */
+  private posOf(q: number, r: number): { x: number; y: number } {
+    return { x: STEP_X * (q + r / 2), y: STEP_Y * r }
+  }
+
+  /** L'alvéole centrale : la ruche. Elle ne s'achète pas, tout part d'elle. */
+  private buildHive(): void {
+    const hive = this.add.container(0, 0)
+    hive.add(this.add.image(0, 0, TEX.hexDone))
+    hive.add(this.add.image(0, 0, TEX.hive))
+    this.layer.add(hive)
+  }
+
+  private buildCell(cell: CombCell): CellView {
+    const { x, y } = this.posOf(cell.q, cell.r)
+    const root = this.add.container(x, y)
+
+    const hex = this.add.image(0, 0, TEX.hexIdle)
+    hex.setInteractive({ useHandCursor: false })
+    handCursor(hex)
+    hex.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OVER, () => (this.hovered = cell))
+    hex.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OUT, () => {
+      if (this.hovered === cell) this.hovered = null
+    })
+    hex.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, (p: Phaser.Input.Pointer) =>
+      this.tryBuy(cell, p),
+    )
+
+    const label = UPGRADE_STR[cell.kind].name
+    const tier = tierLabel(cell)
+    // Le rang passe à la ligne : « Storage III » d'un seul tenant déborde d'une
+    // alvéole et vient mordre sur ses voisines.
+    const name = pixelText(this, 0, -10, tier ? `${label}\n${tier}` : label, FONTS.sizeHint, HEX.cream)
+      .setOrigin(0.5, 0.5)
+      .setCenterAlign()
+
+    // Prix = vignette + chiffre, recentrés ensemble à chaque rafraîchissement
+    // (la largeur du chiffre change avec sa valeur, et « Built » n'a pas de
+    // vignette du tout).
+    const coin = this.add
+      .image(0, 16, COIN_TEX[cell.currency])
+      .setOrigin(0.5, 0.5)
+      .setTint(COIN_TINT[cell.currency])
+    const cost = pixelText(this, 0, 16, `${cell.cost}`, FONTS.sizeHint, HEX.cream).setOrigin(0, 0.5)
+
+    root.add([hex, name, coin, cost])
+    this.layer.add(root)
+    return { cell, root, hex, name, coin, cost }
+  }
+
+  /** Titre, jauge, ligne de détail et bouton de fermeture — posés en pixui, fixes. */
+  private buildChrome(): void {
+    const ui = new Ui(this)
+    const f = ui.topLeft
+    const anchor = { originX: OriginX.Left, originY: OriginY.Top } as const
+
+    f.bitmapText({
+      ...anchor,
+      font: FONT_KEY,
+      size: FONTS.sizeSmall,
+      text: STR.comb,
+      tint: PALETTE.amber,
+      x: INNER.x,
+      y: INNER.y,
+    })
+
+    button(ui.topRight, {
+      font: FONT_KEY,
+      size: FONTS.sizeHint,
+      label: STR.close,
+      color: COLORS.darkBrown,
+      padX: 14,
+      padY: 6,
+      // Calé dans l'angle : ces deux nombres sont relevés sur les bornes RÉELLES
+      // du bouton rendu (`getBounds`), pas déduites de sa position déclarée — la
+      // fabrique `topRight` et le nine-slice décalent l'un et l'autre le dessin,
+      // et viser à la main laissait le bouton flotter loin du liseré.
+      x: -53,
+      y: INNER.y + 8,
+      onClick: () => this.close(),
+    })
+
+    ui.commit()
+
+    // Jauge et détail restent hors pixui : leur texte change à chaque frame, et
+    // le ratchet de largeur des BitmapText pixui coûte plus qu'il ne rapporte
+    // pour deux lignes posées à la main.
+    this.progress = pixelText(this, INNER.x, INNER.y + 24, '', FONTS.sizeHint, HEX.cream).setOrigin(
+      0,
+      0,
+    )
+    this.detail = pixelText(
+      this,
+      INNER.x + INNER.w / 2,
+      INNER.y + INNER.h,
+      '',
+      FONTS.sizeHint,
+      HEX.cream,
+    ).setOrigin(0.5, 1)
+  }
+
+  // --- Entrées -------------------------------------------------------------
+
+  private wireInput(): void {
+    // Le pré tourne toujours, mais il ne doit plus écouter la souris : sans ça,
+    // glisser le rayon ferait voler l'abeille en aveugle derrière le voile.
+    this.setGameInput(false)
+
+    this.input.on(Phaser.Input.Events.POINTER_DOWN, () => {
+      this.dragged = false
+    })
+
+    this.input.on(Phaser.Input.Events.POINTER_MOVE, (p: Phaser.Input.Pointer) => {
+      if (!p.isDown) return
+      // Le rayon n'est plus plein écran : glisser hors de son cadre (sur la
+      // barre de ressources, par exemple) ne doit pas le déplacer.
+      if (!this.inView(p)) return
+      if (this.travel(p) > DRAG_SLOP) this.dragged = true
+      this.pan(p.x - p.prevPosition.x, p.y - p.prevPosition.y)
+    })
+
+    // Pas de zoom : le rayon reste à l'échelle 1. Toute autre échelle tombe sur
+    // des demi-pixels, et la police bitmap comme le liseré des alvéoles s'y
+    // déforment. Le rayon est dimensionné (cf. `HEX_R`) pour tenir tel quel dans
+    // sa fenêtre ; s'il finit par la déborder, c'est le glissé qui y mène.
+
+    this.input.keyboard?.on('keydown-ESC', () => this.close())
+  }
+
+  /**
+   * Distance parcourue depuis l'appui. Lue sur le pointeur lui-même (`downX`)
+   * plutôt que sur une position relevée à la main : le relevé manquait quand
+   * l'appui n'avait pas été vu par cette scène, et le clic partait alors avec
+   * une distance absurde — donc refusé.
+   */
+  private travel(p: Phaser.Input.Pointer): number {
+    return Math.abs(p.x - p.downX) + Math.abs(p.y - p.downY)
+  }
+
+  /** Le pointeur est-il dans la fenêtre des alvéoles ? */
+  private inView(p: Phaser.Input.Pointer): boolean {
+    const v = this.hiveView()
+    return p.x >= v.x && p.x <= v.x + v.w && p.y >= v.y && p.y <= v.y + v.h
+  }
+
+  private pan(dx: number, dy: number): void {
+    this.layer.x += dx
+    this.layer.y += dy
+    this.clampPan()
+  }
+
+  private tryBuy(cell: CombCell, p: Phaser.Input.Pointer): void {
+    // La distance est recontrôlée ICI, au relâché, en plus du drapeau posé au
+    // déplacement : selon la frame, Phaser peut traiter le relâché avant le
+    // mouvement qui l'a précédé, et un glissé du rayon achetait alors l'alvéole
+    // sous le doigt.
+    if (this.travel(p) > DRAG_SLOP) return
+    if (this.dragged) return
+    if (!gameState.canBuy(cell)) return
+    gameState.buyCell(cell)
+    audio.playClick()
+    this.refresh()
+  }
+
+  private close(): void {
+    // Rendre la main au pré une frame PLUS TARD : les deux scènes écoutent Échap
+    // et traitent la même touche dans la même frame. Réactiver tout de suite, et
+    // la touche qui ferme le rayon ouvrait aussi le menu de pause derrière.
+    const game = this.scene.get('Game')
+    if (game) game.time.delayedCall(0, () => this.setGameInput(true))
+    this.scene.stop()
+  }
+
+  /**
+   * Souris ET clavier du pré. La souris, parce qu'un glissé du rayon ferait
+   * sinon voler l'abeille en aveugle ; le clavier, parce que les deux scènes
+   * écoutent Échap et que c'est au rayon de le prendre tant qu'il est ouvert.
+   */
+  private setGameInput(on: boolean): void {
+    const game = this.scene.get('Game')
+    if (!game) return
+    game.input.enabled = on
+    if (game.input.keyboard) game.input.keyboard.enabled = on
+  }
+
+  // --- Rendu ---------------------------------------------------------------
+
+  update(): void {
+    this.refresh()
+  }
+
+  private refresh(): void {
+    for (const view of this.views) {
+      const { cell } = view
+      // Une alvéole non dévoilée n'est pas grisée : elle N'EXISTE PAS encore.
+      // Le rayon doit donner l'impression d'une ruche qu'on agrandit, pas d'un
+      // catalogue dont on connaîtrait déjà la dernière page.
+      const revealed = gameState.isRevealed(cell)
+      view.root.visible = revealed
+      // Phaser n'interroge pas les objets invisibles, mais l'achat repasse de
+      // toute façon par `canBuy` : une alvéole non dévoilée ne s'achète pas.
+      if (view.hex.input) view.hex.input.enabled = revealed
+      if (!revealed) continue
+
+      const owned = gameState.owns(cell)
+      const affordable = !owned && gameState.balanceFor(cell) >= cell.cost
+
+      // Les trois états demandés, et rien de plus : bâtie / payable / trop
+      // chère. La texture porte l'état, le prix le confirme.
+      view.hex.setTexture(owned ? TEX.hexDone : affordable ? TEX.hexReady : TEX.hexIdle)
+      // Une alvéole hors de prix s'éteint par l'ALPHA, pas par la couleur : le
+      // brun olive de la palette sur le vert-gris de la texture « trop chère »
+      // ne se lisait plus du tout, et un prix qu'on ne peut pas payer reste ce
+      // qu'il faut lire pour savoir quoi viser. Le crème atténué le dit sans
+      // rendre l'alvéole aussi vive que celles qui sont à portée.
+      const dim = owned || affordable ? 1 : DIM_ALPHA
+      view.name.setTint(COLORS.cream)
+      view.name.setAlpha(dim)
+      view.cost.setTint(owned ? PALETTE.lime : COLORS.cream)
+      view.cost.setAlpha(dim)
+      view.cost.setText(owned ? STR.combOwned : `${cell.cost}`)
+
+      // Une alvéole bâtie n'a plus de prix : la vignette de monnaie s'efface et
+      // le mot se recentre seul.
+      view.coin.visible = !owned
+      // La vignette s'éteint avec le prix : c'est le couple entier qui dit
+      // « hors d'atteinte », pas le seul chiffre.
+      view.coin.setTint(COIN_TINT[cell.currency])
+      view.coin.setAlpha(dim)
+      const total = owned ? view.cost.width : COIN + COIN_GAP + view.cost.width
+      view.coin.x = -total / 2 + COIN / 2
+      view.cost.x = owned ? -total / 2 : -total / 2 + COIN + COIN_GAP
+    }
+
+    this.progress.setText(`${gameState.comb.size}/${COMB_TOTAL}`)
+    // Rien sous le rayon quand rien n'est survolé : la ligne ne sert qu'à dire
+    // ce que fait l'alvéole visée, et une consigne permanente n'y avait pas sa
+    // place.
+    this.detail.setText(this.hovered ? wrap(UPGRADE_STR[this.hovered.kind].tip, 76) : '')
+  }
+}

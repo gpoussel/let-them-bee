@@ -1,68 +1,84 @@
 import Phaser from 'phaser'
-import { FLOWER } from '../config/balance'
-import { FEEL } from '../config/feel'
 import { TEX } from '../gfx/textures'
+import { bloomFrame, budFrame } from '../gfx/flowers'
+import type { Slot, SlotState } from '../systems/FlowerField'
+import { PALETTE } from '../ui/theme'
 
-// Fleur avec cycle d'ouverture/fermeture en boucle. Butiner près du pic d'ouverture
-// donne un bonus "Perfect". Après butinage, la fleur se recharge (cooldown).
+// Vue d'un emplacement du pré : le pied, et la barre qui le voit se faner.
+//
+// Aucune logique ici — la fleur ne décide de rien. Son état est calculé par
+// `FlowerField` à partir de l'horloge du tour (cf. le commentaire d'en-tête de
+// ce fichier) ; la fleur ne fait que l'afficher. C'est ce qui garantit que deux
+// tours identiques donnent exactement le même pré.
+
+/** Largeur et hauteur de la barre de fanaison, en px monde. */
+const BAR_W = 22
+const BAR_H = 4
+/** Hauteur de la barre au-dessus de la base du pied. */
+const BAR_RISE = 70
+
 export class Flower extends Phaser.GameObjects.Sprite {
-  private cyclePhase: number // 0..1
-  private cooldown = 0
-  quality: number
+  private readonly barBg: Phaser.GameObjects.Rectangle
+  private readonly barFill: Phaser.GameObjects.Rectangle
 
-  constructor(scene: Phaser.Scene, x: number, y: number, quality = 1) {
-    super(scene, x, y, TEX.flowerClosed)
+  constructor(scene: Phaser.Scene, slot: Slot, scale: number, depth: number) {
+    super(scene, slot.x, slot.y, TEX.objects, budFrame(0))
     scene.add.existing(this)
-    this.setOrigin(0.5, 0.9)
-    this.quality = quality
-    this.cyclePhase = Math.random() // désynchronise les fleurs
+    // Le pied est posé par sa base : c'est la tige qui touche le sol.
+    this.setOrigin(0.5, 1).setDepth(depth)
+    // L'échelle est fixée une fois pour toutes, et entière : ces sprites sont
+    // du pixel art de 16 px. La moindre échelle fractionnaire — ou animée —
+    // fait baver leurs pixels, qui n'ont alors plus tous la même taille.
+    this.setScale(scale)
+
+    const barY = slot.y - BAR_RISE
+    this.barBg = scene.add
+      .rectangle(slot.x, barY, BAR_W, BAR_H, PALETTE.darkGreen, 0.9)
+      .setDepth(depth)
+    this.barFill = scene.add
+      .rectangle(slot.x - BAR_W / 2, barY, BAR_W, BAR_H, PALETTE.lime)
+      .setOrigin(0, 0.5)
+      .setDepth(depth)
   }
 
-  get isReady(): boolean {
-    return this.cooldown <= 0
-  }
-
-  /** Ouverture 0 (fermée) → 1 (pleinement ouverte), forme triangulaire sur le cycle. */
-  get openness(): number {
-    const p = this.cyclePhase
-    return p < 0.5 ? p * 2 : (1 - p) * 2
-  }
-
-  get isPerfect(): boolean {
-    return this.isReady && this.openness >= 1 - FLOWER.perfectWindow
-  }
-
-  preUpdate(time: number, delta: number): void {
-    super.preUpdate(time, delta)
-    const dt = delta / 1000
-
-    if (this.cooldown > 0) {
-      this.cooldown -= dt
-      this.setTexture(TEX.flowerClosed)
-      this.setAlpha(0.5)
+  /** Aligne l'affichage sur l'état calculé pour l'instant courant. */
+  sync(state: SlotState): void {
+    if (state.phase === 'gone') {
+      this.setVisible(false)
+      this.barBg.setVisible(false)
+      this.barFill.setVisible(false)
       return
     }
-    this.setAlpha(1)
 
-    this.cyclePhase = (this.cyclePhase + dt / FLOWER.openCycle) % 1
+    this.setVisible(true)
 
-    const o = this.openness
-    if (o < 0.34) this.setTexture(TEX.flowerClosed)
-    else if (o < 0.85) this.setTexture(TEX.flowerHalf)
-    else this.setTexture(TEX.flowerOpen)
+    if (state.phase === 'bud') {
+      // La pousse sort de terre. On la révèle par le bas en rognant le sprite
+      // rang de pixels par rang de pixels : elle grandit vraiment, au lieu
+      // d'être un dessin entier que l'on gonflerait.
+      this.setFrame(budFrame(state.species))
+      const h = this.frame.height
+      const shown = Math.max(2, Math.round(h * (0.25 + 0.75 * state.growth)))
+      this.setCrop(0, h - shown, this.frame.width, shown)
+      this.setAlpha(0.8)
+      this.barBg.setVisible(false)
+      this.barFill.setVisible(false)
+      return
+    }
 
-    // Légère respiration.
-    const s = 1 + o * FEEL.flowerBreath
-    this.setScale(s)
-  }
+    // Corolle ouverte : elle pâlit à mesure qu'elle se fane, et sa barre se
+    // vide. Le bon moment pour la butiner se lit d'un coup d'œil.
+    this.setFrame(bloomFrame(state.species))
+    this.isCropped = false
+    this.setAlpha(0.65 + 0.35 * state.freshness)
 
-  /** Tente de butiner. Renvoie le nectar récolté (0 si pas prête), et si c'était Perfect. */
-  forage(): { nectar: number; perfect: boolean } {
-    if (!this.isReady || this.openness < 0.34) return { nectar: 0, perfect: false }
-    const perfect = this.isPerfect
-    let nectar = FLOWER.baseNectar * this.quality
-    if (perfect) nectar *= FLOWER.perfectMultiplier
-    this.cooldown = FLOWER.rechargeCooldown
-    return { nectar, perfect }
+    this.barBg.setVisible(true)
+    this.barFill.setVisible(true)
+    this.barFill.setDisplaySize(Math.max(1, BAR_W * state.freshness), BAR_H)
+    // Verte tant qu'elle paie plein tarif, ambre quand elle s'épuise.
+    const low = Phaser.Display.Color.IntegerToColor(PALETTE.amber)
+    const high = Phaser.Display.Color.IntegerToColor(PALETTE.lime)
+    const c = Phaser.Display.Color.Interpolate.ColorWithColor(low, high, 100, state.freshness * 100)
+    this.barFill.fillColor = Phaser.Display.Color.GetColor(c.r, c.g, c.b)
   }
 }

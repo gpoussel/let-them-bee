@@ -2,6 +2,17 @@
 // Entièrement découplé du moteur (src/config/*) : une autre version du jeu peut
 // réutiliser le moteur avec un thème différent en remplaçant ce seul fichier.
 
+// Palette officielle du jeu (cf. CLAUDE.md). Toute couleur POSÉE À PARTIR D'ICI
+// doit en être tirée ; les entrées historiques de COLORS sont encore hors
+// palette et restent à migrer (cf. PROGRESS.md).
+export const PALETTE = {
+  oliveBrown: 0x71653f,
+  lime: 0xd6dc53,
+  amber: 0xf3b468,
+  meadow: 0x639b35,
+  darkGreen: 0x4a655a,
+} as const
+
 export const COLORS = {
   cream: 0xfff6e0,
   honey: 0xf6c445,
@@ -14,8 +25,10 @@ export const COLORS = {
   bgDark: 0x2b2233,
   grassA: 0x6fae5f,
   grassB: 0x7fb069,
-  comboHigh: 0xf6c445,
-  comboLow: 0xff6b3d,
+  // Le seul rouge du jeu, et il ne sert qu'à une chose : le compte à rebours
+  // d'un enregistrement dans ses deux dernières secondes. Hors palette à
+  // dessein — c'est une alarme, elle doit jurer.
+  alert: 0xff6b3d,
   perfect: 0xffe08a,
   jelly: 0xffd76a,
 } as const
@@ -26,6 +39,7 @@ export const HEX = {
   honey: '#f6c445',
   jelly: '#ffd76a',
   perfect: '#ffe08a',
+  alert: '#ff6b3d',
 } as const
 
 // Tailles de la bitmap font « monogram » (cf. src/gfx/font.ts). La cellule native
@@ -35,18 +49,49 @@ export const FONTS = {
   sizeHoney: 36,
   sizeJelly: 24,
   sizeSmall: 24,
-  sizeCombo: 24,
+  /** Compteur d'enregistrement : il doit se lire sans quitter le pré des yeux. */
+  sizeTimer: 36,
   sizePop: 24,
   sizeTitle: 48,
   sizeButton: 24,
   sizeHint: 12,
 } as const
 
+// Découpe de l'écran de jeu, en coordonnées absolues du monde (960x540, scale
+// FIT : le layout n'a pas à être responsive). Le pré carré du mini-jeu est
+// volontairement minoritaire — l'essentiel de l'écran appartient à la ruche.
+export const SCREEN = {
+  bar: { x: 10, y: 10, w: 940, h: 42 },
+  colony: { x: 10, y: 60, w: 210, h: 378 },
+  /** Accès à l'arbre d'améliorations : un simple bouton, pas un panneau. */
+  tree: { x: 10, y: 446, w: 210, h: 84 },
+  field: { x: 232, y: 60, w: 718, h: 378 },
+  // Le bandeau du pré a été ramené au strict nécessaire (message, bilan du
+  // meilleur tour, bouton) : chaque pixel qu'il rend est un pixel de PRÉ, et
+  // c'est le pré qui est le jeu.
+  status: { x: 232, y: 446, w: 718, h: 84 },
+} as const
+
+/** Marge intérieure entre le bord d'un cadre nine-slice et son contenu. */
+export const PANEL_PAD = 14
+
+// Habillage des cadres. La tuile brune du tileset est franchement orangée : posée
+// en grand et en aplat sur du gazon, elle sature l'écran. On la rabat donc vers
+// le vert-gris sombre de la palette — un fond calme, qui laisse les textes crème
+// et ambre porter seuls la couleur. Les infobulles, elles, gardent la tuile nue :
+// il FAUT qu'elles tranchent sur le cadre qu'elles recouvrent.
+export const PANEL_TINT = PALETTE.darkGreen
+
+/** Teinte de l'icône de chaque caste (clés : `BeeKindId`). */
+export const BEE_TINT: Record<string, number> = {
+  forager: PALETTE.amber,
+  worker: PALETTE.lime,
+  warrior: PALETTE.meadow,
+}
+
 // Réglages d'affichage des jauges / feedbacks flottants.
 export const HUD = {
-  comboBarMax: 30, // valeur de combo qui remplit la jauge à 100 %
   nectarBarWidth: 124,
-  comboBarWidth: 216,
   popRise: 34, // px de remontée du texte flottant
   popDuration: 700, // ms
 } as const
