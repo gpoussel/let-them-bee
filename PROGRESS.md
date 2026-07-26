@@ -3,7 +3,8 @@
 Jeu incrémental navigateur où **le skill accélère la progression**. Pilotez l'abeille à la souris,
 butinez au bon timing pour enchaîner les combos, faites grandir la ruche.
 
-Stack : **Phaser 3 + Vite + TypeScript**. Voir le GDD complet pour le design détaillé.
+Stack : **Phaser 4 + Vite + TypeScript**. Design détaillé : [`docs/GDD.md`](docs/GDD.md)
+(à tenir à jour à chaque changement de gameplay, cf. `CLAUDE.md`).
 
 ## Lancer le projet
 
