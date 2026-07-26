@@ -24,21 +24,32 @@ export const BEE = {
   // Elle ne s'applique QU'AU PILOTAGE : la relecture passe par `moveTo`, qui
   // replace l'abeille au pixel sur le trajet qu'elle a réellement volé.
   //
-  // L'amplitude n'est PAS fixe : elle vaut `driftPx × (driftNear + distance au
-  // pointeur / driftFullPx)`. Pointeur collé à l'abeille, il reste un quart
-  // d'amplitude — elle frémit ; pointeur à l'autre bout du pré (≈ 600 px), elle
-  // vaut cinq fois plus et le vol part franchement de travers. C'est la même
-  // idée que l'inertie, en plus lisible : on MÈNE une abeille, on ne la
-  // téléporte pas.
-  driftPx: 22,
+  // L'amplitude n'est PAS fixe, et elle ne croît PAS proportionnellement : elle
+  // vaut `driftPx × (driftNear + (distance au pointeur / driftFullPx)^driftPow)`.
+  // Pointeur collé à l'abeille, il reste un quart d'amplitude — elle frémit ;
+  // pointeur à deux longueurs de bras, elle serpente ; pointeur à l'autre bout
+  // du pré, ELLE FAIT N'IMPORTE QUOI. L'exposant est ce qui fait la différence
+  // entre « un peu mou » et « incontrôlable » : une croissance linéaire se
+  // corrige d'instinct, une croissance qui s'emballe oblige à RAPPROCHER le
+  // pointeur, c'est-à-dire à mener l'abeille au lieu de la montrer du doigt.
+  //
+  // Le plafond n'est pas un adoucissement : sans lui, la cible part hors du pré
+  // et l'abeille file en ligne droite au lieu de battre la campagne.
+  driftPx: 34,
   /** Part d'amplitude qui subsiste pointeur collé à l'abeille. */
   driftNear: 0.25,
   /** Distance, en px, qui vaut une amplitude pleine de plus. */
-  driftFullPx: 130,
+  driftFullPx: 110,
+  /** Exposant de la montée en distance : > 1 = ça s'emballe au loin. */
+  driftPow: 1.8,
+  /** Écart maximal de la cible, en px. Au-delà, l'abeille sortirait du pré. */
+  driftMaxPx: 260,
   /** Part de la dérive qui flotte dans tous les sens ; le reste est LATÉRAL. */
   driftFloat: 0.35,
   driftHzA: 0.31,
   driftHzB: 0.53,
+  /** Troisième période, lente : c'est elle qui fait les grands écarts. */
+  driftHzC: 0.13,
   forageRadius: 28, // px
 } as const
 

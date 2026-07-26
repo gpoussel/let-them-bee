@@ -100,14 +100,14 @@ export class Bee extends Phaser.GameObjects.Sprite {
     // La dérive déplace la CIBLE, pas l'abeille : le vol reste lissé, il vise
     // simplement à côté. C'est ce qui la fait flotter au lieu de vibrer.
     //
-    // Elle est SURTOUT LATÉRALE et elle CROÎT AVEC LA DISTANCE au pointeur. Les
-    // deux vont ensemble et disent la même chose : une abeille qu'on envoie loin
-    // part de travers et arrive à côté, alors qu'un pointeur posé juste devant
-    // elle la tient. Une dérive d'amplitude fixe ne se voyait pas — à pleine
-    // vitesse, dix-huit pixels de flottement passent sous le geste ; ce qui se
-    // voit, c'est l'écart au but, et il faut donc qu'il grandisse avec la course.
-    // C'est aussi la bonne leçon de pilotage : on mène l'abeille, on ne la
-    // téléporte pas.
+    // Elle est SURTOUT LATÉRALE et elle S'EMBALLE AVEC LA DISTANCE au pointeur.
+    // Les deux vont ensemble et disent la même chose : une abeille qu'on envoie
+    // loin part de travers et arrive n'importe où, alors qu'un pointeur posé
+    // juste devant elle la tient. La montée est EXPONENTIELLE (driftPow), et
+    // c'est le point : une croissance proportionnelle se corrige d'instinct,
+    // celle-ci oblige à rapprocher le pointeur — c'est-à-dire à MENER l'abeille
+    // au lieu de la montrer du doigt. Le plafond n'adoucit rien : sans lui la
+    // cible sortirait du pré et l'abeille filerait tout droit.
     let tx = this.target.x
     let ty = this.target.y
     if (this.driftMult > 0) {
@@ -117,10 +117,15 @@ export class Bee extends Phaser.GameObjects.Sprite {
       const toX = this.target.x - this.fx
       const toY = this.target.y - this.fy
       const reach = Math.hypot(toX, toY)
-      const amp = BEE.driftPx * this.driftMult * (BEE.driftNear + reach / BEE.driftFullPx)
+      const c = this.driftTime * BEE.driftHzC * Math.PI * 2
+      const far = (reach / BEE.driftFullPx) ** BEE.driftPow
+      const amp = Math.min(BEE.driftMaxPx, BEE.driftPx * this.driftMult * (BEE.driftNear + far))
       // Composante latérale : perpendiculaire à la course, donc un écart de cap
       // et non un tremblement. Elle domine, et c'est elle qu'on apprend à corriger.
-      const swerve = (Math.sin(a) + Math.sin(b * 1.7) * 0.5) * amp
+      // La troisième sinusoïde, lente, est celle qui fait partir l'abeille en
+      // vrille quand le pointeur est loin : à courte portée elle ne se voit pas,
+      // à longue portée c'est elle qui commande le vol.
+      const swerve = (Math.sin(a) + Math.sin(b * 1.7) * 0.5 + Math.sin(c) * 1.2) * amp
       const nx0 = reach > 1 ? -toY / reach : 0
       const ny0 = reach > 1 ? toX / reach : 0
       tx += nx0 * swerve + Math.sin(b) * amp * BEE.driftFloat

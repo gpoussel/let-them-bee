@@ -150,7 +150,7 @@ déplacement du pré, et la sauvegarde reste compacte.
 
 **L'abeille nue vole mal, et c'est le point de départ du jeu.** Sous la main du
 joueur, elle est lourde (`BEE.lerp` = 2,6) et elle **dérive** : sa cible s'écarte
-du pointeur, portée par deux sinusoïdes de périodes incommensurables. Le motif ne
+du pointeur, portée par trois sinusoïdes de périodes incommensurables. Le motif ne
 se lit pas à l'œil et pourtant il ne tire **aucun hasard** — la même seconde du
 même tour donne la même dérive, le pré reste déterministe (§4.3), et un trajet
 enregistré est exactement ce que le joueur a volé.
@@ -159,12 +159,17 @@ enregistré est exactement ce que le joueur a volé.
 inaperçue, parce qu'à pleine vitesse vingt pixels de flottement disparaissent
 sous le geste :
 
-- elle **croît avec la distance au pointeur** : `22 px × (0,25 + distance / 130)`.
-  Pointeur collé à l'abeille, elle frémit ; pointeur à l'autre bout du pré, elle
-  vaut cinq fois plus et le vol part franchement de travers. Ce qui se voit n'est
-  pas le tremblement, c'est l'**écart au but** ;
+- elle **s'emballe avec la distance au pointeur**, et pas linéairement :
+  `34 px × (0,25 + (distance / 110)^1,8)`, plafonné à 260 px d'écart. Pointeur
+  collé à l'abeille, elle frémit ; à deux longueurs de bras, elle serpente ; à
+  l'autre bout du pré, **elle fait n'importe quoi**. L'exposant est ce qui sépare
+  « un peu mou » d'« incontrôlable » : une montée proportionnelle se corrige
+  d'instinct, une montée qui s'emballe **oblige à rapprocher le pointeur**. Le
+  plafond n'adoucit rien — sans lui la cible sortirait du pré et l'abeille
+  filerait tout droit au lieu de battre la campagne ;
 - elle est **surtout latérale** (65 %), perpendiculaire à la course : un écart de
-  **cap**, pas une vibration. C'est ce qu'on apprend à corriger.
+  **cap**, pas une vibration. C'est ce qu'on apprend à corriger. La troisième
+  sinusoïde, la plus lente, ne se voit pas de près et commande le vol de loin.
 
 La leçon de pilotage est la même dans les deux cas : on **mène** une abeille, on
 ne la téléporte pas.
