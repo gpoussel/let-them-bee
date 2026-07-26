@@ -33,6 +33,21 @@ const SAVE_KEY = GAME.saveKey
  */
 const DRIFT_PER_FLIGHT = 0.93
 
+/**
+ * Tire une graine de pré pour une partie neuve.
+ *
+ * C'est le SEUL vrai hasard du jeu, et il ne dure qu'un instant : une fois tiré,
+ * il est écrit en sauvegarde et tout le reste redevient déterministe (cf.
+ * `systems/rng`). `Math.random` convient donc ici, là où il n'a sa place nulle
+ * part ailleurs — on ne cherche pas une suite reproductible, on cherche le
+ * nombre qui rendra la suivante reproductible.
+ *
+ * Bornée à un entier positif de 31 bits : c'est ce que `random()` sait recevoir.
+ */
+function newFieldSeed(): number {
+  return Math.floor(Math.random() * 0x7fffffff)
+}
+
 /** Effectif par caste. Une partie commence avec l'unique butineuse du joueur. */
 export type BeePopulation = Record<BeeKindId, number>
 
@@ -62,6 +77,18 @@ export interface SaveData {
   queens: number
   /** Identifiants des alvéoles achetées (cf. config/upgrades). */
   comb: string[]
+  /**
+   * GRAINE DU PRÉ. Tirée une fois, au premier lancement, et jamais retirée
+   * ensuite : c'est elle qui décide où poussent les fleurs et ce qui y repousse.
+   *
+   * Elle DOIT être sauvegardée, et c'est tout l'enjeu du champ. Le pré est une
+   * fonction pure du temps et de cette graine (cf. `FlowerField`) ; un trajet
+   * enregistré ne vaut donc que sur SON pré. Une graine retirée à la relecture
+   * rejouerait le meilleur tour du joueur sur un terrain qu'il n'a jamais vu —
+   * la trajectoire passerait à côté de fleurs qui ne sont plus là, et le
+   * « meilleur miel » du compteur deviendrait un score que rien ne reproduit.
+   */
+  fieldSeed: number
   /** Lot de transformation en cours : nectar déjà engagé, avancement (0..1). */
   brewing: boolean
   brewProgress: number
@@ -104,6 +131,17 @@ export class GameState {
   brewEnabled = true
   /** Nœuds de lignée acquis. Ils SURVIVENT à l'essaimage (cf. `swarm`). */
   lineage = new Set<string>()
+  /**
+   * Graine du pré (cf. `SaveData.fieldSeed`). Tirée au premier lancement, puis
+   * PORTÉE par la partie — sauvegarde, relance et essaimage compris.
+   *
+   * Elle survit à l'essaimage exprès : le pré est le terrain d'entraînement du
+   * joueur, et une reine qui part fonder ailleurs n'a aucune raison d'effacer ce
+   * qu'il a appris à voler. C'est aussi ce qui garde `bestHoney` comparable
+   * d'une colonie à l'autre — le patrimoine se mesure sur un pré qui ne bouge
+   * pas (cf. `resetColony`, qui ne la touche pas).
+   */
+  fieldSeed: number = FLOWER.seed
 
   // --- Le rayon (améliorations) -------------------------------------------
 
@@ -251,6 +289,32 @@ export class GameState {
   /** Une alvéole visible et payable quelque part : le rayon a quelque chose à dire. */
   get combHasOffer(): boolean {
     return COMB.some((cell) => this.canBuy(cell))
+  }
+
+  /**
+   * Lit une grandeur de la ruche COMME SI `cell` était bâtie, puis remet tout
+   * en place.
+   *
+   * C'est ce qui permet au rayon d'annoncer « Workers 0 > 1 » au survol sans
+   * recopier la moindre formule : on ne PRÉDIT pas l'effet d'une alvéole, on
+   * l'applique pour de bon le temps d'une lecture. Une branche qui change de
+   * formule ne peut donc pas faire mentir l'aperçu — c'est le même code qui
+   * répond avant et après l'achat.
+   *
+   * Ce qui est posé ici est exactement ce que pose `buyCell`, prix mis à part :
+   * l'alvéole et ses abeilles. Rien d'autre n'entre dans les grandeurs lues.
+   */
+  previewCell<T>(cell: CombCell, read: () => T): T {
+    if (this.comb.has(cell.id)) return read()
+    this.comb.add(cell.id)
+    this.grantCellBees(cell)
+    try {
+      return read()
+    } finally {
+      this.comb.delete(cell.id)
+      const kind = CELL_BEE_KIND[cell.kind]
+      if (kind && cell.bees !== undefined) this.bees[kind] -= cell.bees
+    }
   }
 
   /** Achète une alvéole dans SES monnaies. Renvoie faux si elle n'est pas à portée. */
@@ -565,7 +629,7 @@ export class GameState {
     // le lot, la synergie paie l'ouvrière. Une ruche vide ne tire donc rien de
     // la synergie, ce qui est exactement ce que le mot veut dire.
     const slow = 1 + this.levelOf('slowRipening') * UPGRADE_EFFECT.slowHoneyStep
-    const synergy = 1 + this.levelOf('synergy') * UPGRADE_EFFECT.synergyStep
+    const synergy = UPGRADE_EFFECT.synergyMult ** this.levelOf('synergy')
     return (
       Math.round(this.bees.worker * HONEY.honeyPerWorker * ripening * slow * synergy * 100) / 100
     )
@@ -699,6 +763,11 @@ export class GameState {
     this.bestHoney = 0
     this.queens = 0
     this.lineage = new Set<string>()
+    // NOUVEAU PRÉ. C'est ici, et nulle part ailleurs, que la graine est tirée :
+    // un premier lancement change de terrain, un essaimage non (cf.
+    // `resetColony`). Le joueur qui recommence pour de bon retrouve un pré à
+    // apprendre plutôt que celui qu'il connaissait par cœur.
+    this.fieldSeed = newFieldSeed()
   }
 
   /**
@@ -729,6 +798,7 @@ export class GameState {
       bestHoney: this.bestHoney,
       queens: this.queens,
       comb: [...this.comb],
+      fieldSeed: this.fieldSeed,
       route: this.route,
       brewing: this.brewing,
       brewProgress: this.brewProgress,
@@ -756,7 +826,14 @@ export class GameState {
   load(): boolean {
     try {
       const raw = localStorage.getItem(SAVE_KEY)
-      if (!raw) return false
+      // Rien à reprendre : c'est un PREMIER LANCEMENT, et il lui faut son pré.
+      // `reset` tire la graine, mais il n'est appelé que sur un « Restart »
+      // explicite — sans cette ligne, une toute première partie pousserait sur
+      // la graine de `FLOWER`, la même pour tout le monde.
+      if (!raw) {
+        this.fieldSeed = newFieldSeed()
+        return false
+      }
       const data = JSON.parse(raw) as Partial<SaveData>
       if (data.version !== GAME.version) {
         GameState.clear()
@@ -774,6 +851,13 @@ export class GameState {
       this.comb = new Set(saved.filter((id) => COMB.some((c) => c.id === id)))
       this.bestHoney = data.bestHoney ?? 0
       this.queens = data.queens ?? 0
+      // Une graine absente ou aberrante (sauvegarde bricolée) retombe sur celle
+      // de `FLOWER` plutôt que d'être retirée : mieux vaut un pré connu qu'un
+      // pré neuf sous un trajet enregistré pour un autre.
+      this.fieldSeed =
+        typeof data.fieldSeed === 'number' && Number.isFinite(data.fieldSeed)
+          ? data.fieldSeed
+          : FLOWER.seed
       // Le nectar d'un lot en cours a déjà quitté la réserve : on reprend le
       // lot où il en était plutôt que de le perdre (ou de le rembourser).
       this.brewing = data.brewing ?? false

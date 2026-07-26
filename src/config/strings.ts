@@ -58,6 +58,8 @@ export const STR = {
   backToTitle: 'Back to title',
   comb: 'The Comb',
   combOwned: 'Built',
+  /** Titre du bilan de la ruche, dans la colonne de droite du rayon. */
+  combStats: 'The hive',
   /** Achat groupé du rayon, débloqué par la lignée (cf. config/lineage). */
   buyAll: 'Buy all',
 
@@ -279,6 +281,31 @@ export const RESOURCE_STR = {
     name: STR.royalJelly,
     tip: "Royal jelly, rare and precious. A drop settles out of every 50 honey. It is the only thing a colony leaves behind: it buys the Queen's Lineage, and it is spent by starting over.",
   },
+} as const
+
+/**
+ * Libellés du bilan de la ruche (colonne de droite du rayon).
+ *
+ * Courts, et c'est une contrainte de place : la colonne fait quarante colonnes
+ * de texte, libellé ET valeur comprises, et la valeur peut doubler au survol
+ * (« 0 > 1 »). Ce que la ligne ne dit pas, l'infobulle de l'alvéole le dit.
+ */
+export const STAT_STR = {
+  foragers: 'Foragers',
+  workers: 'Workers',
+  warriors: 'Warriors',
+  storage: 'Storage',
+  flight: 'Flight',
+  handling: 'Handling',
+  lap: 'Lap time',
+  deposit: 'Drop-off',
+  bloom: 'Bloom rate',
+  regrowth: 'Regrowth',
+  perfect: 'Perfect',
+  honeyBatch: 'Honey/batch',
+  batchTime: 'Batch time',
+  batchCost: 'Batch cost',
+  jelly: 'Jelly at',
 } as const
 
 // Contenu de la pop-up « about ». Une entrée = une ligne (label + valeur) ;

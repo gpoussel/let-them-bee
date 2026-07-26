@@ -4,6 +4,14 @@
 // partie, même relance, même enregistrement. Sans ça, comparer deux trajets au
 // nectar par seconde n'a aucun sens : on comparerait de la chance.
 //
+// « Même partie » est à prendre au mot : le pré change d'UNE PARTIE À L'AUTRE, et
+// seulement là. Sa graine est tirée au premier lancement puis SAUVEGARDÉE (cf.
+// `SaveData.fieldSeed`) — deux joueurs n'apprennent pas le même terrain, et un
+// même joueur retrouve le sien intact à chaque retour. Un pré figé dans le code
+// faisait du meilleur trajet une solution unique qui se transmettait ; un pré
+// retiré à chaque lancement aurait fait de l'enregistrement une loterie. La
+// graine persistée est le seul point entre les deux.
+//
 // D'où la conception : l'état d'un emplacement est une FONCTION PURE du temps
 // écoulé depuis le début du tour. Rien ne s'accumule, rien ne dérive, et
 // remettre l'horloge à zéro suffit à retrouver le pré au pixel et à la
@@ -130,6 +138,8 @@ export class FlowerField {
    * @param bounds zone où semer, en coordonnées monde
    * @param avoid  zone interdite (la ruche), en coordonnées monde
    * @param tuning réglages décalés par la lignée (cf. {@link FieldTuning})
+   * @param seed   graine de la partie (cf. `SaveData.fieldSeed`) : elle fixe où
+   *               les fleurs poussent ET ce qui y repousse, cycle après cycle
    *
    * Les fleurs supplémentaires de la lignée sont semées EN PLUS des autres, avec
    * le même tirage : les seize premiers emplacements d'un pré à dix-neuf fleurs
@@ -140,8 +150,9 @@ export class FlowerField {
     bounds: { left: number; top: number; right: number; bottom: number },
     avoid: { x: number; y: number; radius: number },
     readonly tuning: FieldTuning = BASE_TUNING,
+    seed: number = FLOWER.seed,
   ) {
-    const rnd = random(FLOWER.seed)
+    const rnd = random(seed)
     for (let i = 0; i < tuning.count; i++) {
       let x = 0
       let y = 0

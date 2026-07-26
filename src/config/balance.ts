@@ -106,7 +106,14 @@ export const FLOWER = {
   perfectMultiplier: 2,
   /** Temps mort entre la disparition d'une fleur et la repousse suivante, en ms. */
   restMs: 2200,
-  /** Graine du calendrier : le pré est identique d'une partie à l'autre. */
+  /**
+   * Graine de SECOURS du calendrier.
+   *
+   * Ce n'est plus la graine du jeu : chaque partie tire la sienne au premier
+   * lancement et la garde en sauvegarde (cf. `SaveData.fieldSeed`). Celle-ci
+   * sert aux appelants qui n'ont pas de partie sous la main — les outils de dev,
+   * un pré de simulation — et de repli si une sauvegarde revient sans graine.
+   */
   seed: 1337,
 } as const
 
@@ -180,7 +187,7 @@ export const HONEY = {
    * 100 nectar dépensés : le miel n'est pas du nectar converti, c'est une
    * ressource d'un autre ordre, et son prix se compte en réserves entières.
    */
-  honeyPerWorker: 0.25,
+  honeyPerWorker: 0.5,
   /** Miel cumulé qui donne une dose de gelée royale (ci-dessous). */
   jellyThreshold: 50,
   jellyPerThreshold: 0.5,
