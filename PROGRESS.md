@@ -30,6 +30,9 @@ Séparation stricte **moteur / skin UI** (une autre version peut réutiliser le 
 - `src/ui/` — `Hud` (chef d'orchestre) et ses cadres `ResourceBar` / `ColonyPanel` /
   `StatsPanel` / `StatusPanel`, `tooltip` (survol), `format`, `pixui` (widgets),
   `prefsPanel`, `cursor`, `text`
+- `src/dev/` — **outils de développement** (`devMenu` : menu de triche Tab, `planRoute` :
+  fabrication d'un trajet correct). Importés uniquement derrière `import.meta.env.DEV`,
+  donc absents du build de production
 - `src/gfx/` — `font` (monogram bitmap), `logo`, `garden` (tileset Tiny Garden),
   `ui9` (nine-slice), `transition` (nid d'abeille), `textures.ts` (placeholders procéduraux,
   encore utilisés pour l'abeille / les fleurs / la ruche)

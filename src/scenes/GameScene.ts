@@ -1,5 +1,5 @@
 import Phaser from 'phaser'
-import { ROUTE } from '../config/balance'
+import { BEE, ROUTE } from '../config/balance'
 import { FEEL } from '../config/feel'
 import { STR } from '../config/strings'
 import { HEX, FONTS, PALETTE, SCREEN } from '../ui/theme'
@@ -8,7 +8,7 @@ import { TEX } from '../gfx/textures'
 import { Bee } from '../entities/Bee'
 import { Flower } from '../entities/Flower'
 import { gameState } from '../systems/GameState'
-import { RoutePlayer, RouteRecorder } from '../systems/Route'
+import { RoutePlayer, RouteRecorder, type Route } from '../systems/Route'
 import { FlowerField } from '../systems/FlowerField'
 import { Hud } from '../ui/Hud'
 import { audio, SND } from '../systems/Audio'
@@ -122,15 +122,7 @@ export class GameScene extends Phaser.Scene {
 
     // Le pré : des emplacements semés une fois pour toutes, dont le calendrier
     // est identique à chaque tour (cf. systems/FlowerField).
-    this.fieldFlowers = new FlowerField(
-      {
-        left: this.field.left,
-        top: this.field.top,
-        right: this.field.right,
-        bottom: this.field.bottom,
-      },
-      { x: this.hive.x, y: this.hive.y, radius: HIVE_CLEARANCE },
-    )
+    this.fieldFlowers = this.makeFlowerField()
     this.flowers = this.fieldFlowers.slots.map(
       (slot) => new Flower(this, slot, FLOWER_SCALE, DEPTH.flowers),
     )
@@ -171,6 +163,46 @@ export class GameScene extends Phaser.Scene {
 
     // Ouverture en nid d'abeille quand on arrive depuis l'écran-titre.
     if ((this.scene.settings.data as SceneData | undefined)?.fromTitle) transitionIn(this)
+  }
+
+  /**
+   * Sème un pré : mêmes bornes, même graine, donc RIGOUREUSEMENT le même
+   * calendrier à chaque appel (cf. systems/FlowerField).
+   */
+  private makeFlowerField(): FlowerField {
+    return new FlowerField(
+      {
+        left: this.field.left,
+        top: this.field.top,
+        right: this.field.right,
+        bottom: this.field.bottom,
+      },
+      { x: this.hive.x, y: this.hive.y, radius: HIVE_CLEARANCE },
+    )
+  }
+
+  /**
+   * Prise des OUTILS DE DÉVELOPPEMENT (cf. src/dev, chargés en dev seulement) :
+   * la géométrie du pré, un pré de simulation jetable, et de quoi imposer un
+   * trajet. Rien du jeu n'appelle ceci.
+   */
+  devContext() {
+    return {
+      hive: { x: this.hive.x, y: this.hive.y },
+      origin: { x: this.field.left, y: this.field.top },
+      reachRise: REACH_RISE,
+      // Même tolérance que la boucle de butinage ci-dessous.
+      forageRadius: this.bee.forageRadius + 10,
+      speed: BEE.maxSpeed * gameState.flightMult,
+      growthMult: gameState.growthMult,
+      newField: () => this.makeFlowerField(),
+      applyRoute: (route: Route) => {
+        // Imposé, pas proposé : un trajet d'outil n'a pas à battre le précédent.
+        gameState.route = route
+        gameState.save()
+        this.enterReplayOrIdle('Dev route')
+      },
+    }
   }
 
   /**

@@ -35,4 +35,8 @@ if (import.meta.env.DEV) {
   const w = window as unknown as { __game: Phaser.Game; __state: typeof gameState }
   w.__game = game
   w.__state = gameState
+  // Menu de triche (Tab) — importé DYNAMIQUEMENT derrière ce garde : en
+  // production, la condition est fausse à la compilation et tout `src/dev`
+  // sort du bundle.
+  void import('./dev/devMenu').then((dev) => dev.installDevMenu(game))
 }
