@@ -231,8 +231,14 @@ export class GameScene extends Phaser.Scene {
 
   // --- Modes -----------------------------------------------------------------
 
-  /** Reprend le trajet enregistré, ou retombe à l'attente s'il n'y en a pas. */
-  private enterReplayOrIdle(message = ''): void {
+  /**
+   * Reprend le trajet enregistré, ou retombe à l'attente s'il n'y en a pas.
+   *
+   * @param verdict bilan du tour qui vient de se clore, le cas échéant. Il est
+   * affiché PAR-DESSUS la consigne permanente et s'efface de lui-même : la
+   * consigne, elle, décrit l'état du pré et doit lui survivre.
+   */
+  private enterReplayOrIdle(verdict = ''): void {
     this.recorder = null
     const route = gameState.route
     if (route) {
@@ -241,14 +247,15 @@ export class GameScene extends Phaser.Scene {
       this.fieldFlowers.reset()
       this.mode = 'replay'
       this.hud.setRecordLabel(STR.recordAgain)
-      this.hud.setMessage(message || STR.controlsHint)
+      this.hud.setMessage(STR.controlsHint)
     } else {
       this.player = null
       this.mode = 'idle'
       this.bee.setTarget(this.hive.x + PERCH.dx, this.hive.y + PERCH.dy)
       this.hud.setRecordLabel(STR.record)
-      this.hud.setMessage(message || STR.noRoute)
+      this.hud.setMessage(STR.noRoute)
     }
+    if (verdict) this.hud.flashMessage(verdict)
   }
 
   /** Bouton du bandeau : lancer un tour, ou abandonner celui en cours. */
@@ -321,7 +328,7 @@ export class GameScene extends Phaser.Scene {
     // disparu du calendrier.
     this.flowers.forEach((f, i) => f.sync(this.fieldFlowers.stateOf(i)))
 
-    this.hud.update()
+    this.hud.update(this.mode === 'recording')
     this.hud.setElapsed(this.mode === 'recording' ? (this.recorder?.durationMs ?? 0) : null)
 
     this.autosaveTimer += delta

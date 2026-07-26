@@ -14,8 +14,18 @@ import { PALETTE } from '../ui/theme'
 /** Largeur et hauteur de la barre de fanaison, en px monde. */
 const BAR_W = 22
 const BAR_H = 4
-/** Hauteur de la barre au-dessus de la base du pied. */
-const BAR_RISE = 70
+/**
+ * Hauteur de la barre au-dessus de la base du pied.
+ *
+ * Un pied fait 16x32 points d'art (cf. gfx/flowers), soit 64 px à l'échelle 2,
+ * et il est posé par sa base — mais la tuile est plus haute que son dessin : les
+ * rangs supérieurs sont transparents, et la corolle ne commence qu'à ~46 px du
+ * sol. Une barre calée sur le HAUT DE LA TUILE (70) flottait donc une vingtaine
+ * de pixels au-dessus des pétales, sans propriétaire évident ; dans un pré
+ * dense, elle se lisait comme la barre de la fleur d'à côté. On la cale sur le
+ * haut du DESSIN, en laissant juste de quoi ne pas mordre les pétales.
+ */
+const BAR_RISE = 50
 
 export class Flower extends Phaser.GameObjects.Sprite {
   private readonly barBg: Phaser.GameObjects.Rectangle
