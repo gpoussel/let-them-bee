@@ -12,7 +12,7 @@
 // d'elle que part le dévoilement.
 
 /** Les quatre branches du rayon. Une branche = un effet, plusieurs alvéoles. */
-export type UpgradeKind = 'storage' | 'foragers' | 'flight' | 'growth'
+export type UpgradeKind = 'storage' | 'foragers' | 'flight' | 'growth' | 'workers'
 
 /** Monnaie d'une alvéole. Le rayon en accepte deux, et le dit par son icône. */
 export type Currency = 'nectar' | 'honey'
@@ -58,6 +58,14 @@ export const COMB: readonly CombCell[] = [
   { id: 'storage-3', kind: 'storage', tier: 3, cost: 200, currency: 'nectar', q: 1, r: -3 },
   { id: 'storage-4', kind: 'storage', tier: 4, cost: 330, currency: 'nectar', q: 2, r: -4 },
 
+  // Ouvrières — au bout de la branche « réserve », et nulle part ailleurs.
+  //
+  // 430, c'est la réserve pleine (450) à vingt nectar près : cette alvéole est
+  // LA dernière chose que le nectar seul peut payer, et elle n'est même visible
+  // qu'une fois les quatre paliers bâtis. Le jeu bascule là : jusqu'ici le
+  // nectar servait à s'améliorer, à partir d'ici il se transforme (cf. `HONEY`).
+  { id: 'workers-1', kind: 'workers', tier: 1, cost: 430, currency: 'nectar', q: 3, r: -5 },
+
   // Butineuses — une seule alvéole, à droite de la ruche.
   { id: 'foragers-1', kind: 'foragers', tier: 1, cost: 80, currency: 'nectar', q: 1, r: 0 },
 
@@ -93,7 +101,8 @@ export const COMB_TOTAL = COMB.length
  *     on agrandit sa ruche avant de s'offrir le luxe.
  *
  * Toute nouvelle alvéole doit tenir sous 450, le plafond une fois la branche
- * « réserve » complète, sinon elle est inachetable pour toujours.
+ * « réserve » complète, sinon elle est inachetable pour toujours. C'est ce qui
+ * cale l'alvéole « ouvrières » à 430 : le maximum qu'on puisse demander.
  */
 export const UPGRADE_EFFECT = {
   storageStep: 100,

@@ -21,6 +21,8 @@ const TOGGLE_KEY = 'Tab'
 const STEPS = [10, 100, 1000] as const
 /** Rafraîchissement des compteurs affichés, en ms. */
 const REFRESH_MS = 200
+/** Vitesses proposées. x1 en tête : c'est le jeu tel qu'il est joué. */
+const SPEEDS = [1, 2, 4] as const
 
 /**
  * Prise exposée par la scène de jeu (cf. `GameScene.devContext`). Elle est
@@ -34,6 +36,9 @@ interface DevContext {
   forageRadius: number
   speed: number
   growthMult: number
+  /** Accélérateur courant du temps de la scène (1 en jeu normal). */
+  timeScale: () => number
+  setTimeScale: (mult: number) => void
   /** Pré de simulation, identique à celui affiché mais indépendant de lui. */
   newField: () => FlowerField
   /** Adopte le trajet sans le comparer au précédent, et repart en relecture. */
@@ -81,6 +86,14 @@ const CSS = `
 .ltb-dev button:hover { background: #3d434d; }
 .ltb-dev button:active { background: #565d69; }
 .ltb-dev-row button { flex: 1 1 0; min-width: 0; }
+.ltb-dev-radio {
+  flex: 1 1 0; display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 6px 0; border: 1px solid #575c66; border-radius: 4px;
+  background: #2f333b; cursor: pointer;
+}
+.ltb-dev-radio:hover { background: #3d434d; }
+.ltb-dev-radio:has(input:checked) { background: #565d69; border-color: #8b93a0; }
+.ltb-dev-radio input { margin: 0; cursor: pointer; }
 .ltb-dev-wide { display: block; width: 100%; margin-top: 8px; padding: 9px 0; }
 .ltb-dev-msg { margin-top: 12px; min-height: 18px; font-size: 13px; color: #9aa0aa; }
 .ltb-dev-hint { margin-top: 10px; font-size: 12px; color: #6f757f; }
@@ -146,6 +159,59 @@ export function installDevMenu(game: Phaser.Game): void {
     panel.append(row)
   }
 
+  // --- Vitesse du jeu ------------------------------------------------------
+  //
+  // Attendre huit secondes un lot de miel ou une repousse de fleur n'apprend
+  // rien : on veut voir la boucle tourner. Des radios et pas des boutons, parce
+  // que c'est un ÉTAT — le menu doit dire à quelle vitesse tourne le jeu, pas
+  // seulement permettre d'en changer.
+
+  const speedRow = document.createElement('div')
+  speedRow.className = 'ltb-dev-row'
+
+  const speedName = document.createElement('span')
+  speedName.className = 'ltb-dev-name'
+  speedName.textContent = 'Vitesse'
+  speedRow.append(speedName)
+
+  const speedInputs = new Map<number, HTMLInputElement>()
+
+  for (const mult of SPEEDS) {
+    const label = document.createElement('label')
+    label.className = 'ltb-dev-radio'
+
+    const input = document.createElement('input')
+    input.type = 'radio'
+    input.name = 'ltb-dev-speed'
+    input.checked = mult === 1
+    input.addEventListener('change', () => {
+      const ctx = devContext(game)
+      if (!ctx) {
+        say('Le potager n’est pas ouvert')
+        syncSpeed()
+        return
+      }
+      ctx.setTimeScale(mult)
+      say(`Vitesse x${mult}`)
+    })
+    speedInputs.set(mult, input)
+
+    label.append(input, document.createTextNode(`x${mult}`))
+    speedRow.append(label)
+  }
+
+  panel.append(speedRow)
+
+  /**
+   * Recale les radios sur la vitesse réellement appliquée. La scène de jeu
+   * repart à x1 quand elle est recréée (retour au titre, rechargement) : sans
+   * ça le menu affirmerait un x4 que plus personne n'applique.
+   */
+  const syncSpeed = (): void => {
+    const current = devContext(game)?.timeScale() ?? 1
+    for (const [mult, input] of speedInputs) input.checked = mult === current
+  }
+
   // --- Actions -------------------------------------------------------------
 
   const action = (label: string, onClick: () => void): void => {
@@ -195,6 +261,7 @@ export function installDevMenu(game: Phaser.Game): void {
       if (!panel.hidden) {
         say('')
         refresh()
+        syncSpeed()
       }
     },
     true,
@@ -202,6 +269,12 @@ export function installDevMenu(game: Phaser.Game): void {
 }
 
 // --- Actions ---------------------------------------------------------------
+
+/** Prise de la scène de jeu, ou `null` si le potager n'est pas ouvert. */
+function devContext(game: Phaser.Game): DevContext | null {
+  const scene = game.scene.getScene('Game') as SceneWithDevContext | null
+  return scene && scene.scene.isActive() ? scene.devContext() : null
+}
 
 /** Ajoute (ou retire) une ressource, en restant dans ses bornes. */
 function grant(id: Resource, amount: number): void {
@@ -220,8 +293,9 @@ function unlockAllUpgrades(): string {
   for (const cell of COMB) {
     if (gameState.comb.has(cell.id)) continue
     gameState.comb.add(cell.id)
-    // Même effet secondaire que l'achat : cette branche ajoute une butineuse.
+    // Mêmes effets secondaires que l'achat : ces deux branches donnent une abeille.
     if (cell.kind === 'foragers') gameState.bees.forager += 1
+    if (cell.kind === 'workers') gameState.bees.worker += 1
     added++
   }
   gameState.save()
@@ -230,10 +304,9 @@ function unlockAllUpgrades(): string {
 
 /** Fabrique un trajet correct et l'impose comme trajet de référence. */
 function programRoute(game: Phaser.Game): string {
-  const scene = game.scene.getScene('Game') as SceneWithDevContext | null
-  if (!scene?.scene.isActive()) return 'Le potager n’est pas ouvert'
+  const ctx = devContext(game)
+  if (!ctx) return 'Le potager n’est pas ouvert'
 
-  const ctx = scene.devContext()
   const route = planRoute({
     field: ctx.newField(),
     hive: ctx.hive,

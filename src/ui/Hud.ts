@@ -102,4 +102,30 @@ export class Hud {
       },
     })
   }
+
+  /**
+   * Même chose, avec l'icône de la ressource gagnée collée au nombre. Le miel et
+   * la gelée royale tombent tous deux au-dessus de la ruche, à quelques secondes
+   * d'écart : sans son pot, « +0.5 » ne dirait pas de quoi il parle.
+   */
+  popGain(x: number, y: number, texture: string, text: string, tint: number, color: string): void {
+    const label = pixelText(this.scene, 0, 0, text, FONTS.sizePop, color).setOrigin(0, 0.5)
+    const icon = this.scene.add.image(0, 0, texture).setTint(tint).setOrigin(0, 0.5)
+    // Icône puis nombre, l'ensemble centré sur x : le groupe reste au-dessus de
+    // la ruche quelle que soit la longueur du nombre.
+    const gap = 4
+    const total = icon.displayWidth + gap + label.width
+    icon.x = -total / 2
+    label.x = icon.x + icon.displayWidth + gap
+
+    const group = this.scene.add.container(x, y, [icon, label]).setDepth(POP_DEPTH)
+    this.scene.tweens.add({
+      targets: group,
+      y: y - HUD.popRise,
+      alpha: 0,
+      duration: HUD.popDuration,
+      ease: 'Cubic.Out',
+      onComplete: () => group.destroy(),
+    })
+  }
 }
