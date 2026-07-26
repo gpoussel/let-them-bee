@@ -159,11 +159,11 @@ définition le même tour de référence.
 
 ## 6. Économie
 
-| Ressource | Origine | Usage | Plafond |
-| --- | --- | --- | --- |
-| **Nectar** | Récolté par la butineuse, versé à la ruche | **Toutes** les alvéoles du rayon, puis la transformation (§6.2) | Oui — `nectarCapacity` |
-| **Miel** | **Transformé** du nectar par les ouvrières, par lots | Monnaie de la colonie : castes, prestige | Non |
-| **Gelée royale** | Une dose tous les `jellyThreshold` de miel gagné | Prestige (§7.4) | Non |
+| Ressource        | Origine                                              | Usage                                                           | Plafond                |
+| ---------------- | ---------------------------------------------------- | --------------------------------------------------------------- | ---------------------- |
+| **Nectar**       | Récolté par la butineuse, versé à la ruche           | **Toutes** les alvéoles du rayon, puis la transformation (§6.2) | Oui — `nectarCapacity` |
+| **Miel**         | **Transformé** du nectar par les ouvrières, par lots | Monnaie de la colonie : castes, prestige                        | Non                    |
+| **Gelée royale** | Une dose tous les `jellyThreshold` de miel gagné     | Prestige (§7.4)                                                 | Non                    |
 
 **Pourquoi le rayon se paie en nectar.** Le miel est l'affaire de la colonie ; le
 rayon est l'affaire de la butineuse. Son prix se lit dans la seule ressource
@@ -232,11 +232,11 @@ clique ici — pas la main du navigateur : une seule main à l'écran.
 
 ### 6.2 Castes (`BEE_KINDS`, l'ordre fait foi)
 
-| Caste | Rôle | Statut |
-| --- | --- | --- |
-| **Forager** | L'abeille que l'on pilote. Ne produit rien seule. | Effectif porté par la branche `foragers` du rayon |
-| **Worker** | Ne quitte jamais la ruche, transforme le nectar en miel (§6.1). | Donnée par la branche `workers` du rayon ; **achat au miel non implémenté** |
-| **Warrior** | Garde l'entrée. | Coquille : aucun effet, non achetable |
+| Caste       | Rôle                                                            | Statut                                                                      |
+| ----------- | --------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| **Forager** | L'abeille que l'on pilote. Ne produit rien seule.               | Effectif porté par la branche `foragers` du rayon                           |
+| **Worker**  | Ne quitte jamais la ruche, transforme le nectar en miel (§6.1). | Donnée par la branche `workers` du rayon ; **achat au miel non implémenté** |
+| **Warrior** | Garde l'entrée.                                                 | Coquille : aucun effet, non achetable                                       |
 
 Le panneau _Colony_ affiche les castes possédées **+ la suivante**
 (`visibleKinds`) : au premier lancement, butineuse et ouvrière ; la guerrière
@@ -263,13 +263,13 @@ s'achète **une fois, et pour de bon**.
 
 ### 7.3 Les cinq branches
 
-| Branche | Effet d'une alvéole | Forme | Intention |
-| --- | --- | --- | --- |
-| **Storage** | + un palier de réserve de nectar | 4 alvéoles, vers le haut | Le déverrouilleur : c'est elle qui rend le reste payable |
-| **Foragers** | +1 butineuse sur le trajet | 1 alvéole, à droite | Le doublement sec — la récompense la plus lisible |
-| **Flight** | Vitesse de vol, **très** légèrement | 4 alvéoles, vers le bas | Assez pour raser un virage, jamais pour voler le tour à votre place |
-| **Growth** | Accélère le calendrier du pré | 4 alvéoles, vers la gauche | Les fleurs reviennent plus tôt : un tour croise plus de corolles ouvertes |
-| **Workers** | Donne la première ouvrière, donc la transformation (§6.1) | 1 alvéole, **au bout de la branche Storage** | Le basculement du jeu : jusque-là le nectar s'améliore, à partir de là il se transforme |
+| Branche      | Effet d'une alvéole                                       | Forme                                        | Intention                                                                               |
+| ------------ | --------------------------------------------------------- | -------------------------------------------- | --------------------------------------------------------------------------------------- |
+| **Storage**  | + un palier de réserve de nectar                          | 4 alvéoles, vers le haut                     | Le déverrouilleur : c'est elle qui rend le reste payable                                |
+| **Foragers** | +1 butineuse sur le trajet                                | 1 alvéole, à droite                          | Le doublement sec — la récompense la plus lisible                                       |
+| **Flight**   | Vitesse de vol, **très** légèrement                       | 4 alvéoles, vers le bas                      | Assez pour raser un virage, jamais pour voler le tour à votre place                     |
+| **Growth**   | Accélère le calendrier du pré                             | 4 alvéoles, vers la gauche                   | Les fleurs reviennent plus tôt : un tour croise plus de corolles ouvertes               |
+| **Workers**  | Donne la première ouvrière, donc la transformation (§6.1) | 1 alvéole, **au bout de la branche Storage** | Le basculement du jeu : jusque-là le nectar s'améliore, à partir de là il se transforme |
 
 **Pourquoi l'alvéole des ouvrières est là et pas ailleurs.** Elle est la plus
 chère du rayon (la réserve pleine à vingt nectar près) et n'est **visible**
@@ -448,15 +448,15 @@ transitions, audio, pause · déploiements Pages + itch.
 
 ## 13. Décisions de design écartées (et pourquoi)
 
-| Écarté                                                                   | Raison                                                                                                                                          |
-| ------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Combo / multiplicateur d'enchaînement** (`systems/Combo.ts`, supprimé) | Récompensait le pilotage en direct, alors que le jeu automatise le pilotage. Le trajet, jugé au nectar/s, joue ce rôle mieux et une seule fois. |
-| **Plafond de sacoche sur la butineuse** | Se traduisait par des corolles survolées sans effet ni explication. Le plafond est passé à la **ruche**, où il est lisible et améliorable. |
-| **Améliorations de vol généreuses** | Rendre le pilotage facile viderait l'enregistrement de son intérêt. Le gain est volontairement minuscule. |
-| **Rayon en pop-up** | Une parenthèse modale disait « le jeu s'arrête ». Le rayon est un cadre de l'écran de jeu, et le pré tourne dessous. |
-| **Production de miel passive** (0,5/s/ouvrière, sans intrant) | Du miel créé à partir de rien : le nectar rapporté ne servait qu'au rayon, et une fois le rayon bâti plus rien ne justifiait de voler. Le miel se transforme désormais depuis la réserve (§6.1). |
-| **Taux continu de gelée royale** (0,05 % du miel gagné) | Une décimale qui bouge n'est pas un événement. Remplacé par une dose franche tous les 50 miel, annoncée au-dessus de la ruche. |
-| **Bilan chiffré en bas de colonne** (production, record, reines) | Trois nombres inertes que personne ne lisait. Remplacés par la porte du Rayon. Le bilan reviendra quand il aura quelque chose à dire. |
+| Écarté                                                                   | Raison                                                                                                                                                                                           |
+| ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Combo / multiplicateur d'enchaînement** (`systems/Combo.ts`, supprimé) | Récompensait le pilotage en direct, alors que le jeu automatise le pilotage. Le trajet, jugé au nectar/s, joue ce rôle mieux et une seule fois.                                                  |
+| **Plafond de sacoche sur la butineuse**                                  | Se traduisait par des corolles survolées sans effet ni explication. Le plafond est passé à la **ruche**, où il est lisible et améliorable.                                                       |
+| **Améliorations de vol généreuses**                                      | Rendre le pilotage facile viderait l'enregistrement de son intérêt. Le gain est volontairement minuscule.                                                                                        |
+| **Rayon en pop-up**                                                      | Une parenthèse modale disait « le jeu s'arrête ». Le rayon est un cadre de l'écran de jeu, et le pré tourne dessous.                                                                             |
+| **Production de miel passive** (0,5/s/ouvrière, sans intrant)            | Du miel créé à partir de rien : le nectar rapporté ne servait qu'au rayon, et une fois le rayon bâti plus rien ne justifiait de voler. Le miel se transforme désormais depuis la réserve (§6.1). |
+| **Taux continu de gelée royale** (0,05 % du miel gagné)                  | Une décimale qui bouge n'est pas un événement. Remplacé par une dose franche tous les 50 miel, annoncée au-dessus de la ruche.                                                                   |
+| **Bilan chiffré en bas de colonne** (production, record, reines)         | Trois nombres inertes que personne ne lisait. Remplacés par la porte du Rayon. Le bilan reviendra quand il aura quelque chose à dire.                                                            |
 
 ---
 
