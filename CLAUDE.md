@@ -26,11 +26,11 @@ Le formatage et le lint ne se discutent pas : ils sont outillés.
   `stylisticTypeChecked`. Zéro warning toléré. Les quelques règles assouplies
   sont commentées dans le fichier — en ajouter une demande une raison écrite au
   même endroit.
-- `npm run check` = format + lint + types. C'est ce que vérifie la CI
+- `pnpm run check` = format + lint + types. C'est ce que vérifie la CI
   (`.github/workflows/ci.yml`), en plus du build.
 - Un hook `pre-commit` (husky + lint-staged) formate et lint les fichiers mis en
   scène : du code non conforme ne part pas en commit.
-- `npm run format` et `npm run lint:fix` corrigent la plupart des écarts.
+- `pnpm run format` et `pnpm run lint:fix` corrigent la plupart des écarts.
 
 ## Palette
 
