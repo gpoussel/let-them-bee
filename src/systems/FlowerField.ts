@@ -18,6 +18,33 @@ import { FLOWER, FLOWER_KINDS } from '../config/balance'
 import { random } from './rng'
 
 /**
+ * Les quatre réglages du pré que la LIGNÉE décale (cf. config/lineage).
+ *
+ * Ils sont passés au pré plutôt que lus dans `FLOWER` : le pré est un système
+ * pur, il sert aussi bien la scène que la simulation des outils de dev, et il ne
+ * doit connaître ni `GameState` ni le prestige. C'est l'appelant qui lui dit
+ * dans quel monde il pousse.
+ */
+export interface FieldTuning {
+  /** Nombre d'emplacements à semer. */
+  count: number
+  /** Temps mort entre la disparition d'une fleur et la repousse suivante, en ms. */
+  restMs: number
+  /** Nectar d'une corolle tout juste ouverte, avant le facteur d'espèce. */
+  baseNectar: number
+  /** Fraîcheur au-delà de laquelle la récolte est « Perfect ». */
+  perfectFreshness: number
+}
+
+/** Le pré tel que `config/balance` le décrit, sans aucun héritage. */
+export const BASE_TUNING: FieldTuning = {
+  count: FLOWER.count,
+  restMs: FLOWER.restMs,
+  baseNectar: FLOWER.baseNectar,
+  perfectFreshness: FLOWER.perfectFreshness,
+}
+
+/**
  * Espèce qui pousse sur l'emplacement `seed` à son `cycle`-ième tour.
  *
  * Une fleur ne repousse JAMAIS à l'identique : le pré se recompose à chaque
@@ -37,9 +64,9 @@ function speciesAt(seed: number, cycle: number): number {
 }
 
 /** Durée d'un cycle complet d'une espèce : pousse + floraison + repos. */
-function periodOf(species: number): number {
+function periodOf(species: number, restMs: number): number {
   const kind = FLOWER_KINDS[species]
-  return kind.grow + kind.life + FLOWER.restMs
+  return kind.grow + kind.life + restMs
 }
 
 /** Un emplacement du pré : une position, fixée une fois pour toutes. */
@@ -70,13 +97,16 @@ export interface SlotState {
  * Ce que rapporterait un emplacement dans cet état. Pur : sert aussi bien à la
  * récolte qu'à l'ANTICIPER (cf. `stateOf(i, at)`).
  */
-export function nectarFrom(state: SlotState): { nectar: number; perfect: boolean } {
+export function nectarFrom(
+  state: SlotState,
+  tuning: FieldTuning = BASE_TUNING,
+): { nectar: number; perfect: boolean } {
   if (state.phase !== 'bloom') return { nectar: 0, perfect: false }
-  const perfect = state.freshness >= FLOWER.perfectFreshness
+  const perfect = state.freshness >= tuning.perfectFreshness
   const kind = FLOWER_KINDS[state.species]
   // Une corolle qui vient de s'ouvrir paie plein tarif ; une fleur sur le
   // point de faner ne rapporte presque plus, mais jamais rien.
-  let nectar = Math.max(1, Math.round(FLOWER.baseNectar * kind.value * state.freshness))
+  let nectar = Math.max(1, Math.round(tuning.baseNectar * kind.value * state.freshness))
   if (perfect) nectar *= FLOWER.perfectMultiplier
   return { nectar, perfect }
 }
@@ -91,13 +121,20 @@ export class FlowerField {
   /**
    * @param bounds zone où semer, en coordonnées monde
    * @param avoid  zone interdite (la ruche), en coordonnées monde
+   * @param tuning réglages décalés par la lignée (cf. {@link FieldTuning})
+   *
+   * Les fleurs supplémentaires de la lignée sont semées EN PLUS des autres, avec
+   * le même tirage : les seize premiers emplacements d'un pré à dix-neuf fleurs
+   * sont rigoureusement ceux d'un pré à seize. Un héritage n'invalide donc pas
+   * le trajet de la colonie précédente, il lui ajoute des corolles.
    */
   constructor(
     bounds: { left: number; top: number; right: number; bottom: number },
     avoid: { x: number; y: number; radius: number },
+    readonly tuning: FieldTuning = BASE_TUNING,
   ) {
     const rnd = random(FLOWER.seed)
-    for (let i = 0; i < FLOWER.count; i++) {
+    for (let i = 0; i < tuning.count; i++) {
       let x = 0
       let y = 0
       // Quelques essais suffisent : si l'emplacement tombe sur la ruche, on le
@@ -111,7 +148,7 @@ export class FlowerField {
       if (!placed) continue
 
       const seed = Math.floor(rnd() * 0x7fffffff)
-      const first = periodOf(speciesAt(seed, 0))
+      const first = periodOf(speciesAt(seed, 0), tuning.restMs)
       this.slots.push({
         x: Math.round(x),
         y: Math.round(y),
@@ -174,7 +211,7 @@ export class FlowerField {
     // Borne de sûreté : une durée de cycle est toujours strictement positive,
     // la boucle ne peut donc pas s'emballer — mais on ne le parie pas.
     for (let guard = 0; guard < 4096; guard++) {
-      const period = periodOf(speciesAt(slot.seed, cycle))
+      const period = periodOf(speciesAt(slot.seed, cycle), this.tuning.restMs)
       if (local < period) break
       local -= period
       cycle++
@@ -191,6 +228,6 @@ export class FlowerField {
     if (state.phase !== 'bloom') return { nectar: 0, perfect: false }
 
     this.harvested[i] = state.cycle
-    return nectarFrom(state)
+    return nectarFrom(state, this.tuning)
   }
 }

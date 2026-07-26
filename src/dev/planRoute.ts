@@ -29,6 +29,8 @@ export interface PlanContext {
   speed: number
   /** Vitesse du calendrier des fleurs (améliorations comprises). */
   growthMult: number
+  /** Couperet du tour, en ms (rallongé par la lignée `longDays`). */
+  maxLapMs?: number
 }
 
 /** Marge gardée sur le couperet des 10 s : un tour rasant se ferait couper. */
@@ -45,7 +47,7 @@ const HOVER_CAP_MS = 1500
 export function planRoute(ctx: PlanContext): Route | null {
   const { field, hive } = ctx
   const stepPx = (ctx.speed * ROUTE.sampleMs) / 1000
-  const budget = ROUTE.maxDurationMs - SAFETY_MS
+  const budget = (ctx.maxLapMs ?? ROUTE.maxDurationMs) - SAFETY_MS
 
   field.reset()
 
@@ -117,7 +119,7 @@ export function planRoute(ctx: PlanContext): Route | null {
       for (let wait = eta; wait + home <= remaining; wait += WAIT_STEP_MS) {
         const state = field.stateOf(i, field.now + wait * ctx.growthMult)
         if (state.phase !== 'bloom') continue
-        const gain = nectarFrom(state).nectar
+        const gain = nectarFrom(state, field.tuning).nectar
         if (gain <= 0) break
         const score = gain / wait
         if (!best || score > best.score) best = { tx, ty, score }

@@ -7,10 +7,10 @@
 
 import type Phaser from 'phaser'
 import type { BitmapText, ComponentFactory } from 'phaser-pixui'
-import { ROUTE } from '../config/balance'
 import { WORLD } from '../config/game'
 import { STR } from '../config/strings'
 import { FONT_KEY } from '../gfx/font'
+import { gameState } from '../systems/GameState'
 import { routeRate, type Route } from '../systems/Route'
 import { Nudge } from './Nudge'
 import { button, ninePanel, OriginX, OriginY, setText, UI9 } from './pixui'
@@ -226,8 +226,10 @@ export class StatusPanel {
 
   /**
    * Compteur du tour en cours, en ms — `null` quand rien n'est enregistré.
-   * Il vire au rouge dans les dernières secondes : le couperet de 10 s tombe
-   * quoi qu'il arrive, mieux vaut être rentré à la ruche avant.
+   * Il vire au rouge dans les dernières secondes : le couperet tombe quoi qu'il
+   * arrive, mieux vaut être rentré à la ruche avant. Le seuil suit la lignée
+   * (cf. `GameState.warnLapMs`) : une seconde de plus au tour, c'est une seconde
+   * de plus avant l'alarme.
    */
   setElapsed(ms: number | null): void {
     if (ms === null) {
@@ -235,7 +237,7 @@ export class StatusPanel {
       return
     }
     setText(this.timer, `${(ms / 1000).toFixed(1)}s`)
-    this.timer.tint = ms >= ROUTE.warnMs ? COLORS.alert : COLORS.cream
+    this.timer.tint = ms >= gameState.warnLapMs ? COLORS.alert : COLORS.cream
   }
 
   /** @param recording un tour est en cours d'enregistrement */

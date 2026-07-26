@@ -151,6 +151,7 @@ export class GameScene extends Phaser.Scene {
         this.toggleRecord()
       },
       onOpenComb: () => this.scene.launch('Comb'),
+      onOpenLineage: () => this.scene.launch('Lineage'),
     })
 
     // Le pointeur ne pilote QUE pendant un enregistrement. La cible est ramenée
@@ -196,6 +197,9 @@ export class GameScene extends Phaser.Scene {
         bottom: this.field.bottom,
       },
       { x: this.hive.x, y: this.hive.y, radius: HIVE_CLEARANCE },
+      // Ce que la lignée a changé au pré : des fleurs en plus, des corolles plus
+      // riches, des repousses plus courtes (cf. `GameState.fieldTuning`).
+      gameState.fieldTuning,
     )
   }
 
@@ -213,6 +217,7 @@ export class GameScene extends Phaser.Scene {
       forageRadius: this.bee.forageRadius + 10,
       speed: BEE.maxSpeed * gameState.flightMult,
       growthMult: gameState.growthMult,
+      maxLapMs: gameState.maxLapMs,
       newField: () => this.makeFlowerField(),
       timeScale: () => this.timeScale,
       /**
@@ -303,7 +308,7 @@ export class GameScene extends Phaser.Scene {
     // Le pré repart de zéro : c'est ce qui rend deux tours comparables. Le
     // joueur retrouve exactement les mêmes fleurs aux mêmes secondes.
     this.fieldFlowers.reset()
-    this.recorder = new RouteRecorder(this.field.left, this.field.top)
+    this.recorder = new RouteRecorder(this.field.left, this.field.top, gameState.maxLapMs)
     this.mode = 'recording'
     this.hud.setRecordLabel(STR.stopRecording)
     this.hud.setMessage(STR.recordingHint)
@@ -345,6 +350,7 @@ export class GameScene extends Phaser.Scene {
     // pousse : accélérer le pré, c'est raccourcir l'attente entre deux corolles.
     this.fieldFlowers.advance(delta * gameState.growthMult)
     this.bee.speedMult = gameState.flightMult
+    this.bee.lerpMult = gameState.beeLerp / BEE.lerp
 
     if (this.fullPopTimer > 0) this.fullPopTimer -= delta
 

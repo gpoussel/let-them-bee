@@ -38,6 +38,12 @@ export class Bee extends Phaser.GameObjects.Sprite {
   nectar = 0
   speedMult = 1
   radiusMult = 1
+  /**
+   * Multiplicateur du lissage (cf. `BEE.lerp`), relevé par la lignée
+   * `steadyWings`. PLUS GRAND = moins d'inertie. Il n'agit que sur le PILOTAGE :
+   * la relecture d'un trajet passe par `moveTo`, qui ne lisse rien.
+   */
+  lerpMult = 1
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, snap(x), snap(y), TEX.bee)
@@ -83,7 +89,7 @@ export class Bee extends Phaser.GameObjects.Sprite {
     const dt = delta / 1000
 
     // Lissage exponentiel vers la cible (indépendant du framerate).
-    const t = 1 - Math.exp(-BEE.lerp * dt)
+    const t = 1 - Math.exp(-BEE.lerp * this.lerpMult * dt)
     const nx = Phaser.Math.Linear(this.fx, this.target.x, t)
     const ny = Phaser.Math.Linear(this.fy, this.target.y, t)
 

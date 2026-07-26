@@ -17,6 +17,8 @@ export interface HudOpts {
   onToggleRecord: () => void
   /** Clic sur la ruche : ouvrir le rayon. C'est une SCÈNE, pas un panel d'ici. */
   onOpenComb: () => void
+  /** Clic sur l'étoile de la barre : ouvrir la lignée (également une scène). */
+  onOpenLineage: () => void
 }
 
 // Interface de la GameScene. Elle occupe l'essentiel de l'écran — le pré où
@@ -47,7 +49,7 @@ export class Hud {
     const left = this.ui.topLeft
     const right = this.ui.topRight
 
-    this.bar = new ResourceBar(left, this.tips)
+    this.bar = new ResourceBar(scene, left, this.tips, { onOpenLineage: o.onOpenLineage })
     this.colony = new ColonyPanel(left, this.tips)
     this.comb = new CombButton(scene, left, { onOpen: o.onOpenComb })
     this.status = new StatusPanel(scene, left, right, { onToggleRecord: o.onToggleRecord })

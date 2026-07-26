@@ -58,6 +58,36 @@ export const STR = {
   backToTitle: 'Back to title',
   comb: 'The Comb',
   combOwned: 'Built',
+  /** Achat groupé du rayon, débloqué par la lignée (cf. config/lineage). */
+  buyAll: 'Buy all',
+
+  // --- La lignée (arbre de prestige, cf. config/lineage) -------------------
+  lineage: "Queen's Lineage",
+  /** Le nœud déjà acquis : il ne s'achète plus, il se transmet. */
+  lineageOwned: 'Bred',
+  /** Jauge de l'arbre. `{n}` acquis sur `{t}` : un compteur nu ne dirait pas de quoi. */
+  lineageCount: '{n} of {t} traits bred',
+  /** Bourse de l'écran : la gelée qu'il reste à poser. `{n}` : la réserve. */
+  lineagePurse: '{n} to spend',
+  /** L'essaimage lui-même : le geste qui remet la colonie à zéro. */
+  swarm: 'Leave the hive',
+  /** Ce que coûte l'essaimage, sous le bouton. Il coûte TOUT sauf le patrimoine. */
+  swarmWarn: 'The hive, the comb and your run are lost. The jelly and the lineage are not.',
+  /** Deuxième clic : l'essaimage ne part pas sur un geste de travers. */
+  swarmConfirm: 'Click again to leave',
+  /** Pourquoi rien ne s'achète tant qu'aucune reine n'est partie. */
+  lineageLocked:
+    'The lineage answers to queens only. Leave the hive once, and the jelly is yours to spend — then and ever after.',
+  /** Consigne de l'arbre ouvert et dépensable. */
+  lineageSpend: 'Pick what your daughters are born knowing.',
+  /** Rien à acheter faute de gelée : d'où elle vient. */
+  lineagePoor: 'A drop of royal jelly settles out of every 50 honey. Come back with one.',
+  /** Nœud trop cher. `{c}` son prix, `{n}` la réserve. */
+  lineageTooDear: 'Costs {c} — you hold {n}.',
+  /** Nœud dont le palier précédent manque. */
+  lineageNeedsTier: 'The tier before it comes first.',
+  /** Relance de la lignée, à côté de la gelée royale (cf. ui/ResourceBar). */
+  lineageOffer: 'The lineage is listening.',
 } as const
 
 /** Nom, effet et infobulle de chaque alvéole (clés : `UpgradeId`). */
@@ -96,6 +126,46 @@ export const UPGRADE_STR: Record<string, { name: string; tip: string }> = {
   },
 }
 
+/** Nom et infobulle de chaque branche de la lignée (clés : `LineageKind`). */
+export const LINEAGE_STR: Record<string, { name: string; tip: string }> = {
+  nectarBlood: {
+    name: 'Nectar Blood',
+    tip: 'Your daughters are born knowing the flight. Every nectar cell of the comb up to this tier stands built on the first morning - the same cells, only sooner.',
+  },
+  honeyBlood: {
+    name: 'Honey Blood',
+    tip: 'Your daughters are born knowing the hive. Every honey cell of the comb up to this tier stands built on the first morning: workers, fanning, thrift, ripening.',
+  },
+  busyWax: {
+    name: 'Busy Wax',
+    tip: 'A Buy all button appears on the comb. Every cell you can afford is built in one gesture - you have laid this wax before.',
+  },
+  wideMeadow: {
+    name: 'Wide Meadow',
+    tip: 'One more flower takes root out there, for good. The same lap meets more corollas without taking a second longer.',
+  },
+  richBloom: {
+    name: 'Rich Bloom',
+    tip: 'Every corolla in the meadow opens a tenth richer. It changes no timing and no route: the same flowers simply pay more.',
+  },
+  quickRoots: {
+    name: 'Quick Roots',
+    tip: 'A wilted flower rests less before it climbs back up. The meadow turns over faster, so a lap finds fewer bare stems.',
+  },
+  steadyWings: {
+    name: 'Steady Wings',
+    tip: 'The bee carries a touch less weight while you fly her. A tight corner comes a little easier - a touch, and no more: the lap is still yours to fly.',
+  },
+  longDays: {
+    name: 'Long Days',
+    tip: 'The lap timer falls one second later. A longer lap wins nothing by itself - it is still judged on nectar per second - but it leaves room for one more flower.',
+  },
+  keenEye: {
+    name: 'Keen Eye',
+    tip: 'You read a corolla a little better. The window for a Perfect harvest, and its double yield, opens slightly wider.',
+  },
+}
+
 /** Nom et infobulle de chaque caste (clés : `BeeKindId`). */
 export const BEE_STR: Record<string, { name: string; tip: string }> = {
   forager: {
@@ -124,7 +194,7 @@ export const RESOURCE_STR = {
   },
   royalJelly: {
     name: STR.royalJelly,
-    tip: 'Royal jelly, rare and precious. A drop settles out of every 50 honey. It feeds the next queen when you start over.',
+    tip: "Royal jelly, rare and precious. A drop settles out of every 50 honey. It is the only thing a colony leaves behind: it buys the Queen's Lineage, and it is spent by starting over.",
   },
 } as const
 

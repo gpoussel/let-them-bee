@@ -5,6 +5,7 @@ import { BootScene } from './scenes/BootScene'
 import { TitleScene } from './scenes/TitleScene'
 import { GameScene } from './scenes/GameScene'
 import { CombScene } from './scenes/CombScene'
+import { LineageScene } from './scenes/LineageScene'
 import { PauseScene } from './scenes/PauseScene'
 import { installCursors } from './ui/cursor'
 import { gameState } from './systems/GameState'
@@ -21,9 +22,9 @@ const game = new Phaser.Game({
     autoCenter: Phaser.Scale.CENTER_BOTH,
   },
   title: GAME.name,
-  // Le rayon passe APRÈS le jeu (il le recouvre) mais AVANT la pause : un menu
-  // de pause doit pouvoir s'ouvrir par-dessus tout, rayon compris.
-  scene: [BootScene, TitleScene, GameScene, CombScene, PauseScene],
+  // Le rayon et la lignée passent APRÈS le jeu (ils le recouvrent) mais AVANT la
+  // pause : un menu de pause doit pouvoir s'ouvrir par-dessus tout.
+  scene: [BootScene, TitleScene, GameScene, CombScene, LineageScene, PauseScene],
 })
 
 game.events.once(Phaser.Core.Events.READY, () => {

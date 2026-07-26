@@ -1,5 +1,6 @@
-import { BEE_KINDS, HIVE, HONEY, type BeeKindId } from '../config/balance'
+import { BEE, BEE_KINDS, FLOWER, HIVE, HONEY, ROUTE, type BeeKindId } from '../config/balance'
 import { GAME } from '../config/game'
+import { LINEAGE, LINEAGE_EFFECT, type LineageKind, type LineageNode } from '../config/lineage'
 import {
   COMB,
   NEIGHBORS,
@@ -7,6 +8,7 @@ import {
   type CombCell,
   type UpgradeKind,
 } from '../config/upgrades'
+import type { FieldTuning } from './FlowerField'
 import { isBetter, isValidRoute, type Route } from './Route'
 
 const SAVE_KEY = GAME.saveKey
@@ -49,6 +51,8 @@ export interface SaveData {
   brewEnabled: boolean
   /** Meilleur trajet de butinage connu (cf. systems/Route). */
   route: Route | null
+  /** Identifiants des nœuds de lignée acquis (cf. config/lineage). PERMANENT. */
+  lineage: string[]
 }
 
 // État global du jeu (monnaies, effectifs, prestige). Persisté en localStorage.
@@ -78,6 +82,8 @@ export class GameState {
    * lot le priverait pour toujours de ce qu'il n'a pas encore acheté.
    */
   brewEnabled = true
+  /** Nœuds de lignée acquis. Ils SURVIVENT à l'essaimage (cf. `swarm`). */
+  lineage = new Set<string>()
 
   // --- Le rayon (améliorations) -------------------------------------------
 
@@ -128,6 +134,11 @@ export class GameState {
    * Le joueur ne voit donc jamais la carte entière, seulement le bord de sa ruche.
    */
   isRevealed(cell: CombCell): boolean {
+    // Une alvéole HÉRITÉE (cf. `applyLineage`) est bâtie sans avoir été
+    // dévoilée : elle se montre parce qu'elle existe, et c'est elle qui dévoile
+    // ses voisines. Sans cette ligne, un héritage en miel disparaîtrait de
+    // l'écran tant que la colonie neuve n'a pas d'ouvrière.
+    if (this.comb.has(cell.id)) return true
     if (cell.currency === 'honey' && !this.canBrew) return false
     for (const [dq, dr] of NEIGHBORS) {
       const q = cell.q + dq
@@ -179,6 +190,183 @@ export class GameState {
     if (cell.bees === undefined) return
     if (cell.kind === 'foragers') this.bees.forager += cell.bees
     if (cell.kind === 'workers') this.bees.worker += cell.bees
+  }
+
+  // --- La lignée (prestige) -----------------------------------------------
+
+  /** Nombre de paliers acquis dans une branche de la lignée = son niveau. */
+  lineageLevel(kind: LineageKind): number {
+    let n = 0
+    for (const node of LINEAGE) if (node.kind === kind && this.lineage.has(node.id)) n++
+    return n
+  }
+
+  ownsLineage(node: LineageNode): boolean {
+    return this.lineage.has(node.id)
+  }
+
+  /** La gelée est-elle dépensable ? Il y faut une reine partie (cf. `swarm`). */
+  get canSpendJelly(): boolean {
+    return this.queens > 0
+  }
+
+  /**
+   * Un nœud est ATTEIGNABLE quand le palier qui le précède dans sa branche est
+   * acquis. Rien n'est caché ici, contrairement au rayon : la lignée est un plan
+   * qu'on regarde entre deux colonies, et on doit pouvoir viser un rang III
+   * depuis sa première reine — sinon on ne saurait pas pourquoi économiser.
+   */
+  lineageReachable(node: LineageNode): boolean {
+    if (node.tier <= 1) return true
+    return this.lineageLevel(node.kind) >= node.tier - 1
+  }
+
+  /**
+   * La lignée n'écoute QUE les reines : rien ne s'y achète tant qu'aucune n'a
+   * quitté la ruche. Après le premier essaimage, elle reste ouverte pour
+   * toujours — la gelée se dépense quand le joueur le décide, pas dans une
+   * fenêtre qui se referme. Un guichet qui n'ouvre qu'après un reset obligerait
+   * à choisir vite, et à choisir mal.
+   */
+  canBuyLineage(node: LineageNode): boolean {
+    return (
+      this.canSpendJelly &&
+      !this.ownsLineage(node) &&
+      this.lineageReachable(node) &&
+      this.royalJelly >= node.cost
+    )
+  }
+
+  buyLineage(node: LineageNode): boolean {
+    if (!this.canBuyLineage(node)) return false
+    this.royalJelly -= node.cost
+    this.lineage.add(node.id)
+    // L'héritage s'applique TOUT DE SUITE : le joueur achète « Nectar Blood »
+    // et voit son rayon se remplir derrière l'arbre. Un héritage versé plus tard
+    // demanderait de se souvenir d'un état intermédiaire, et une sauvegarde
+    // prise entre les deux serait fausse.
+    this.applyLineage()
+    return true
+  }
+
+  /**
+   * Un nœud atteignable et payable quelque part : la lignée a quelque chose à
+   * dire, et le bouton étoile s'allume à côté de la gelée royale.
+   *
+   * La condition ne regarde PAS `canSpendJelly` : avant la première reine, ce
+   * qui est payable est justement l'appel à essaimer.
+   */
+  get lineageHasOffer(): boolean {
+    return LINEAGE.some(
+      (node) =>
+        !this.ownsLineage(node) && this.lineageReachable(node) && this.royalJelly >= node.cost,
+    )
+  }
+
+  /**
+   * Verse au rayon les alvéoles dont la lignée dispense la colonie.
+   *
+   * Ce ne sont pas des alvéoles à part : ce sont EXACTEMENT celles du rayon, du
+   * rang I au rang hérité, versées comme si elles avaient été payées (abeilles
+   * comprises, cf. `grantCellBees`). La colonie ne dépasse donc jamais ce
+   * qu'elle aurait pu bâtir seule — elle y arrive plus tôt.
+   *
+   * Idempotent : appelé à l'essaimage, à chaque achat de nœud et à la relecture
+   * d'une sauvegarde, il ne verse jamais deux fois la même alvéole.
+   */
+  applyLineage(): void {
+    const tiers: Record<string, number> = {
+      nectar: this.lineageLevel('nectarBlood'),
+      honey: this.lineageLevel('honeyBlood'),
+    }
+    for (const cell of COMB) {
+      if (cell.tier > tiers[cell.currency] || this.comb.has(cell.id)) continue
+      this.comb.add(cell.id)
+      this.grantCellBees(cell)
+    }
+  }
+
+  // --- Ce que la lignée change dans le jeu ---------------------------------
+
+  /** Le rayon s'achète-t-il en un geste ? (nœud `busyWax`) */
+  get canBulkBuy(): boolean {
+    return this.lineageLevel('busyWax') > 0
+  }
+
+  /**
+   * Bâtit tout ce que la colonie peut s'offrir, DU MOINS CHER AU PLUS CHER.
+   *
+   * L'ordre n'est pas un détail : payer d'abord le plus cher laisserait des
+   * alvéoles bon marché sur le carreau, alors que l'inverse en bâtit toujours au
+   * moins autant. On recommence tant qu'il reste quelque chose parce qu'une
+   * alvéole bâtie en dévoile d'autres — et parce que le nectar et le miel sont
+   * deux bourses distinctes, qui ne se disputent pas le même achat.
+   *
+   * @returns le nombre d'alvéoles bâties.
+   */
+  buyAllAffordable(): number {
+    if (!this.canBulkBuy) return 0
+    let built = 0
+    // La borne est le rayon entier : chaque tour bâtit exactement une alvéole,
+    // il ne peut donc pas y en avoir plus que d'alvéoles.
+    while (built < COMB.length) {
+      const next = COMB.filter((cell) => this.canBuy(cell)).sort((a, b) => a.cost - b.cost)[0]
+      if (!next) break
+      this.buyCell(next)
+      built++
+    }
+    return built
+  }
+
+  /** Multiplicateur du lissage de l'abeille : plus grand = moins d'inertie. */
+  get beeLerp(): number {
+    return BEE.lerp * LINEAGE_EFFECT.steadyLerpMult ** this.lineageLevel('steadyWings')
+  }
+
+  /** Couperet du tour, rallonges de la lignée comprises. */
+  get maxLapMs(): number {
+    return ROUTE.maxDurationMs + this.lineageLevel('longDays') * LINEAGE_EFFECT.longDayMs
+  }
+
+  /**
+   * Seuil de passage au rouge du compteur. C'est le couperet moins les deux
+   * dernières secondes : allonger le tour déplace l'alarme avec lui, sinon le
+   * compteur virerait au rouge trois secondes avant la fin.
+   */
+  get warnLapMs(): number {
+    return this.maxLapMs - (ROUTE.maxDurationMs - ROUTE.warnMs)
+  }
+
+  /** Réglages du pré que la lignée décale (cf. systems/FlowerField). */
+  get fieldTuning(): FieldTuning {
+    return {
+      count: FLOWER.count + this.lineageLevel('wideMeadow') * LINEAGE_EFFECT.meadowPerTier,
+      restMs: FLOWER.restMs * LINEAGE_EFFECT.quickRootsMult ** this.lineageLevel('quickRoots'),
+      baseNectar:
+        FLOWER.baseNectar * LINEAGE_EFFECT.richBloomMult ** this.lineageLevel('richBloom'),
+      perfectFreshness:
+        FLOWER.perfectFreshness - this.lineageLevel('keenEye') * LINEAGE_EFFECT.keenEyeFreshness,
+    }
+  }
+
+  /**
+   * L'ESSAIMAGE. La reine part avec un essaim, la ruche est laissée derrière.
+   *
+   * Tout ce qu'une colonie a bâti disparaît — nectar, miel, effectifs, rayon,
+   * trajet. Ne traversent que la gelée royale, la lignée déjà acquise, le compte
+   * des reines et le meilleur miel jamais atteint : le patrimoine, pas les murs.
+   *
+   * La colonie neuve reçoit son héritage IMMÉDIATEMENT (`applyLineage`) : le
+   * joueur voit son rayon se bâtir derrière l'arbre à chaque nœud acheté.
+   *
+   * L'essaimage n'ouvre aucune fenêtre de dépense : il fait une reine, et c'est
+   * la reine qui ouvre la lignée — définitivement (cf. `canSpendJelly`).
+   */
+  swarm(): void {
+    this.queens += 1
+    this.resetColony()
+    this.applyLineage()
+    this.save()
   }
 
   // --- Ressources ---------------------------------------------------------
@@ -335,12 +523,25 @@ export class GameState {
    * avec le miel de la précédente.
    */
   reset(): void {
-    this.nectar = 0
-    this.honey = 0
+    this.resetColony()
+    // Le patrimoine part avec le reste : ceci est un PREMIER LANCEMENT, pas un
+    // essaimage (cf. `swarm`, qui appelle `resetColony` seul).
     this.royalJelly = 0
-    this.bees = emptyPopulation()
     this.bestHoney = 0
     this.queens = 0
+    this.lineage = new Set<string>()
+  }
+
+  /**
+   * Efface la COLONIE et rien d'autre : ce qu'une ruche contient et ce qu'elle a
+   * bâti. C'est la part commune au premier lancement et à l'essaimage — la gelée
+   * royale, la lignée, les reines et le meilleur miel n'y figurent pas, et c'est
+   * tout l'objet de cette découpe.
+   */
+  private resetColony(): void {
+    this.nectar = 0
+    this.honey = 0
+    this.bees = emptyPopulation()
     this.route = null
     this.comb = new Set<string>()
     this.brewing = false
@@ -364,6 +565,7 @@ export class GameState {
       brewProgress: this.brewProgress,
       honeySinceJelly: this.honeySinceJelly,
       brewEnabled: this.brewEnabled,
+      lineage: [...this.lineage],
     }
     try {
       localStorage.setItem(SAVE_KEY, JSON.stringify(data))
@@ -414,6 +616,15 @@ export class GameState {
       // répare, là où un trajet à moitié valide se rejoue en silence (cf.
       // `isValidRoute`).
       this.route = isValidRoute(data.route) ? data.route : null
+      // Même garde que pour le rayon : un nœud de lignée dont l'identifiant a
+      // disparu de l'arbre n'est pas ressuscité.
+      const lineage = Array.isArray(data.lineage) ? data.lineage : []
+      this.lineage = new Set(lineage.filter((id) => LINEAGE.some((n) => n.id === id)))
+      // L'héritage est REVERSÉ à la relecture. Il ne change rien dans le cas
+      // normal (les alvéoles sont déjà en sauvegarde), mais il rattrape la
+      // sauvegarde prise juste après un achat de nœud, et il garantit qu'un
+      // rayon relu ne soit jamais en dessous de ce que la lignée promet.
+      this.applyLineage()
       return true
     } catch {
       // Sauvegarde illisible : on a pu en appliquer une partie avant de casser.
