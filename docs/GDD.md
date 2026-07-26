@@ -502,22 +502,28 @@ C'est la seule chose du jeu qui survive à une remise à zéro.
 **Les neuf branches** (paliers, du moins cher au plus cher ; prix en gelée dans
 `src/config/lineage.ts`) :
 
-| Branche       | Paliers  | Effet d'un palier                                                     |
-| ------------- | -------- | --------------------------------------------------------------------- |
-| `nectarBlood` | I·II·III | La colonie naît avec les alvéoles **nectar** du rang correspondant    |
-| `honeyBlood`  | I·II·III | La colonie naît avec les alvéoles **miel** du rang correspondant      |
-| `busyWax`     | 1        | Débloque le bouton **_Buy all_** du Rayon                             |
-| `wideMeadow`  | I·II·III | **+1 fleur** au pré par palier                                        |
-| `richBloom`   | 1        | Nectar de base de toutes les corolles **+10 %** à l'ouverture         |
-| `quickRoots`  | 1        | Repos d'une fleur fanée **raccourci** : elle repousse plus vite       |
-| `steadyWings` | 1        | Inertie de l'abeille **très légèrement** réduite (pilotage seulement) |
-| `longDays`    | I·II     | Couperet du tour **10 s → 11 s → 12 s**                               |
-| `keenEye`     | 1        | Marge du **« Perfect »** un peu élargie (0,85 → 0,80 de fraîcheur)    |
+| Branche       | Paliers  | Effet d'un palier                                                              |
+| ------------- | -------- | ------------------------------------------------------------------------------ |
+| `nectarBlood` | I·II·III | La colonie naît avec les alvéoles **nectar** du rang correspondant             |
+| `honeyBlood`  | I·II·III | La colonie naît avec les alvéoles **miel** du rang correspondant               |
+| `busyWax`     | 1        | Débloque le bouton **_Buy all_** du Rayon                                      |
+| `wideMeadow`  | I·II·III | **+1 fleur** au pré par palier                                                 |
+| `richBloom`   | I·II·III | Nectar de base de toutes les corolles **+10 %** par palier                     |
+| `quickRoots`  | I·II·III | Repos d'une fleur fanée **× 0,7** par palier : elle repousse plus vite         |
+| `steadyWings` | 1        | Inertie de l'abeille **très légèrement** réduite (pilotage seulement)          |
+| `longDays`    | I·II     | Couperet du tour **10 s → 11 s → 12 s**                                        |
+| `keenEye`     | I·II·III | Marge du **« Perfect »** élargie de 0,05 de fraîcheur par palier (0,85 → 0,70) |
 
 `honeyBlood` coûte plus cher que `nectarBlood` à rang égal : ces alvéoles-là se
 paient normalement dans une monnaie sans plafond, et les hériter saute une boucle
 entière (miel → ouvrières → miel). `busyWax` n'a qu'un palier et n'ajoute aucune
 puissance : il retire le clic répété à un joueur qui a déjà bâti ce rayon-là.
+
+`richBloom`, `quickRoots` et `keenEye` montent jusqu'au rang III. Les deux
+premières se lisent sur le pré — une corolle plus grasse, une tige qui repousse —
+et un cran unique s'y noyait dans le bruit d'un tour. `keenEye` y monte aussi,
+mais par pas de 0,05 seulement : au rang III il reste les trois quarts de la
+corolle à ne pas manquer, et la récolte double reste un geste (règle 1).
 
 **Les fleurs de `wideMeadow` sont semées EN PLUS des autres, dans le même
 tirage** : les seize premiers emplacements d'un pré à dix-neuf fleurs sont
