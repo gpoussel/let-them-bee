@@ -10,7 +10,6 @@ import {
   iconButton,
   ninePanel,
   handCursor,
-  slider,
   UI9,
   OriginX,
   OriginY,
@@ -19,7 +18,13 @@ import { TEX } from '../gfx/textures'
 import { createLogo } from '../gfx/logo'
 import { gameState, GameState } from '../systems/GameState'
 import { audio, SND } from '../systems/Audio'
-import { settings } from '../systems/Settings'
+import { buildPrefsPanel } from '../ui/prefsPanel'
+import { transitionIn, transitionOut, TRANSITION_MS } from '../gfx/transition'
+
+/** Données passées à la scène : d'où l'on arrive (pilote la transition). */
+interface SceneData {
+  fromGame?: boolean
+}
 
 const ITCH_RED = 0xfa5c5c // couleur de marque itch.io (survol de son icône)
 
@@ -36,12 +41,6 @@ const ABOUT_H = 268
 const ABOUT_LINE_H = 18
 const ABOUT_LABEL_X = 20
 const ABOUT_VALUE_X = 110
-
-// Dimensions de la pop-up de réglages (deux curseurs de volume + bouton Done).
-const PREFS_W = 340
-const PREFS_H = 200
-const PREFS_PAD_X = 28
-const PREFS_SLIDER_W = PREFS_W - PREFS_PAD_X * 2
 
 // Écran-titre : logo, boutons Butiner / Continuer / Reset, barre de bas d'écran
 // (version, crédit jam, liens itch.io / GitHub / crédits).
@@ -87,7 +86,7 @@ export class TitleScene extends Phaser.Scene {
       color: COLORS.darkBrown,
       x: 0,
       y: buttonY - cy,
-      onClick: () => this.scene.start('Game'),
+      onClick: () => this.startGame(),
     })
 
     if (hasSave) {
@@ -113,7 +112,7 @@ export class TitleScene extends Phaser.Scene {
         y: (scoreY + footerTopY) / 2 - cy,
         onClick: () => {
           GameState.clear()
-          this.scene.restart()
+          this.scene.restart({})
         },
       })
     }
@@ -143,9 +142,21 @@ export class TitleScene extends Phaser.Scene {
       else this.togglePrefs(!prefs.visible)
     })
 
-    // Musique de fond de l'écran-titre (boucle). Le gestionnaire attend le
-    // déblocage audio du navigateur si nécessaire.
-    audio.playMusic(SND.titleTheme)
+    // Musique de fond de l'écran-titre (boucle), en fondu croisé avec la piste
+    // de jeu quand on revient du potager. Le gestionnaire attend le déblocage
+    // audio du navigateur si nécessaire.
+    audio.playMusic(SND.titleTheme, TRANSITION_MS)
+
+    // Ouverture en nid d'abeille quand on arrive depuis le jeu.
+    if (this.scene.settings.data && (this.scene.settings.data as SceneData).fromGame) {
+      transitionIn(this)
+    }
+  }
+
+  /** Passage au jeu : fondu musical puis fermeture de l'écran en hexagones. */
+  private startGame(): void {
+    audio.playMusic(SND.gameTheme, TRANSITION_MS)
+    transitionOut(this, () => this.scene.start('Game', { fromTitle: true }))
   }
 
   /** Icône d'accès aux réglages, en haut à droite de l'écran. */
@@ -311,110 +322,12 @@ export class TitleScene extends Phaser.Scene {
   }
 
   private prefs?: Panel
-  /** Horodatage du dernier aperçu sonore, pour ne pas mitrailler le SFX. */
-  private lastSfxPreview = 0
 
-  /** Pop-up de réglages : volumes musique et SFX (masquée par défaut). */
+  /** Pop-up de réglages (masquée par défaut), partagée avec le menu de pause. */
   private buildPrefs(ui: Ui): Panel {
-    // Voile plein écran : assombrit la scène ET absorbe les clics extérieurs.
-    const overlay = ui.panel({
-      x: 0,
-      y: 0,
-      width: WORLD.width,
-      height: WORLD.height,
-      originX: OriginX.Center,
-      originY: OriginY.Center,
-    })
-    overlay.center.rectangle({
-      width: WORLD.width,
-      height: WORLD.height,
-      fillColor: COLORS.bgDark,
-      fillAlpha: 0.75,
-    })
-    overlay.center.clickable({
-      width: WORLD.width,
-      height: WORLD.height,
-      onClick: () => this.togglePrefs(false),
-    })
-
-    ninePanel(overlay.center, { width: PREFS_W, height: PREFS_H, skin: UI9.insetDark })
-    // Le cadre absorbe les clics pour ne pas refermer la pop-up par mégarde.
-    overlay.center.clickable({ width: PREFS_W, height: PREFS_H, onClick: () => {} })
-
-    const frameX = (WORLD.width - PREFS_W) / 2
-    const frameY = (WORLD.height - PREFS_H) / 2
-    const topLeft = overlay.topLeft
-
-    overlay.center.bitmapText({
-      font: FONT_KEY,
-      size: FONTS.sizeSmall,
-      text: STR.settings,
-      tint: COLORS.honey,
-      x: 0,
-      y: frameY + 26 - WORLD.height / 2,
-      originX: OriginX.Center,
-      originY: OriginY.Center,
-    })
-
-    const rows: Array<{ label: string; value: number; onChange: (v: number) => void }> = [
-      {
-        label: STR.musicVolume,
-        value: settings.musicVolume,
-        onChange: (v) => settings.setMusicVolume(v),
-      },
-      {
-        label: STR.sfxVolume,
-        value: settings.sfxVolume,
-        onChange: (v) => {
-          settings.setSfxVolume(v)
-          this.previewSfx()
-        },
-      },
-    ]
-
-    rows.forEach((row, i) => {
-      const y = frameY + 58 + i * 54
-      topLeft.bitmapText({
-        font: FONT_KEY,
-        size: FONTS.sizeHint,
-        text: row.label,
-        tint: COLORS.cream,
-        x: frameX + PREFS_PAD_X,
-        y,
-        originX: OriginX.Left,
-        originY: OriginY.Top,
-      })
-      slider(topLeft, {
-        x: frameX + PREFS_PAD_X,
-        y: y + 16,
-        width: PREFS_SLIDER_W,
-        value: row.value,
-        onChange: row.onChange,
-      })
-    })
-
-    button(overlay.center, {
-      font: FONT_KEY,
-      size: FONTS.sizeHint,
-      label: STR.done,
-      color: COLORS.darkBrown,
-      padX: 14,
-      padY: 6,
-      x: 0,
-      y: frameY + PREFS_H - 26 - WORLD.height / 2,
-      onClick: () => this.togglePrefs(false),
-    })
-
+    const overlay = buildPrefsPanel(this, ui, { onClose: () => this.togglePrefs(false) })
     this.prefs = overlay
     return overlay
-  }
-
-  /** Aperçu du volume SFX pendant le glissé, limité en fréquence. */
-  private previewSfx(): void {
-    const now = this.time.now
-    if (now - this.lastSfxPreview < 150) return
-    this.lastSfxPreview = now
-    audio.playClick()
   }
 
   private togglePrefs(open: boolean): void {

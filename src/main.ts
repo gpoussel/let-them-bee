@@ -4,6 +4,7 @@ import { COLORS } from './ui/theme'
 import { BootScene } from './scenes/BootScene'
 import { TitleScene } from './scenes/TitleScene'
 import { GameScene } from './scenes/GameScene'
+import { PauseScene } from './scenes/PauseScene'
 import { installCursors } from './ui/cursor'
 
 const game = new Phaser.Game({
@@ -18,7 +19,7 @@ const game = new Phaser.Game({
     autoCenter: Phaser.Scale.CENTER_BOTH,
   },
   title: GAME.name,
-  scene: [BootScene, TitleScene, GameScene],
+  scene: [BootScene, TitleScene, GameScene, PauseScene],
 })
 
 game.events.once(Phaser.Core.Events.READY, () => installCursors(game))

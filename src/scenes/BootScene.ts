@@ -4,6 +4,7 @@ import { bakeFont } from '../gfx/font'
 import { bakeLogo } from '../gfx/logo'
 import { bakeSlider, bakeUi9 } from '../gfx/ui9'
 import { bakeGarden, TILE } from '../gfx/garden'
+import { bakeHex } from '../gfx/transition'
 import { WORLD } from '../config/game'
 import { audio, SND } from '../systems/Audio'
 
@@ -22,6 +23,7 @@ export class BootScene extends Phaser.Scene {
     this.load.image(TEX.objects, 'img/garden-objects.png')
     this.load.audio(SND.click, 'audio/ui-click.ogg')
     this.load.audio(SND.titleTheme, 'audio/title-theme.ogg')
+    this.load.audio(SND.gameTheme, 'audio/game-theme.ogg')
   }
 
   create(): void {
@@ -35,6 +37,7 @@ export class BootScene extends Phaser.Scene {
       rows: Math.ceil(WORLD.height / TILE),
     })
     bakeAll(this)
+    bakeHex(this)
     bakeFont(this)
     audio.install(this)
     this.scene.start('Title')

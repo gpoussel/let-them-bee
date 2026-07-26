@@ -27,6 +27,7 @@ export const STR = {
   musicVolume: 'Music',
   sfxVolume: 'Sound FX',
   done: 'Done',
+  backToTitle: 'Back to title',
 } as const
 
 // Contenu de la pop-up « about ». Une entrée = une ligne (label + valeur) ;

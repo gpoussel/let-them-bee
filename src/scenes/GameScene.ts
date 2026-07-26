@@ -11,6 +11,13 @@ import { Flower } from '../entities/Flower'
 import { Combo } from '../systems/Combo'
 import { gameState } from '../systems/GameState'
 import { Hud } from '../ui/Hud'
+import { audio, SND } from '../systems/Audio'
+import { transitionIn, TRANSITION_MS } from '../gfx/transition'
+
+/** Données passées à la scène : d'où l'on arrive (pilote la transition). */
+interface SceneData {
+  fromTitle?: boolean
+}
 
 // Scène de jeu principale : le mini-jeu de vol + la boucle économique.
 export class GameScene extends Phaser.Scene {
@@ -58,6 +65,19 @@ export class GameScene extends Phaser.Scene {
       .setOrigin(0.5, 0)
       .setAlpha(0.6)
       .setDepth(100)
+
+    // Escape : menu de pause en surimpression, le potager se fige dessous.
+    this.input.keyboard?.on('keydown-ESC', () => {
+      this.scene.pause()
+      this.scene.launch('Pause')
+    })
+
+    // Musique du potager : no-op si la transition depuis le titre l'a déjà
+    // lancée en fondu.
+    audio.playMusic(SND.gameTheme, TRANSITION_MS)
+
+    // Ouverture en nid d'abeille quand on arrive depuis l'écran-titre.
+    if ((this.scene.settings.data as SceneData | undefined)?.fromTitle) transitionIn(this)
   }
 
   private drawField(): void {
