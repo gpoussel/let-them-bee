@@ -3,3 +3,7 @@ dist/
 .vite/
 *.local
 .DS_Store
+
+# Copies de travail que Claude Code pose dans le dépôt : ce sont des clones
+# jetables du dépôt lui-même, pas des fichiers de projet.
+.claude/worktrees/
