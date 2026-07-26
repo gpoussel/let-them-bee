@@ -66,7 +66,10 @@ export const TEX = {
   iconNectarSmall: 'tex-icon-nectar-sm',
   iconHoneySmall: 'tex-icon-honey-sm',
   iconJelly: 'tex-icon-jelly',
+  iconJellySmall: 'tex-icon-jelly-sm',
   iconBee: 'tex-icon-bee',
+  /** Étoile de la lignée : bouton d'ouverture de l'arbre, et marque d'un nœud acquis. */
+  iconStar: 'tex-icon-star',
   /** Flèche de relance (cf. ui/Nudge) : bakée vers le bas, pivotée à l'usage. */
   arrow: 'tex-arrow',
   hexIdle: 'tex-hex-idle',
@@ -340,6 +343,27 @@ const ICON_JELLY = [
   '................',
 ]
 
+// Étoile à cinq branches, pleine. C'est la marque de la lignée : elle s'allume à
+// côté de la gelée royale dès qu'un nœud est payable, et coiffe les nœuds acquis.
+const ICON_STAR = [
+  '................',
+  '.......gg.......',
+  '.......gg.......',
+  '......gggg......',
+  '......gggg......',
+  'ggggggggggggggg.',
+  '.gggggggggggggg.',
+  '..gggggggggggg..',
+  '...gggggggggg...',
+  '....gggggggg....',
+  '....gggggggg....',
+  '...ggg....ggg...',
+  '..ggg......ggg..',
+  '.gg..........gg.',
+  '................',
+  '................',
+]
+
 // Abeille vue de dessus, monochrome : l'effectif de chaque caste la reprend,
 // teintée à la couleur de la caste (cf. BEE_TINT).
 const ICON_BEE = [
@@ -440,6 +464,10 @@ export function bakeAll(scene: Phaser.Scene) {
   bake(scene, TEX.iconNectarSmall, ICON_NECTAR, IP, 1)
   bake(scene, TEX.iconHoneySmall, ICON_HONEY, IP, 1)
   bake(scene, TEX.iconJelly, ICON_JELLY, IP, ICON_PX)
+  // Même goutte au point d'art : le prix d'un nœud de la lignée se lit à côté
+  // d'un chiffre de 12 px (cf. iconNectarSmall).
+  bake(scene, TEX.iconJellySmall, ICON_JELLY, IP, 1)
+  bake(scene, TEX.iconStar, ICON_STAR, IP, ICON_PX)
   bake(scene, TEX.iconBee, ICON_BEE, IP, ICON_PX)
   bake(scene, TEX.iconItch, ICON_ITCH, IP, ICON_PX)
   bake(scene, TEX.iconGithub, ICON_GITHUB, IP, ICON_PX)

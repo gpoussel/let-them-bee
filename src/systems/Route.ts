@@ -66,9 +66,15 @@ export class RouteRecorder {
   /** Temps écoulé depuis le dernier point retenu. */
   private sinceSample = 0
 
+  /**
+   * @param maxDurationMs couperet du tour. Il est passé plutôt que lu dans
+   * `ROUTE` : la lignée le rallonge (cf. `GameState.maxLapMs`), et
+   * l'enregistreur n'a pas à savoir d'où vient la seconde supplémentaire.
+   */
   constructor(
     private readonly originX: number,
     private readonly originY: number,
+    private readonly maxDurationMs: number = ROUTE.maxDurationMs,
   ) {}
 
   get durationMs(): number {
@@ -77,7 +83,7 @@ export class RouteRecorder {
 
   /** L'enregistrement a-t-il dépassé la durée maximale ? */
   get overrun(): boolean {
-    return this.elapsed >= ROUTE.maxDurationMs
+    return this.elapsed >= this.maxDurationMs
   }
 
   /** À appeler chaque frame avec la position courante de l'abeille. */

@@ -69,7 +69,8 @@ grandi, vous reprenez les commandes pour voler un tour meilleur.
 
 - **Macro (minutes)** : la ruche produit seule, le joueur dépense et déverrouille.
 - **Micro (10 s)** : un enregistrement — la seule séquence où le joueur pilote.
-- **Sortie de boucle** : le rayon complet, ou le prestige (§7.4, _non implémenté_).
+- **Sortie de boucle** : le rayon complet, ou l'essaimage (§7.4) — la colonie
+  repart à zéro, la lignée reste.
 
 ### 3.1 Les trois modes du pré (`GameScene`, type `Mode`)
 
@@ -174,7 +175,7 @@ définition le même tour de référence.
 | ---------------- | ---------------------------------------------------- | -------------------------------------------------------------- | ---------------------- |
 | **Nectar**       | Récolté par la butineuse, versé à la ruche           | Le rayon **du vol** (§7.3), puis la transformation (§6.1)      | Oui — `nectarCapacity` |
 | **Miel**         | **Transformé** du nectar par les ouvrières, par lots | Le rayon **de la ruche** (§7.3) : effectifs, réglages des lots | Non                    |
-| **Gelée royale** | Une dose tous les `jellyThreshold` de miel gagné     | Prestige (§7.4)                                                | Non                    |
+| **Gelée royale** | Une dose tous les `jellyThreshold` de miel gagné     | La Lignée de la Reine (§7.4) — elle seule survit à l'essaimage | Non                    |
 
 **Deux moitiés, deux monnaies.** Le rayon du vol (réserve, vol, pousse, première
 butineuse, première ouvrière) se paie en **nectar** : améliorer son vol se paie en
@@ -365,21 +366,99 @@ c'est ce qui lui permet de commencer très bas (3 miel, une douzaine de lots) pu
 de monter sans borne. Le premier achat en miel doit tomber peu après la première
 ouvrière — sinon la ressource qu'on vient de débloquer resterait muette.
 
-### 7.4 Prestige — _conçu, non implémenté_
+### 7.4 La Lignée de la Reine (prestige)
 
-La gelée royale nourrit la reine suivante : reset de la partie contre un arbre de
-reines permanent. `queens` et `royalJelly` sont persistés et accumulés, mais
-aucune interface ne les dépense. **C'est le plus gros manque de design actif.**
+Le rayon est ce qu'une colonie **bâtit** ; la lignée est ce qu'elle **lègue**.
+L'essaimage — _Leave the hive_ — remet la partie à zéro : réserve, miel,
+effectifs, alvéoles, meilleur trajet, tout tombe. Ne traversent que la **gelée
+royale non dépensée**, les **nœuds déjà acquis** et le **compte des reines**.
+C'est la seule chose du jeu qui survive à une remise à zéro.
+
+**Trois règles**, et elles expliquent chaque nœud :
+
+1. **Un nœud ne joue jamais le tour à la place du joueur.** Le pilotage est la
+   seule chose que le joueur maîtrise vraiment. Ce qui touche au vol est donc
+   minuscule : un cran de confort, jamais une dispense (cf. §13).
+2. **Un nœud fait gagner du TEMPS, il ne dépasse pas les plafonds.** Les lignées
+   d'héritage ne donnent rien qu'une colonie ne puisse acheter elle-même : les
+   mêmes alvéoles, **plus tôt**. La deuxième partie ne commence pas au même
+   endroit que la première, mais elle ne monte pas plus haut.
+3. **Un nœud se lit sur le pré ou sur le rayon.** Une fleur de plus se voit, une
+   seconde de plus se voit, un bouton _Buy all_ se voit. Un multiplicateur caché
+   ne serait qu'un chiffre qui monte.
+
+**Les neuf branches** (paliers, du moins cher au plus cher ; prix en gelée dans
+`src/config/lineage.ts`) :
+
+| Branche       | Paliers  | Effet d'un palier                                                     |
+| ------------- | -------- | --------------------------------------------------------------------- |
+| `nectarBlood` | I·II·III | La colonie naît avec les alvéoles **nectar** du rang correspondant    |
+| `honeyBlood`  | I·II·III | La colonie naît avec les alvéoles **miel** du rang correspondant      |
+| `busyWax`     | 1        | Débloque le bouton **_Buy all_** du Rayon                             |
+| `wideMeadow`  | I·II·III | **+1 fleur** au pré par palier                                        |
+| `richBloom`   | 1        | Nectar de base de toutes les corolles **+10 %** à l'ouverture         |
+| `quickRoots`  | 1        | Repos d'une fleur fanée **raccourci** : elle repousse plus vite       |
+| `steadyWings` | 1        | Inertie de l'abeille **très légèrement** réduite (pilotage seulement) |
+| `longDays`    | I·II     | Couperet du tour **10 s → 11 s → 12 s**                               |
+| `keenEye`     | 1        | Marge du **« Perfect »** un peu élargie (0,85 → 0,80 de fraîcheur)    |
+
+`honeyBlood` coûte plus cher que `nectarBlood` à rang égal : ces alvéoles-là se
+paient normalement dans une monnaie sans plafond, et les hériter saute une boucle
+entière (miel → ouvrières → miel). `busyWax` n'a qu'un palier et n'ajoute aucune
+puissance : il retire le clic répété à un joueur qui a déjà bâti ce rayon-là.
+
+**Les fleurs de `wideMeadow` sont semées EN PLUS des autres, dans le même
+tirage** : les seize premiers emplacements d'un pré à dix-neuf fleurs sont
+rigoureusement ceux d'un pré à seize. Un héritage n'invalide pas le terrain appris
+à la colonie précédente, il lui ajoute des corolles.
+
+**Les prix.** La gelée tombe par doses de 0,5 tous les 50 miel : une première
+colonie menée au bout de son rayon en rapporte quelques unités, pas quelques
+dizaines. Un premier essaimage doit pouvoir s'offrir **un** nœud d'entrée, pas
+davantage — sinon l'arbre se solderait d'un coup et n'aurait plus rien à raconter
+au troisième tour. Les rangs suivants doublent à peu près, parce que la colonie
+qui les vise part elle-même d'un héritage : elle produit plus, elle paie plus.
+
+#### Le déroulé : un seul bouton, un guichet qui ne referme plus
+
+L'arbre **s'ouvre à tout moment** par l'étoile de la barre de ressources, et il
+n'a **qu'un seul bouton** : _Leave the hive_, l'essaimage. Rien d'autre ne se
+valide, rien ne s'y termine — on ouvre, on dépense, on ferme.
+
+**Avant la première reine**, l'arbre est un **plan** : les nœuds se survolent et
+se lisent, aucun ne s'achète. Séparer la lecture de la dépense est délibéré : le
+joueur doit pouvoir voir ce qu'il achèterait **avant** de décider de tout perdre.
+Un arbre qui ne s'ouvrirait qu'après le reset demanderait de signer sans voir.
+
+**Après le premier essaimage**, le guichet reste ouvert **pour toujours** : la
+gelée se dépense quand le joueur le décide, et non dans une fenêtre qui se
+referme derrière lui. Une fenêtre obligerait à choisir vite, donc à choisir mal —
+et elle interdirait de mettre de côté pour un nœud de rang III.
+
+L'essaimage part en **deux clics** sur le même bouton : le premier arme et le dit
+(_Click again to leave_), le second détruit la colonie. Le geste coûte une partie
+entière ; il ne se déclenche pas sur un clic de travers. Une pop-up de
+confirmation cacherait justement l'arbre dont elle parle. L'amorce se désamorce
+seule au bout de quelques secondes : une amorce oubliée est un piège tendu au
+clic suivant.
+
+La partie est relancée **sous l'écran**, dès l'essaimage : le pré, le couperet et
+l'inertie sont ceux de la nouvelle lignée quand le joueur y revient.
+
+Un nœud brille dès qu'il est payable et atteignable, **y compris avant
+l'essaimage** : c'est l'invitation, et c'est précisément ce que le joueur est venu
+regarder.
 
 ## 8. Écrans & interface
 
-| Scène   | Contenu                                                                                                                                                                                                                  |
-| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `Boot`  | Chargement, cuisson des textures procédurales et du fond de prairie                                                                                                                                                      |
-| `Title` | Logo animé, jardin en tileset, bouton _New Game_ / _Continue_, bilan de la partie reprise et _Restart_ (voir 10.1), pop-up crédits, panneau de réglages (volumes), pied de page (version, crédit jam, liens itch/GitHub) |
-| `Game`  | Barre de ressources · panneau _Colony_ · bouton du Rayon · le pré · bandeau d'état                                                                                                                                       |
-| `Comb`  | Le Rayon. **Scène** superposée, pas pop-up (voir ci-dessous)                                                                                                                                                             |
-| `Pause` | Échap, en surimpression : reprendre, réglages, retour au titre                                                                                                                                                           |
+| Scène     | Contenu                                                                                                                                                                                                                  |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `Boot`    | Chargement, cuisson des textures procédurales et du fond de prairie                                                                                                                                                      |
+| `Title`   | Logo animé, jardin en tileset, bouton _New Game_ / _Continue_, bilan de la partie reprise et _Restart_ (voir 10.1), pop-up crédits, panneau de réglages (volumes), pied de page (version, crédit jam, liens itch/GitHub) |
+| `Game`    | Barre de ressources · panneau _Colony_ · bouton du Rayon · le pré · bandeau d'état                                                                                                                                       |
+| `Comb`    | Le Rayon. **Scène** superposée, pas pop-up (voir ci-dessous)                                                                                                                                                             |
+| `Lineage` | La Lignée de la Reine (§7.4). Même emprise que le Rayon : neuf nœuds, l'essaimage en bas                                                                                                                                 |
+| `Pause`   | Échap, en surimpression : reprendre, réglages, retour au titre                                                                                                                                                           |
 
 **Découpe de l'écran de jeu** (`SCREEN`, coordonnées absolues) : barre de
 ressources en haut ; à gauche la colonne _Colony_ surmontant le bouton du Rayon ;
@@ -432,17 +511,35 @@ pour le miel, `+0.5` plus haut pour la gelée royale quand elle tombe. Un nombre
 nu ne dirait pas de quelle ressource il parle — et les deux tombent au même
 endroit, à quelques lots d'écart.
 
-**Le bouton du Rayon** bat quand une alvéole est payable.
+**La Lignée** reprend exactement la même emprise et le même bois que le Rayon :
+ce sont les deux arbres du jeu, ils se regardent de la même façon. Elle ne se
+déplace pas au glissé — neuf nœuds tiennent d'un seul écran, et **un plan doit se
+lire d'un coup d'œil**. Chaque nœud porte son palier en chiffre romain et son prix
+sous lui, avec le pot de gelée ; le détail du nœud survolé occupe la ligne du bas,
+suivi de ce qui manque pour l'acheter (le palier d'avant, ou la gelée qu'il
+faudrait). Sans survol, cette ligne dit où en est la lignée : verrouillée, à
+dépenser, ou à attendre.
+
+**La bourse** — la gelée qu'il reste à poser — se lit **en face du compteur de
+nœuds**, sur la même ligne, à l'autre bout de l'écran. La barre du haut porte
+déjà la gelée, mais c'est ici qu'on la dépense : un prix ne se compare pas à un
+nombre qu'il faut aller chercher au-dessus de l'écran.
+
+**Le bouton du Rayon** bat quand une alvéole est payable. **Le bouton _Buy all_**
+du Rayon (nœud `busyWax`) n'apparaît **que** lorsqu'il est acquis _et_ qu'au moins
+une alvéole est payable : il achète les alvéoles accessibles **de la moins chère à
+la plus chère**, sans quoi la première dépense pourrait en priver deux.
 
 **Les relances (« nudges »)** sont les seuls appels à l'action non sollicités du
 jeu, et le jeu n'en montre une que lorsque le joueur n'a **aucun moyen de
 deviner** le geste attendu. Une flèche ambrée qui va et vient — immobile, elle
 se confondrait avec le décor — désigne alors le bouton concerné :
 
-| Relance                                | Condition                                               | S'éteint                   |
-| -------------------------------------- | ------------------------------------------------------- | -------------------------- |
-| Flèche sur _Record a run_              | aucun tour enregistré, et pas d'enregistrement en cours | au premier tour enregistré |
-| Flèche + « New upgrade! » sur le Rayon | une alvéole payable **et aucune encore bâtie**          | au premier achat           |
+| Relance                                | Condition                                               | S'éteint                      |
+| -------------------------------------- | ------------------------------------------------------- | ----------------------------- |
+| Flèche sur _Record a run_              | aucun tour enregistré, et pas d'enregistrement en cours | au premier tour enregistré    |
+| Flèche + « New upgrade! » sur le Rayon | une alvéole payable **et aucune encore bâtie**          | au premier achat              |
+| Flèche sur l'étoile de la Lignée       | un nœud de lignée payable (§7.4)                        | quand plus rien n'est payable |
 
 La relance du Rayon ne vise **que le premier achat** : ensuite le joueur sait où
 est le rayon, et le battement de la ruche reprend seul le relais pour toutes les
@@ -486,7 +583,8 @@ alvéoles.
 localStorage, autosave périodique (`FEEL.autosaveMs`), plus une sauvegarde aux
 moments qui comptent : clôture d'un tour, ouverture du menu de pause, retour au
 titre. Persistés : nectar, miel, gelée royale, effectifs, meilleur miel, reines,
-identifiants d'alvéoles, meilleur trajet, et l'état de la transformation (lot en
+identifiants d'alvéoles, **identifiants des nœuds de lignée acquis** (`lineage`),
+meilleur trajet, et l'état de la transformation (lot en
 cours et son avancement, reliquat de miel vers la gelée royale, interrupteur). Le
 nectar d'un lot engagé a déjà quitté la réserve : on reprend le lot où il en
 était plutôt que de le perdre.
@@ -505,8 +603,8 @@ bougent à chaque itération coûterait plus que ça ne rend : un état ancien r
 jouable de force est pire qu'une partie neuve. Faire monter la version suffit
 donc à invalider les sauvegardes du terrain.
 
-Trois garde-fous à la relecture : une alvéole dont l'identifiant a disparu du
-rayon n'est pas ressuscitée ; un trajet qui ne serait pas rejouable est écarté
+Trois garde-fous à la relecture : une alvéole — ou un nœud de lignée — dont
+l'identifiant a disparu n'est pas ressuscité ; un trajet qui ne serait pas rejouable est écarté
 plutôt que rejoué de travers ; et une sauvegarde illisible (comme une version périmée) remet la partie
 **en mémoire** à zéro — `GameState` est un singleton qui survit aux scènes, un
 état à moitié relu s'y installerait sinon. C'est la même raison qui fait que le
@@ -556,47 +654,55 @@ de jeu et ça ne doit surtout pas y ressembler.
 relecture du trajet · nectar plafonné · le Rayon (8 branches sur deux monnaies,
 dévoilement, achats) · **usage du miel** : effectifs et réglages des lots ·
 transformation du nectar en miel par lots, sa jauge et ses gains
-flottants · gelée royale par paliers · HUD complet et infobulles · relances de
+flottants · gelée royale par paliers · **la Lignée de la Reine** (9 branches, 16
+nœuds, essaimage en deux clics, guichet ouvert pour toujours ensuite, héritage
+appliqué à la colonie neuve) · HUD complet et infobulles · relances de
 première fois (trajet, rayon) et dévoilement du bandeau · écran-titre complet,
 transitions, audio, pause · **sauvegarde active** : autosave, reprise, bilan sur
 l'écran-titre, invalidation par version · déploiements Pages + itch.
 
 **Manquant, par ordre d'impact design**
 
-1. **Prestige** — gelée royale et reines accumulées mais indépensables : le jeu
-   n'a pas de fin.
-2. **Anneau de timing « Perfect »** — la mécanique est le cœur du skill et n'a
+1. **Anneau de timing « Perfect »** — la mécanique est le cœur du skill et n'a
    aucun retour visuel autour de la corolle.
-3. **Le rayon a une fin** — 37 alvéoles et puis plus rien. Tant que le prestige
-   n'existe pas, la dernière alvéole bâtie est la fin de fait du jeu.
-4. **Warrior** — caste sans rôle : aucune menace à garder.
-5. SFX du dépôt à la ruche et du « Perfect » ; sprites abeille/fleur/ruche encore
+2. **La lignée a une fin** — seize nœuds, et l'arbre se solde. Le rayon, lui, a
+   désormais une sortie (§7.4) ; c'est la lignée complète qui est la fin de fait
+   du jeu.
+3. **Warrior** — caste sans rôle : aucune menace à garder.
+4. SFX du dépôt à la ruche et du « Perfect » ; sprites abeille/fleur/ruche encore
    procéduraux ; migration des couleurs historiques vers la palette.
 
 ## 13. Décisions de design écartées (et pourquoi)
 
-| Écarté                                                                   | Raison                                                                                                                                                                                           |
-| ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Combo / multiplicateur d'enchaînement** (`systems/Combo.ts`, supprimé) | Récompensait le pilotage en direct, alors que le jeu automatise le pilotage. Le trajet, jugé au nectar/s, joue ce rôle mieux et une seule fois.                                                  |
-| **Plafond de sacoche sur la butineuse**                                  | Se traduisait par des corolles survolées sans effet ni explication. Le plafond est passé à la **ruche**, où il est lisible et améliorable.                                                       |
-| **Améliorations de vol généreuses**                                      | Rendre le pilotage facile viderait l'enregistrement de son intérêt. Le gain est volontairement minuscule.                                                                                        |
-| **Rayon en pop-up**                                                      | Une parenthèse modale disait « le jeu s'arrête ». Le rayon est un cadre de l'écran de jeu, et le pré tourne dessous.                                                                             |
-| **Production de miel passive** (0,5/s/ouvrière, sans intrant)            | Du miel créé à partir de rien : le nectar rapporté ne servait qu'au rayon, et une fois le rayon bâti plus rien ne justifiait de voler. Le miel se transforme désormais depuis la réserve (§6.1). |
-| **Taux continu de gelée royale** (0,05 % du miel gagné)                  | Une décimale qui bouge n'est pas un événement. Remplacé par une dose franche tous les 50 miel, annoncée au-dessus de la ruche.                                                                   |
-| **Bilan chiffré en bas de colonne** (production, record, reines)         | Trois nombres inertes que personne ne lisait. Remplacés par la porte du Rayon. Le bilan reviendra quand il aura quelque chose à dire.                                                            |
-| **Recrutement des castes dans le panneau _Colony_** (`BEE_KINDS.cost`)   | Un second guichet à côté du Rayon : deux endroits pour une seule décision. Les effectifs se paient au rayon comme tout le reste (§6.2), et le panneau reste un état.                             |
-| **Un rayon en nectar uniquement**                                        | Le miel se produisait sans jamais se dépenser. Le rayon se paie désormais dans deux monnaies (§6, §7.3) — le vol en nectar, la ruche en miel — et la boucle se ferme.                            |
-| **Trois branches en miel tirées vers l'extérieur**                       | Huit bras auraient rendu le rayon illisible sans glissé. Elles remplissent les creux du centre : le rayon s'épaissit au lieu de s'étendre.                                                       |
+| Écarté                                                                      | Raison                                                                                                                                                                                                                             |
+| --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Combo / multiplicateur d'enchaînement** (`systems/Combo.ts`, supprimé)    | Récompensait le pilotage en direct, alors que le jeu automatise le pilotage. Le trajet, jugé au nectar/s, joue ce rôle mieux et une seule fois.                                                                                    |
+| **Plafond de sacoche sur la butineuse**                                     | Se traduisait par des corolles survolées sans effet ni explication. Le plafond est passé à la **ruche**, où il est lisible et améliorable.                                                                                         |
+| **Améliorations de vol généreuses**                                         | Rendre le pilotage facile viderait l'enregistrement de son intérêt. Le gain est volontairement minuscule.                                                                                                                          |
+| **Rayon en pop-up**                                                         | Une parenthèse modale disait « le jeu s'arrête ». Le rayon est un cadre de l'écran de jeu, et le pré tourne dessous.                                                                                                               |
+| **Production de miel passive** (0,5/s/ouvrière, sans intrant)               | Du miel créé à partir de rien : le nectar rapporté ne servait qu'au rayon, et une fois le rayon bâti plus rien ne justifiait de voler. Le miel se transforme désormais depuis la réserve (§6.1).                                   |
+| **Taux continu de gelée royale** (0,05 % du miel gagné)                     | Une décimale qui bouge n'est pas un événement. Remplacé par une dose franche tous les 50 miel, annoncée au-dessus de la ruche.                                                                                                     |
+| **Bilan chiffré en bas de colonne** (production, record, reines)            | Trois nombres inertes que personne ne lisait. Remplacés par la porte du Rayon. Le bilan reviendra quand il aura quelque chose à dire.                                                                                              |
+| **Recrutement des castes dans le panneau _Colony_** (`BEE_KINDS.cost`)      | Un second guichet à côté du Rayon : deux endroits pour une seule décision. Les effectifs se paient au rayon comme tout le reste (§6.2), et le panneau reste un état.                                                               |
+| **Un rayon en nectar uniquement**                                           | Le miel se produisait sans jamais se dépenser. Le rayon se paie désormais dans deux monnaies (§6, §7.3) — le vol en nectar, la ruche en miel — et la boucle se ferme.                                                              |
+| **Trois branches en miel tirées vers l'extérieur**                          | Huit bras auraient rendu le rayon illisible sans glissé. Elles remplissent les creux du centre : le rayon s'épaissit au lieu de s'étendre.                                                                                         |
+| **Arbre de lignée ouvert seulement après l'essaimage**                      | Il aurait fallu signer le reset sans voir ce qu'on achète. L'arbre se lit à tout moment ; seule la dépense attend le départ de la reine (§7.4).                                                                                    |
+| **Fenêtre de dépense ouverte par l'essaimage, fermée par un second bouton** | Deux boutons pour un seul écran, et une fenêtre qui obligeait à tout dépenser sur-le-champ : impossible de mettre de côté pour un rang III. Un seul bouton (l'essaimage), et le guichet reste ouvert dès la première reine (§7.4). |
+| **Essaimage sur un clic sec**                                               | Le geste détruit une partie entière. Il s'arme d'abord (_Click again to leave_) et se désamorce seul ; une pop-up de confirmation aurait caché l'arbre dont elle parle.                                                            |
+| **Bouton d'essaimage masqué quand rien n'est payable**                      | Un bouton qui disparaît laisse croire à un bug. La gelée n'est plus perdue par l'essaimage : partir tôt reste un choix, pas un piège.                                                                                              |
+| **Lignée pannable et zoomable comme le rayon**                              | Un plan doit se lire d'un coup d'œil : neuf branches tiennent sur un écran, et un arbre qu'on explore au glissé se compare mal à lui-même.                                                                                         |
+| **Bouton _Buy all_ affiché grisé tant qu'il n'est pas acquis**              | Une promesse morte dans un coin du rayon. Il n'existe qu'une fois `busyWax` acquis, et se tait quand rien n'est payable (§8).                                                                                                      |
 
 ---
 
 ## Annexe — où sont les chiffres
 
-| Fichier                  | Contenu                                                          |
-| ------------------------ | ---------------------------------------------------------------- |
-| `src/config/balance.ts`  | Abeille, ruche, fleurs et espèces, trajet, économie, castes      |
-| `src/config/upgrades.ts` | Alvéoles du rayon (position, prix, monnaie) et effets par niveau |
-| `src/config/feel.ts`     | Timings d'entités (battement d'ailes, respiration, autosave)     |
-| `src/config/game.ts`     | Version, nom, clé de sauvegarde, dimensions du monde             |
-| `src/config/strings.ts`  | Textes EN, infobulles, `CREDITS`                                 |
-| `src/ui/theme.ts`        | Palette, polices, découpe de l'écran, feedbacks                  |
+| Fichier                  | Contenu                                                            |
+| ------------------------ | ------------------------------------------------------------------ |
+| `src/config/balance.ts`  | Abeille, ruche, fleurs et espèces, trajet, économie, castes        |
+| `src/config/upgrades.ts` | Alvéoles du rayon (position, prix, monnaie) et effets par niveau   |
+| `src/config/lineage.ts`  | Branches de la Lignée de la Reine : paliers, prix en gelée, effets |
+| `src/config/feel.ts`     | Timings d'entités (battement d'ailes, respiration, autosave)       |
+| `src/config/game.ts`     | Version, nom, clé de sauvegarde, dimensions du monde               |
+| `src/config/strings.ts`  | Textes EN, infobulles, `CREDITS`                                   |
+| `src/ui/theme.ts`        | Palette, polices, découpe de l'écran, feedbacks                    |

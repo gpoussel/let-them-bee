@@ -6,7 +6,7 @@ import { HEX_R, TEX } from '../gfx/textures'
 import { audio } from '../systems/Audio'
 import { gameState } from '../systems/GameState'
 import { handCursor, wireHandCursors } from '../ui/cursor'
-import { button, ninePanel, OriginX, OriginY, Ui, UI9 } from '../ui/pixui'
+import { button, ninePanel, OriginX, OriginY, Ui, UI9, type ButtonHandle } from '../ui/pixui'
 import { pixelText } from '../ui/text'
 import { COLORS, FONTS, HEX, PALETTE, PANEL_PAD, PANEL_TINT, SCREEN } from '../ui/theme'
 import { wrap } from '../ui/tooltip'
@@ -124,6 +124,8 @@ export class CombScene extends Phaser.Scene {
   private detail!: Phaser.GameObjects.BitmapText
   private detailName!: Phaser.GameObjects.BitmapText
   private progress!: Phaser.GameObjects.BitmapText
+  /** Achat groupé, légué par la lignée (`busyWax`) : absent sans elle. */
+  private buyAll!: ButtonHandle
   private hovered: CombCell | null = null
   private dragged = false
 
@@ -327,6 +329,23 @@ export class CombScene extends Phaser.Scene {
       y: INNER.y,
     })
 
+    // Achat groupé. Il ne s'affiche QUE si la lignée l'a légué (cf. `refresh`) :
+    // sans elle, bâtir le rayon alvéole par alvéole EST le geste du jeu, et un
+    // bouton grisé en permanence ne ferait qu'annoncer ce qui manque.
+    this.buyAll = button(f, {
+      font: FONT_KEY,
+      size: FONTS.sizeHint,
+      label: STR.buyAll,
+      color: COLORS.darkBrown,
+      padX: 14,
+      padY: 6,
+      x: INNER.x + 200,
+      y: INNER.y + 8,
+      onClick: () => {
+        if (gameState.buyAllAffordable() > 0) this.refresh()
+      },
+    })
+
     button(ui.topRight, {
       font: FONT_KEY,
       size: FONTS.sizeHint,
@@ -511,6 +530,9 @@ export class CombScene extends Phaser.Scene {
     }
 
     this.progress.setText(`${gameState.comb.size}/${COMB_TOTAL}`)
+    // Il disparaît quand il n'a plus rien à bâtir : un bouton qui ne peut rien
+    // faire n'a pas à occuper le haut du rayon.
+    this.buyAll.visible = gameState.canBulkBuy && gameState.combHasOffer
     // Rien sous le rayon quand rien n'est survolé : la ligne ne sert qu'à dire
     // ce que fait l'alvéole visée, et une consigne permanente n'y avait pas sa
     // place.

@@ -4,13 +4,15 @@
 // miel de la ruche, la gelée royale. Rien qu'une icône et un nombre — le nom et
 // le rôle de chaque ressource sont donnés au survol (cf. Tooltips).
 
-import type { BitmapText, ComponentFactory } from 'phaser-pixui'
+import type Phaser from 'phaser'
+import type { BitmapText, Clickable, ComponentFactory, Image } from 'phaser-pixui'
 import { RESOURCE_STR } from '../config/strings'
 import { FONT_KEY } from '../gfx/font'
 import { TEX } from '../gfx/textures'
 import { gameState } from '../systems/GameState'
 import { fmtFine } from './format'
-import { ninePanel, OriginX, OriginY, setText, UI9 } from './pixui'
+import { Nudge } from './Nudge'
+import { handCursor, ninePanel, OriginX, OriginY, setText, UI9 } from './pixui'
 import { COLORS, FONTS, PALETTE, PANEL_TINT, SCREEN } from './theme'
 import type { Tooltips } from './tooltip'
 
@@ -31,10 +33,31 @@ const SLOTS: readonly Slot[] = [
   { key: 'royalJelly', texture: TEX.iconJelly, tint: COLORS.cream },
 ]
 
-export class ResourceBar {
-  private readonly values: BitmapText[] = []
+export interface ResourceBarOpts {
+  /** Clic sur l'étoile : ouvrir la lignée. C'est une SCÈNE, pas un panel d'ici. */
+  onOpenLineage: () => void
+}
 
-  constructor(f: ComponentFactory, tips: Tooltips) {
+/** Période du battement de l'étoile quand un nœud est payable, en ms. */
+const STAR_PULSE_MS = 900
+
+/** Interpolation linéaire entre deux couleurs 0xrrggbb. */
+function mix(a: number, b: number, t: number): number {
+  const ch = (shift: number) =>
+    Math.round(((a >> shift) & 0xff) * (1 - t) + ((b >> shift) & 0xff) * t) & 0xff
+  return (ch(16) << 16) | (ch(8) << 8) | ch(0)
+}
+
+export class ResourceBar {
+  private readonly scene: Phaser.Scene
+  private readonly values: BitmapText[] = []
+  /** Porte de la lignée, à droite de la gelée royale, et la flèche qui la désigne. */
+  private readonly star: Image
+  private readonly starHit: Clickable
+  private readonly nudge: Nudge
+
+  constructor(scene: Phaser.Scene, f: ComponentFactory, tips: Tooltips, o: ResourceBarOpts) {
+    this.scene = scene
     const { x, y, w, h } = SCREEN.bar
     const anchor = { originX: OriginX.Left, originY: OriginY.Top } as const
 
@@ -79,6 +102,31 @@ export class ResourceBar {
         text: label.tip,
       })
     })
+
+    // L'étoile se pose JUSTE APRÈS la dernière réserve, hors de sa zone de
+    // survol : posée dedans, elle serait couverte par l'infobulle de la gelée
+    // royale et ne se laisserait jamais cliquer.
+    const starX = first + SLOTS.length * slotW + 6
+    this.star = f.image({
+      ...anchor,
+      texture: TEX.iconStar,
+      frame: '__BASE',
+      tint: PALETTE.amber,
+      x: starX,
+      y: midY - ICON / 2,
+    })
+    this.starHit = f.clickable({
+      ...anchor,
+      x: starX - 4,
+      y: y + 4,
+      width: ICON + 8,
+      height: h - 8,
+      onClick: () => {
+        o.onOpenLineage()
+      },
+    })
+    handCursor(this.starHit.events)
+    this.nudge = new Nudge(scene, starX + ICON + 20, midY, 'left')
   }
 
   update(): void {
@@ -87,5 +135,23 @@ export class ResourceBar {
     setText(this.values[0], `${Math.floor(gameState.nectar)}/${gameState.nectarCapacity}`)
     setText(this.values[1], fmtFine(gameState.honey))
     setText(this.values[2], fmtFine(gameState.royalJelly))
+
+    // L'étoile n'existe qu'à partir du moment où la lignée a quelque chose à
+    // dire — et elle ne disparaît plus une fois la première reine partie : un
+    // joueur qui a essaimé doit pouvoir relire son arbre à tout moment.
+    const offer = gameState.lineageHasOffer
+    const known = offer || gameState.queens > 0 || gameState.lineage.size > 0
+    this.star.visible = known
+    this.starHit.visible = known
+    if (offer) {
+      const phase = (this.scene.time.now % STAR_PULSE_MS) / STAR_PULSE_MS
+      const t = 0.5 - Math.cos(phase * Math.PI * 2) / 2
+      this.star.tint = mix(COLORS.cream, PALETTE.amber, t)
+    } else {
+      this.star.tint = PALETTE.oliveBrown
+    }
+    // La flèche ne désigne que ce qui est payable ici et maintenant : une étoile
+    // éteinte n'attend rien du joueur.
+    this.nudge.setVisible(offer)
   }
 }
