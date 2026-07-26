@@ -150,6 +150,23 @@ emplacement est un mélange de bits de sa graine (imprévisible à l'œil, total
 reproductible). Sans ça, le terrain s'apprendrait une fois pour toutes et le tour
 optimal se figerait.
 
+**Un sac, pas un tirage.** L'espèce n'est pas retirée à chaque cycle : les huit
+sont **battues puis servies une par une**, et le sac se rebat quand il est vide.
+Un emplacement voit donc chaque espèce **exactement une fois par tranche de huit
+cycles** — jamais quatre orchidées d'affilée, jamais une série de marguerites. Un
+tirage indépendant laissait la **qualité** du pré varier d'une graine à l'autre :
+un joueur malchanceux jouait toute sa partie sur un pré pauvre, et le gain espéré
+d'un bon trajet n'était plus le même pour deux joueurs. Avec le sac, la
+composition du pré est la même pour tout le monde ; la graine ne décide plus que
+**où** et **quand** — le hasard est dans la géographie, pas dans le butin.
+
+**Les pousses sont courtes au regard du tour.** Un trajet dure cinq à huit
+secondes ; un bourgeon qui mettait dix secondes à s'ouvrir n'était jamais qu'un
+décor — le joueur ne le voyait pas fleurir et ne pouvait donc pas viser son
+ouverture. Toutes tiennent sous quatre secondes (1,4 s pour la marguerite, 4 s
+pour l'orchidée), et un cycle complet fait huit à neuf secondes : l'écart entre
+espèces subsiste, c'est lui qui fait le choix, pas la durée absolue.
+
 ## 5. Le trajet enregistré
 
 ### 5.1 Format

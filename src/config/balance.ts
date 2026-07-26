@@ -105,7 +105,7 @@ export const FLOWER = {
   perfectFreshness: 0.85,
   perfectMultiplier: 2,
   /** Temps mort entre la disparition d'une fleur et la repousse suivante, en ms. */
-  restMs: 2200,
+  restMs: 1600,
   /**
    * Graine de SECOURS du calendrier.
    *
@@ -122,6 +122,12 @@ export const FLOWER = {
  * rythme : les plus voyantes sont les plus lentes à venir et les plus brèves,
  * mais elles paient beaucoup mieux. La couleur de la fleur annonce donc son
  * comportement — le joueur apprend le pré à l'œil.
+ *
+ * Les pousses sont COURTES au regard du tour : un trajet dure cinq à huit
+ * secondes, et un bourgeon qui met dix secondes à s'ouvrir n'est jamais qu'un
+ * décor — le joueur ne le voit pas fleurir, il ne peut donc pas viser son
+ * ouverture. Toutes tiennent maintenant sous quatre secondes, et l'écart entre
+ * espèces reste : c'est lui qui fait le choix, pas la durée absolue.
  */
 export interface FlowerKind {
   /** Durée de pousse, en ms (bouton fermé). */
@@ -133,14 +139,14 @@ export interface FlowerKind {
 }
 
 export const FLOWER_KINDS: readonly FlowerKind[] = [
-  { grow: 9000, life: 4000, value: 3 }, // 0 rose
-  { grow: 7000, life: 3500, value: 2.5 }, // 1 strélitzia
-  { grow: 3500, life: 6000, value: 1 }, // 2 marguerite
-  { grow: 6000, life: 5000, value: 2 }, // 3 tournesol
-  { grow: 5000, life: 4500, value: 1.5 }, // 4 hortensia
-  { grow: 7500, life: 3500, value: 2.5 }, // 5 jacinthe
-  { grow: 10000, life: 3000, value: 3.5 }, // 6 orchidée
-  { grow: 4000, life: 5500, value: 1.25 }, // 7 tulipe
+  { grow: 3600, life: 4000, value: 3 }, // 0 rose
+  { grow: 2800, life: 3500, value: 2.5 }, // 1 strélitzia
+  { grow: 1400, life: 6000, value: 1 }, // 2 marguerite
+  { grow: 2400, life: 5000, value: 2 }, // 3 tournesol
+  { grow: 2000, life: 4500, value: 1.5 }, // 4 hortensia
+  { grow: 3000, life: 3500, value: 2.5 }, // 5 jacinthe
+  { grow: 4000, life: 3000, value: 3.5 }, // 6 orchidée
+  { grow: 1600, life: 5500, value: 1.25 }, // 7 tulipe
 ] as const
 
 // Trajet enregistré : l'itération unitaire du jeu. Le joueur pilote la butineuse
