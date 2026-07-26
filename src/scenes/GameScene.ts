@@ -49,10 +49,16 @@ const FLOWER_SCALE = 2
  * rendu à cheval.
  */
 const BEE_SCALE = 0.5
-/** Distance de dépôt à la ruche, en px. */
-const HIVE_RADIUS = 46
-/** Rayon autour de la ruche où aucune fleur ne pousse. */
-const HIVE_CLEARANCE = 80
+/**
+ * Rayon autour de la ruche où aucune fleur ne pousse. Il tient LA CLAIRIÈRE : la
+ * ruche est au centre du pré, et sans elle les corolles lui pousseraient dessus.
+ *
+ * Il est plus grand que le périmètre de dépôt le plus large (46 + 20×2 = 86 px,
+ * cf. `HIVE.depositRadius`) : une fleur à l'intérieur de la ligne de garde serait
+ * butinée au moment même où le tour se clôt, et le joueur ne saurait pas si elle
+ * a compté.
+ */
+const HIVE_CLEARANCE = 92
 /**
  * Hauteur de la corolle au-dessus de la base du pied : c'est LÀ qu'on butine,
  * pas au ras du sol (les fleurs sont posées par leur tige).
@@ -69,6 +75,23 @@ const FULL_POP_MS = 900
  * s'entend en entier.
  */
 const FORAGE_REPLAY_GAIN = 0.35
+
+/**
+ * LE PÉRIMÈTRE DE GARDE, dessiné. C'est la zone de dépôt (`depositRadius`) rendue
+ * visible : un cercle pointillé ambré autour de la ruche, qui grandit avec les
+ * guerrières. Il ne clignote pas — ce n'est pas une alarme, c'est une CIBLE : le
+ * joueur doit pouvoir viser le liseré à l'enregistrement pour clore son tour au
+ * plus tôt. Une hitbox qui décide de la note d'un tour ne peut pas rester
+ * invisible (règle 5 du GDD : rien d'escamoté).
+ */
+const GUARD_RING = {
+  /** Longueur d'un tiret, en px d'arc. */
+  dashPx: 7,
+  /** Longueur d'un blanc, en px d'arc. */
+  gapPx: 7,
+  thickness: 1,
+  alpha: 0.55,
+} as const
 
 /**
  * Mode du pré :
@@ -92,6 +115,9 @@ export class GameScene extends Phaser.Scene {
   private hive!: Phaser.GameObjects.Sprite
   private hud!: Hud
   private honeyGauge!: HoneyGauge
+  /** Le liseré du périmètre de garde, et le rayon auquel il a été tracé. */
+  private guardRing!: Phaser.GameObjects.Graphics
+  private guardRingRadius = -1
   private autosaveTimer = 0
   /** Zone de vol : le pré, moins la marge du cadre. */
   private field!: Phaser.Geom.Rectangle
@@ -127,9 +153,17 @@ export class GameScene extends Phaser.Scene {
     )
     this.drawFieldFrame()
 
-    // Ruche (départ et arrivée du trajet), dans le coin bas-droit du pré.
-    this.hive = this.add.sprite(x + w - 60, y + h - 64, TEX.hive).setDepth(DEPTH.flowers)
-    pixelText(this, this.hive.x, this.hive.y + 34, STR.hive, FONTS.sizeHint, HEX.cream)
+    // Ruche (départ et arrivée du trajet), AU CENTRE du pré. Elle y était dans un
+    // coin : un tour y commençait et finissait toujours par le même long transit,
+    // et la moitié du pré valait mécaniquement moins que l'autre. Au centre, le
+    // vol de retour est court dans toutes les directions — c'est ce qui rend le
+    // périmètre de garde (§7.6) lisible, et c'est le pré entier qui devient jouable.
+    this.hive = this.add
+      .sprite(this.field.centerX, this.field.centerY, TEX.hive)
+      .setDepth(DEPTH.flowers)
+    // Le libellé se pose SOUS la base du panier, pas sous le cadre du sprite :
+    // la texture a du vide en bas, et le mot flottait loin de ce qu'il nomme.
+    pixelText(this, this.hive.x, this.hive.y + 22, STR.hive, FONTS.sizeHint, HEX.cream)
       .setOrigin(0.5, 0)
       .setDepth(DEPTH.flowers)
 
@@ -146,6 +180,11 @@ export class GameScene extends Phaser.Scene {
         },
       })
     }
+
+    // Le périmètre de garde, sous les fleurs : il appartient au décor du pré, pas
+    // à l'interface. Redessiné à la volée dès qu'une guerrière l'élargit.
+    this.guardRing = this.add.graphics().setDepth(DEPTH.border)
+    this.drawGuardRing()
 
     // Le pré : des emplacements semés une fois pour toutes, dont le calendrier
     // est identique à chaque tour (cf. systems/FlowerField).
@@ -231,6 +270,7 @@ export class GameScene extends Phaser.Scene {
       forageRadius: this.bee.forageRadius + 10,
       speed: BEE.maxSpeed * gameState.flightMult,
       growthMult: gameState.growthMult,
+      depositRadius: gameState.depositRadius,
       maxLapMs: gameState.maxLapMs,
       newField: () => this.makeFlowerField(),
       timeScale: () => this.timeScale,
@@ -276,6 +316,34 @@ export class GameScene extends Phaser.Scene {
     for (const [cx, cy, sx, sy] of corners) {
       g.lineBetween(cx, cy, cx + sx * CORNER, cy)
       g.lineBetween(cx, cy, cx, cy + sy * CORNER)
+    }
+  }
+
+  /**
+   * Trace le périmètre de garde s'il a bougé.
+   *
+   * Le pointillé est calculé en LONGUEUR D'ARC et non en nombre de tirets fixe :
+   * un cercle qui grandit garde ainsi le même grain, au lieu d'étirer ses tirets
+   * à mesure que les guerrières arrivent.
+   */
+  private drawGuardRing(): void {
+    const radius = gameState.depositRadius
+    if (radius === this.guardRingRadius) return
+    this.guardRingRadius = radius
+
+    const g = this.guardRing.clear()
+    g.lineStyle(GUARD_RING.thickness, PALETTE.amber, GUARD_RING.alpha)
+    const period = GUARD_RING.dashPx + GUARD_RING.gapPx
+    // Un nombre ENTIER de motifs : sans ça, le dernier tiret chevaucherait le
+    // premier et le cercle porterait une couture visible.
+    const dashes = Math.max(8, Math.round((2 * Math.PI * radius) / period))
+    const stepRad = (Math.PI * 2) / dashes
+    const dashRad = stepRad * (GUARD_RING.dashPx / period)
+    for (let i = 0; i < dashes; i++) {
+      const from = i * stepRad
+      g.beginPath()
+      g.arc(this.hive.x, this.hive.y, radius, from, from + dashRad, false)
+      g.strokePath()
     }
   }
 
@@ -382,8 +450,12 @@ export class GameScene extends Phaser.Scene {
         if (d > this.bee.forageRadius + 10) return
         this.tryForage(i, slot.x, slot.y)
       })
+      // Le tour se clôt au PÉRIMÈTRE, pas au centre : les guerrières
+      // interceptent le nectar dès que la butineuse franchit leur ligne (cf.
+      // `GameState.depositRadius`). Le périmètre est une constante pendant tout
+      // le tour — enregistrement comme relecture —, le déterminisme tient.
       const dHive = Phaser.Math.Distance.Between(this.bee.x, this.bee.y, this.hive.x, this.hive.y)
-      if (dHive < HIVE_RADIUS && this.bee.nectar > 0) this.deposit()
+      if (dHive < gameState.depositRadius && this.bee.nectar > 0) this.deposit()
     }
 
     // Affichage du pré, en dernier : les fleurs butinées cette frame ont déjà
@@ -393,6 +465,9 @@ export class GameScene extends Phaser.Scene {
     })
 
     this.honeyGauge.update()
+    // Le périmètre suit l'effectif de guerrières : une alvéole achetée au rayon
+    // pendant que le pré tourne élargit le liseré sans attendre un rechargement.
+    this.drawGuardRing()
     this.hud.update(this.mode === 'recording')
     this.hud.setElapsed(this.mode === 'recording' ? (this.recorder?.durationMs ?? 0) : null)
 

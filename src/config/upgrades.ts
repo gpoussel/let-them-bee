@@ -11,14 +11,14 @@
 // L'alvéole (0, 0) est la ruche elle-même : elle ne s'achète pas, et c'est
 // d'elle que part le dévoilement.
 //
-// LE RAYON FAIT 156 ALVÉOLES, et il n'est pas ÉCRIT : il est ENGENDRÉ. Trois
+// LE RAYON FAIT 166 ALVÉOLES, et il n'est pas ÉCRIT : il est ENGENDRÉ. Trois
 // populations s'y côtoient, et la façon dont chacune existe dit son rôle :
 //
 //   - le DÉBUT DE PARTIE (réserve, butineuses, vol, pousse, ouvrières,
 //     ventilation, économie, maturation) reste posé à la main : c'est la
 //     quarantaine d'alvéoles dont l'ordre de dévoilement porte l'apprentissage
 //     du jeu, et un ordre appris ne se recalcule pas ;
-//   - le GRIND (100 alvéoles, huit branches d'au plus QUINZE crans) sort de
+//   - le GRIND (110 alvéoles, neuf branches d'au plus QUINZE crans) sort de
 //     boucles : un « Aérodynamisme XIII » écrit à la main serait une ligne de
 //     copie, pas une décision. Ce qui se décide, c'est la COURBE — elle tient en
 //     trois nombres ;
@@ -37,7 +37,7 @@ import { getNectarCapacity, type BeeKindId } from './balance'
  * Les branches du rayon. Une branche = un effet, plusieurs alvéoles.
  *
  * Les huit premières sont celles du début de partie (posées à la main) ; les
- * huit suivantes sont les longues branches engendrées ; les dernières sont les
+ * neuf suivantes sont les longues branches engendrées ; les dernières sont les
  * alvéoles uniques — jalons et pièges — qui n'ont qu'un rang.
  */
 export type UpgradeKind =
@@ -59,7 +59,9 @@ export type UpgradeKind =
   | 'synergy'
   | 'queenMother'
   | 'workerQueen'
+  | 'patrols'
   // Les jalons : ils changent une règle (cf. `MILESTONES`).
+  | 'honorGuard'
   | 'frenzyDance'
   | 'mutantCorollas'
   | 'royalDigestion'
@@ -68,7 +70,6 @@ export type UpgradeKind =
   | 'floralClock'
   // Les pièges et cosmétiques (cf. `TRAPS`).
   | 'heavyPollen'
-  | 'honorGuard'
   | 'shinyWax'
   | 'dullBuzz'
 
@@ -224,6 +225,7 @@ export const CELL_BEE_KIND: Partial<Record<UpgradeKind, BeeKindId>> = {
   foragers: 'forager',
   workers: 'worker',
   workerQueen: 'worker',
+  patrols: 'warrior',
   honorGuard: 'warrior',
 }
 
@@ -414,7 +416,7 @@ function storageCells(): CombCell[] {
 //     distance à la ruche  +  ANG_WEIGHT × écart d'angle avec le cap de la branche
 //
 // Le premier terme pousse vers l'extérieur : une branche ne revient jamais se
-// blottir contre le centre. Le second lui tient son cap : les huit branches
+// blottir contre le centre. Le second lui tient son cap : les neuf branches
 // partent en éventail au lieu de se disputer le même quadrant. Comme le second
 // terme est un COÛT et non une interdiction, une branche coincée contourne
 // l'obstacle au lieu de mourir — c'est ce qui fait la spirale : arrivée au
@@ -521,7 +523,7 @@ function grow(
   if (best) return best
 
   // BRANCHE MURÉE. Le plan hexagonal est infini, mais le bord d'une branche, lui,
-  // ne l'est pas : à huit branches qui poussent en alternance, il arrive qu'une
+  // ne l'est pas : à neuf branches qui poussent en alternance, il arrive qu'une
   // file mince se retrouve enfermée par ses voisines, chacune de ses cases ayant
   // ses six voisines prises. Elle ne meurt pas pour autant — elle REPART DE
   // L'AUTRE CÔTÉ DU MUR : la case libre du rayon la plus proche de sa pointe.
@@ -543,7 +545,7 @@ function grow(
 
 // --- LE GRIND ---------------------------------------------------------------
 //
-// Huit branches, 100 alvéoles, quatre THÈMES. Aucune ne déverrouille quoi que
+// Neuf branches, 110 alvéoles, cinq THÈMES. Aucune ne déverrouille quoi que
 // ce soit : elles font monter un chiffre de 0,5 % à 5 % à la fois. C'est le
 // corps du jeu de long terme — ce qu'on achète en regardant ailleurs.
 //
@@ -561,7 +563,7 @@ function grow(
  *
  * Quinze pour les branches qui règlent (elles ont besoin d'amplitude), dix pour
  * celles qui donnent des abeilles ou du temps de vol (chaque cran y pèse déjà
- * lourd). Le rayon fait donc 156 alvéoles et non 250 : c'est moins de cire, et
+ * lourd). Le rayon fait donc 166 alvéoles et non 250 : c'est moins de cire, et
  * chaque alvéole y vaut davantage.
  */
 const GRIND_TIERS = {
@@ -573,6 +575,7 @@ const GRIND_TIERS = {
   synergy: 15,
   queenMother: 10,
   workerQueen: 10,
+  patrols: 10,
 } as const
 
 /**
@@ -691,6 +694,21 @@ const GRIND: readonly BranchSpec[] = [
     cost: (n) => ({ honey: honeyCurve(400, 2, n) }),
     bees: 1,
   },
+
+  // DÉFENSE SPATIALE — la seule branche du rayon qui joue sur le DIVISEUR. Une
+  // guerrière de plus, c'est deux pixels de périmètre de dépôt de plus (cf.
+  // `guardRadiusPx`) : le tour se clôt un peu plus tôt, à butin égal. Rien n'est
+  // rétroactif — le trajet déjà enregistré a été volé jusqu'à l'ancien périmètre
+  // et garde sa note. Pour toucher le raccourci, il faut REPRENDRE LA SOURIS.
+  // C'est ce qui en fait une branche de fin de partie et non un compteur de plus.
+  {
+    kind: 'patrols',
+    tiers: GRIND_TIERS.patrols,
+    anchor: 'foragers-3',
+    heading: 40,
+    cost: (n) => ({ honey: honeyCurve(500, 1.8, n) }),
+    bees: 1,
+  },
 ] as const
 
 // --- LES JALONS ET LES PIÈGES -----------------------------------------------
@@ -748,6 +766,12 @@ const MILESTONES: readonly SoloSpec[] = [
   // change aucun chiffre, il change ce que le joueur VOIT — et c'est ce qui fait
   // les meilleurs trajets. Payé au nectar, juste sous le plafond ultime.
   { kind: 'floralClock', against: 'slowRipening', cost: { nectar: NECTAR_CEILING } },
+  // Le bout des Patrouilles : dix guerrières d'un coup, donc VINGT PIXELS de
+  // périmètre en une alvéole. C'était un piège — une figuration payante — et
+  // c'est devenu le jalon qui rend le « touch-and-go » possible : la butineuse
+  // n'a plus besoin de rentrer, elle FRÔLE. Il ne se lit que la souris à la
+  // main : acheté puis oublié, il ne change pas un chiffre du trajet en cours.
+  { kind: 'honorGuard', against: 'patrols', cost: { honey: 40_000 }, bees: 10 },
 ] as const
 
 const TRAPS: readonly SoloSpec[] = [
@@ -755,10 +779,6 @@ const TRAPS: readonly SoloSpec[] = [
   // toujours. Excellent au premier tour, risible au centième. Le prix est calé
   // pour être tentant au moment où on le croise — c'est tout l'objet.
   { kind: 'heavyPollen', against: 'foragers', cost: { honey: 2_500 } },
-  // Dix guerrières. Elles montent la garde contre des pillards qui n'existent
-  // pas, et le jeu ne le cache pas : elles apparaissent dans les effectifs, et
-  // c'est la seule chose qu'elles font.
-  { kind: 'honorGuard', against: 'workers', cost: { honey: 40_000 }, bees: 10 },
   // Des paillettes sur la ruche. Aucune mécanique, et le prix d'un vrai nœud :
   // c'est un achat qu'on fait pour soi.
   { kind: 'shinyWax', against: 'ripening', cost: { nectar: 30_000 } },
@@ -809,7 +829,7 @@ function buildComb(): CombCell[] {
     place(trap.kind, 1, trap.cost, from, {}, trap.bees)
   }
 
-  // 2. LE GRIND, EN ALTERNANCE. Un cran par branche et par tour : les huit
+  // 2. LE GRIND, EN ALTERNANCE. Un cran par branche et par tour : les neuf
   //    branches se repoussent au lieu de se servir dans l'ordre du tableau.
   //
   //    Le point d'attache appartient à une AUTRE branche : il sert de départ à la
@@ -979,6 +999,14 @@ export const UPGRADE_EFFECT = {
   synergyStep: 0.05,
   /** Reine mère : une butineuse fantôme par cran (elle vole le trajet sans être dessinée). */
   ghostPerQueenTier: 1,
+  /**
+   * PATROUILLES : pixels de périmètre de dépôt gagnés PAR GUERRIÈRE (cf.
+   * `HIVE.depositRadius`). Deux pixels, c'est peu à l'unité et c'est voulu : ce
+   * n'est pas un gain, c'est une INVITATION à revoler le tour. Vingt guerrières
+   * — les dix crans plus le jalon — font quarante pixels, soit un huitième de
+   * seconde de vol de retour en moins : à butin égal, une meilleure note.
+   */
+  guardRadiusPx: 2,
 
   // --- Les jalons ---------------------------------------------------------
 
