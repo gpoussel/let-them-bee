@@ -64,8 +64,14 @@ const HIVE_CLEARANCE = 92
  * pas au ras du sol (les fleurs sont posées par leur tige).
  */
 const REACH_RISE = 44
-/** Où l'abeille se pose quand elle n'a rien à faire : à côté de la ruche, pas dessus. */
-const PERCH = { dx: -46, dy: -10 } as const
+/**
+ * Où l'abeille se pose quand elle n'a rien à faire : SUR la ruche, au centre pile.
+ *
+ * Elle était perchée à gauche du panier, et tous les tours partaient donc vers la
+ * gauche — le pré n'est symétrique que si le départ l'est. Posée au centre, aucune
+ * direction n'est privilégiée : c'est la contrepartie de la ruche au milieu du pré.
+ */
+const PERCH = { dx: 0, dy: -6 } as const
 /** Période minimale entre deux « Full! » : un par corolle saturerait l'écran. */
 const FULL_POP_MS = 900
 /**
@@ -127,6 +133,21 @@ export class GameScene extends Phaser.Scene {
   private player: RoutePlayer | null = null
   /** Nectar déposé depuis le début de l'enregistrement en cours. */
   private recordedNectar = 0
+  /**
+   * L'abeille est-elle SORTIE du périmètre de garde depuis le début du tour ?
+   *
+   * Sans ça, un tour se clôt à la première fleur butinée dans la ligne de garde
+   * — cas réel dès que les guerrières poussent le périmètre au-delà de la
+   * clairière (`HIVE_CLEARANCE`) : l'abeille part de la ruche, cueille à deux
+   * pas, est encore dedans, et le tour est bouclé en un quart de seconde. Rejoué,
+   * ce tour-là remet le pré à zéro plus vite que les corolles ne s'ouvrent : la
+   * butineuse tourne pour rien, et le pré a l'air arrêté.
+   *
+   * Un tour est donc un ALLER-RETOUR : franchir le liseré vers le dehors, puis le
+   * refranchir vers le dedans. Tant que la butineuse n'est pas sortie, la ruche
+   * ne l'accueille pas.
+   */
+  private lapLeftHive = false
   /** Temps restant avant de pouvoir re-signaler que la butineuse est pleine, en ms. */
   private fullPopTimer = 0
   /**
@@ -370,6 +391,7 @@ export class GameScene extends Phaser.Scene {
    */
   private enterReplayOrIdle(verdict = ''): void {
     this.recorder = null
+    this.lapLeftHive = false
     const route = gameState.route
     if (route) {
       this.player = new RoutePlayer(route, this.field.left, this.field.top)
@@ -399,6 +421,7 @@ export class GameScene extends Phaser.Scene {
     this.bee.moveTo(this.hive.x + PERCH.dx, this.hive.y + PERCH.dy)
     this.bee.nectar = 0
     this.recordedNectar = 0
+    this.lapLeftHive = false
     // Le pré repart de zéro : c'est ce qui rend deux tours comparables. Le
     // joueur retrouve exactement les mêmes fleurs aux mêmes secondes.
     this.fieldFlowers.reset()
@@ -467,7 +490,8 @@ export class GameScene extends Phaser.Scene {
       // `GameState.depositRadius`). Le périmètre est une constante pendant tout
       // le tour — enregistrement comme relecture —, le déterminisme tient.
       const dHive = Phaser.Math.Distance.Between(this.bee.x, this.bee.y, this.hive.x, this.hive.y)
-      if (dHive < gameState.depositRadius && this.bee.nectar > 0) this.deposit()
+      if (dHive >= gameState.depositRadius) this.lapLeftHive = true
+      else if (this.lapLeftHive && this.bee.nectar > 0) this.deposit()
     }
 
     // Affichage du pré, en dernier : les fleurs butinées cette frame ont déjà
@@ -505,7 +529,12 @@ export class GameScene extends Phaser.Scene {
     const { x, y, looped } = player.advance(delta)
     // Chaque tour rejoue le même pré : le trajet enregistré retrouve les fleurs
     // exactement dans l'état où il les avait trouvées.
-    if (looped) this.fieldFlowers.reset()
+    if (looped) {
+      this.fieldFlowers.reset()
+      // Nouveau tour, nouvel aller-retour à faire : la ruche ne rouvre qu'après
+      // une sortie franche du périmètre (cf. `lapLeftHive`).
+      this.lapLeftHive = false
+    }
     // En relecture, l'abeille suit le trajet au pixel : pas d'inertie, sinon
     // elle couperait les virages et manquerait les fleurs qu'elle visait.
     this.bee.moveTo(x, y)
@@ -555,10 +584,12 @@ export class GameScene extends Phaser.Scene {
       // ce que le tour rapporterait, pour le comparer au tour de référence.
       this.recordedNectar += gained
       this.hud.popText(this.hive.x, this.hive.y - 40, `+${Math.floor(gained)}`, HEX.cream)
-      // Rentrer avec du nectar clôt le tour, TOUJOURS. Un tour très court n'est
-      // pas un tour invalide (le critère est le nectar par seconde) ; et même
-      // battu, il doit se solder par un verdict, sinon le joueur reste en vol
-      // sans savoir que sa boucle est déjà jugée.
+      // RENTRER clôt le tour — et rentrer suppose d'être sorti (cf.
+      // `lapLeftHive`) : un tour est un aller-retour, pas un frôlement. Une fois
+      // le trajet bouclé, il n'y a plus à discuter : un tour très court n'est pas
+      // un tour invalide (le critère est le nectar par seconde) ; et même battu,
+      // il doit se solder par un verdict, sinon le joueur reste en vol sans
+      // savoir que sa boucle est déjà jugée.
       this.finishRecording()
       return
     }

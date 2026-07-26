@@ -9,16 +9,24 @@ import {
   type BeeKindId,
 } from '../config/balance'
 import { GAME } from '../config/game'
-import { LINEAGE, LINEAGE_EFFECT, type LineageKind, type LineageNode } from '../config/lineage'
+import {
+  bloodRadius,
+  LINEAGE,
+  LINEAGE_EFFECT,
+  type LineageKind,
+  type LineageNode,
+} from '../config/lineage'
 import {
   CELL_BEE_KIND,
   cellAt,
   COMB,
+  combDistance,
   costRank,
   mainCurrency,
   NEIGHBORS,
   UPGRADE_EFFECT,
   type CombCell,
+  type Currency,
   type UpgradeKind,
 } from '../config/upgrades'
 import type { FieldTuning } from './FlowerField'
@@ -419,21 +427,29 @@ export class GameState {
   /**
    * Verse au rayon les alvéoles dont la lignée dispense la colonie.
    *
-   * Ce ne sont pas des alvéoles à part : ce sont EXACTEMENT celles du rayon, du
-   * rang I au rang hérité, versées comme si elles avaient été payées (abeilles
-   * comprises, cf. `grantCellBees`). La colonie ne dépasse donc jamais ce
-   * qu'elle aurait pu bâtir seule — elle y arrive plus tôt.
+   * Ce ne sont pas des alvéoles à part : ce sont EXACTEMENT celles du rayon,
+   * versées comme si elles avaient été payées (abeilles comprises, cf.
+   * `grantCellBees`). La colonie ne dépasse donc jamais ce qu'elle aurait pu
+   * bâtir seule — elle y arrive plus tôt.
+   *
+   * Ce qui est versé se mesure en DISTANCE AU CENTRE (cf. `combDistance` et
+   * `BLOOD_RADIUS`), pas en rang de branche : le rang versait la deuxième
+   * alvéole de chaque branche, y compris celles qui siègent à six couronnes de la
+   * reine — la colonie se réveillait avec des améliorations posées loin dans un
+   * rayon vide, qu'elle n'avait jamais achetées et ne pouvait pas atteindre. Une
+   * portée verse un disque : l'héritage touche le centre et reste d'un tenant.
    *
    * Idempotent : appelé à l'essaimage, à chaque achat de nœud et à la relecture
    * d'une sauvegarde, il ne verse jamais deux fois la même alvéole.
    */
   applyLineage(): void {
-    const tiers: Record<string, number> = {
-      nectar: this.lineageLevel('nectarBlood'),
-      honey: this.lineageLevel('honeyBlood'),
+    // Portée héritée par monnaie : 0 = rien versé de ce côté du rayon.
+    const reach: Record<Currency, number> = {
+      nectar: bloodRadius(this.lineageLevel('nectarBlood')),
+      honey: bloodRadius(this.lineageLevel('honeyBlood')),
     }
     for (const cell of COMB) {
-      if (cell.tier > tiers[mainCurrency(cell)] || this.comb.has(cell.id)) continue
+      if (combDistance(cell) > reach[mainCurrency(cell)] || this.comb.has(cell.id)) continue
       this.comb.add(cell.id)
       this.grantCellBees(cell)
     }

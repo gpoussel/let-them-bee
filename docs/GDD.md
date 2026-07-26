@@ -177,12 +177,22 @@ déplacement du pré, et la sauvegarde reste compacte.
 
 ### 5.2 Enregistrer
 
-- Départ propre : abeille à la ruche, sacoche vide, pré remis à zéro.
+- Départ propre : abeille **posée sur la ruche**, sacoche vide, pré remis à zéro.
+  Elle se perchait à gauche du panier, et tous les tours partaient donc vers la
+  gauche : une ruche au centre du pré ne vaut que si le départ est neutre.
 - **Couperet de 10 s** : le tour se clôt en l'état, rentré ou pas. Un tour rejoué
   en boucle _doit_ être court — dix secondes bien remplies valent mieux qu'une
   minute de promenade. Le compteur passe au rouge dans les deux dernières.
-- Rentrer à la ruche avec du nectar **clôt le tour, toujours** — et le tour est
-  jugé sur-le-champ. Un tour très court n'est pas un tour invalide : le critère
+- **Un tour est un aller-retour.** La ruche ne clôt le tour que si la butineuse
+  est d'abord **sortie** du périmètre de garde (§7.6) : tant qu'elle n'a pas
+  franchi le liseré vers le dehors, y repasser ne compte pas. Sans cette règle,
+  un tour se bouclait à la première fleur cueillie _dans_ la ligne de garde —
+  possible dès que les guerrières poussent le périmètre au-delà de la clairière —
+  et la boucle d'un quart de seconde ainsi enregistrée remettait le pré à zéro
+  plus vite que les corolles ne s'ouvrent : rejouée, elle ne récoltait plus rien
+  et le pré avait l'air arrêté.
+- Rentrer à la ruche avec du nectar **clôt alors le tour, toujours** — et le tour
+  est jugé sur-le-champ. Un tour très court n'est pas un tour invalide : le critère
   étant le nectar par seconde, une boucle d'une seconde bien remplie est même le
   meilleur des cas. Et un tour battu se solde quand même par un verdict, sinon le
   joueur reste en vol sans savoir que sa boucle est déjà jugée.
@@ -540,8 +550,8 @@ C'est la seule chose du jeu qui survive à une remise à zéro.
 
 | Branche       | Paliers  | Effet d'un palier                                                              |
 | ------------- | -------- | ------------------------------------------------------------------------------ |
-| `nectarBlood` | I·II·III | La colonie naît avec les alvéoles **nectar** du rang correspondant             |
-| `honeyBlood`  | I·II·III | La colonie naît avec les alvéoles **miel** du rang correspondant               |
+| `nectarBlood` | I·II·III | La colonie naît avec les alvéoles **nectar** à portée de la reine (1·2·4)      |
+| `honeyBlood`  | I·II·III | La colonie naît avec les alvéoles **miel** à portée de la reine (1·2·4)        |
 | `busyWax`     | 1        | Débloque le bouton **_Buy all_** du Rayon                                      |
 | `wideMeadow`  | I·II·III | **+3 fleurs** au pré par palier (19 → 28 au rang III)                          |
 | `richBloom`   | I·II·III | Nectar de base de toutes les corolles **+10 %** par palier                     |
@@ -549,6 +559,18 @@ C'est la seule chose du jeu qui survive à une remise à zéro.
 | `steadyWings` | 1        | Inertie de l'abeille **très légèrement** réduite (pilotage seulement)          |
 | `longDays`    | I·II     | Couperet du tour **10 s → 11 s → 12 s**                                        |
 | `keenEye`     | I·II·III | Marge du **« Perfect »** élargie de 0,05 de fraîcheur par palier (0,85 → 0,70) |
+
+**Le sang se mesure en DISTANCE AU CENTRE, pas en rang de branche.** Un palier
+verse tout ce qui siège à 1, 2 puis 4 alvéoles de la reine (`BLOOD_RADIUS`), dans
+la monnaie de la branche. Le rang, lui, versait « la deuxième alvéole de chaque
+branche » — or les branches ne s'éloignent pas au même pas, et certaines ont leur
+rang II à six couronnes du centre : la colonie se réveillait avec des
+améliorations qu'elle n'avait jamais achetées, posées loin dans un rayon vide et
+injoignables depuis la reine. Une portée verse toujours un **disque plein** : ce
+qui est hérité touche le centre, et le rayon reste d'un seul tenant. Les paliers
+ne montent pas d'un pas régulier parce que les couronnes ne portent pas le même
+nombre d'alvéoles — le palier III, le plus cher, doit s'en payer nettement plus
+que le II.
 
 `honeyBlood` coûte plus cher que `nectarBlood` à rang égal : ces alvéoles-là se
 paient normalement dans une monnaie sans plafond, et les hériter saute une boucle
@@ -690,7 +712,7 @@ montre donc dès que la branche d'accueil est bâtie.
 
 | Thème                    | Branche      | Crans | Effet d'un cran                                         | Prix du I → du dernier                 |
 | ------------------------ | ------------ | ----- | ------------------------------------------------------- | -------------------------------------- |
-| **Architecture de cire** | _Micro-naps_ | **8** | −1 % sur `batchMs` (multiplicatif : n'atteint jamais 0) | miel ×1,63 · 60 → 1,8 k                |
+| **Architecture de cire** | _Micro-naps_ | **8** | −4 % sur `batchMs` (multiplicatif : n'atteint jamais 0) | miel ×1,63 · 60 → 1,8 k                |
 | **Architecture de cire** | _Slow Cure_  | **8** | +4 % de miel par lot **et** +3 % de durée de lot        | miel ×1,63 · 120 → 3,6 k               |
 | **Botanique avancée**    | _Airflow_    | **8** | +0,5 % de vitesse de vol (additif au vol de départ)     | nectar, courbe du plafond · 594 → 28 k |
 | **Botanique avancée**    | _Deep Roots_ | **6** | −2 % sur le repos d'une fleur fanée                     | nectar, courbe du plafond · 800 → 23 k |
@@ -757,6 +779,14 @@ n'est pas une contradiction, c'est le **réglage** : le joueur place son curseur
 entre une ruche qui bat vite et une ruche qui rend gros. Le net est positif dans
 les deux cas — ce sont des crans, pas des pièges (§7.8).
 
+Encore faut-il que les deux bouts du curseur tirent aussi fort. _Micro-naps_
+valait **1 %** le cran : ses huit alvéoles ne retiraient que 7,7 % du lot, moins
+que le premier cran de _Fanning_, pour un prix qui montait par trente. Ce n'était
+pas un réglage, c'était une branche morte — on ne l'achetait pas. À **4 %**, la
+branche entière ramène le lot à 72 % (près de 40 % de miel par seconde en plus) :
+elle pèse enfin ce que pèse la ventilation qui l'ancre, et le curseur a deux
+bouts.
+
 **Les fantômes.** _Brood_ verse des butineuses qui ne sont **pas dessinées**
 et ne comptent pas dans les effectifs : elles volent le même trajet et multiplient
 ce qu'il rapporte. Une seule abeille à l'écran reste lisible, et le tour de
@@ -766,7 +796,8 @@ référence reste le même pour toutes (§5.5).
 au nectar **par seconde** : toutes les autres branches gonflent le butin,
 _Patrols_ raccourcit le vol de **retour**. Chaque guerrière élargit de 2 px la
 zone où le nectar se dépose (§8) — la butineuse ne rentre plus au centre de la
-ruche, elle franchit la ligne de garde et le tour se clôt. Rien n'est
+ruche, elle franchit la ligne de garde et le tour se clôt — à condition d'en
+être sortie d'abord (§5.2). Rien n'est
 rétroactif : le trajet déjà enregistré a été volé jusqu'à l'ancien périmètre et
 garde sa durée. Pour toucher le raccourci, il faut **reprendre la souris**. C'est
 une branche de fin de partie qui renvoie au pilotage, et elle reste rigoureusement

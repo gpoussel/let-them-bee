@@ -947,6 +947,22 @@ export function mainCurrency(cell: CombCell): Currency {
   return cell.cost.honey === undefined ? 'nectar' : 'honey'
 }
 
+/**
+ * DISTANCE AU CENTRE du rayon, en alvéoles (distance hexagonale axiale).
+ *
+ * C'est la mesure qui dit ce dont la lignée hérite (cf. `GameState.applyLineage`)
+ * — et pas le rang dans la branche. Les deux ne se ressemblent pas : les branches
+ * ne partent pas toutes de la même couronne ni ne s'éloignent au même pas, si
+ * bien qu'un rang II pouvait siéger à six alvéoles du centre. Hériter au rang,
+ * c'était donc bâtir des alvéoles perdues au loin, au milieu d'un rayon vide —
+ * des améliorations qu'on n'a jamais achetées et qu'on ne pouvait même pas
+ * atteindre. Une distance, elle, hérite d'un DISQUE : ce qui est versé touche
+ * toujours le centre, et le rayon reste d'un seul tenant.
+ */
+export function combDistance(cell: CombCell): number {
+  return (Math.abs(cell.q) + Math.abs(cell.r) + Math.abs(cell.q + cell.r)) / 2
+}
+
 /** Les monnaies effectivement demandées par une alvéole, dans l'ordre d'affichage. */
 export function costLines(cost: Cost): { currency: Currency; amount: number }[] {
   const lines: { currency: Currency; amount: number }[] = []
@@ -1015,11 +1031,20 @@ export const UPGRADE_EFFECT = {
   // --- Le grind -----------------------------------------------------------
 
   /**
-   * Micro-siestes : le lot raccourcit de 1 % PAR CRAN, multiplicativement. Quarante
-   * crans le ramènent à 67 % de sa durée — jamais à zéro, c'est tout l'intérêt
-   * d'un facteur : la branche peut être longue sans jamais casser la mécanique.
+   * Micro-siestes : le lot raccourcit de 4 % PAR CRAN, multiplicativement. Les
+   * huit crans de la branche le ramènent à 72 % de sa durée, soit près de 40 % de
+   * miel par seconde en plus — c'est une branche entière, payée en miel jusqu'à
+   * la quatre-chiffres, elle doit peser autant que la ventilation qui l'ancre.
+   *
+   * Elle valait 1 % le cran, hérité d'une branche de quarante alvéoles qui n'a
+   * jamais existé : huit crans ne retiraient que 7,7 % du lot, moins que le
+   * premier cran de ventilation, pour un prix qui montait par trente. On
+   * n'achetait pas la branche — et une branche qu'on n'achète pas ne règle rien.
+   *
+   * Le facteur reste MULTIPLICATIF : le lot tend vers zéro sans jamais l'atteindre,
+   * quelle que soit la longueur qu'on donnera un jour à la branche.
    */
-  microNapMult: 0.99,
+  microNapMult: 0.96,
   /**
    * Maturation lente : le lot rend 4 % de miel de plus ET dure 3 % de plus, par
    * cran, additivement. Le gain net est positif (4 > 3) mais MINCE, et il paie
