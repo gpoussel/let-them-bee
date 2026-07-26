@@ -3,7 +3,6 @@ import { GAME } from '../config/game'
 import {
   COMB,
   NEIGHBORS,
-  previousTier,
   UPGRADE_EFFECT,
   type CombCell,
   type UpgradeKind,
@@ -109,37 +108,34 @@ export class GameState {
   }
 
   /**
-   * Une alvéole se dévoile quand ce qui la précède est bâti :
+   * Une alvéole se dévoile quand la cire arrive CONTRE elle : elle touche la
+   * ruche, ou une alvéole payée. C'est tout, et c'est voulu — le rayon est une
+   * carte, pas un arbre de compétences, et ce qu'on voit doit s'expliquer par ce
+   * qu'on voit. Aucune règle ne nomme d'alvéole ni de rang : un ordre écrit
+   * ailleurs que dans la géométrie serait invisible au joueur, et se casserait
+   * au premier coude déplacé.
    *
-   *   - son prérequis explicite, s'il y en a un (cf. `CombCell.needs`) ;
-   *   - le rang précédent de SA branche, à partir du rang 2 ;
-   *   - à défaut, le contact avec une alvéole bâtie DE SA BRANCHE. Les branches
-   *     s'incurvent : le rang V se recolle contre le rang III, et une alvéole
-   *     qu'on touche du doigt mais qui n'existe pas encore se lit comme un trou
-   *     dans le rayon. Le voisinage de branche la montre dès que la cire arrive
-   *     à côté d'elle — quitte à ce qu'elle s'achète avant le rang qui la
-   *     précède : ce n'est pas un raccourci, les deux se paient de toute façon ;
-   *   - pour un rang 1, le contact avec n'importe quel construit (la ruche au
-   *     départ, puis toute alvéole payée) : c'est lui qui amorce une branche.
+   * L'ORDRE, c'est donc la FORME du rayon qui le fait. Une branche se parcourt
+   * dans l'ordre parce que ses alvéoles se touchent ; l'ouvrière attend la
+   * réserve à quatre paliers parce qu'elle est posée au bout de cette
+   * branche-là, et rien d'autre ne la touche.
    *
-   * Le voisinage TOUTES branches confondues reste réservé au rang 1 : le rayon
-   * est serré au centre, et sinon acheter la ventilation dévoilerait le
-   * troisième palier de réserve.
+   * SEULE exception, et elle ne parle pas d'alvéoles mais de MONNAIE : ce qui se
+   * paie en miel n'apparaît pas tant que la ruche ne sait pas en faire. Les
+   * alvéoles en miel touchent la ruche : sans ça, elles seraient là à la
+   * première seconde, prix affiché dans une ressource qui n'existe pas encore.
    *
    * Le joueur ne voit donc jamais la carte entière, seulement le bord de sa ruche.
    */
   isRevealed(cell: CombCell): boolean {
-    if (cell.needs !== undefined && !this.comb.has(cell.needs)) return false
-    const prev = previousTier(cell)
-    if (prev && this.comb.has(prev.id)) return true
+    if (cell.currency === 'honey' && !this.canBrew) return false
     for (const [dq, dr] of NEIGHBORS) {
       const q = cell.q + dq
       const r = cell.r + dr
       // La ruche compte comme construite : c'est elle qui amorce le rayon.
-      if (q === 0 && r === 0 && !prev) return true
+      if (q === 0 && r === 0) return true
       const neighbor = COMB.find((c) => c.q === q && c.r === r)
-      if (!neighbor || !this.comb.has(neighbor.id)) continue
-      if (!prev || neighbor.kind === cell.kind) return true
+      if (neighbor && this.comb.has(neighbor.id)) return true
     }
     return false
   }
