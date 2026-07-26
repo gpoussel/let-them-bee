@@ -44,18 +44,18 @@ export const NEIGHBORS: ReadonlyArray<readonly [number, number]> = [
 // rayons droits auraient fait une étoile, pas un rayon de miel. Le coude ramène
 // les alvéoles les unes contre les autres.
 //
-// Deux monnaies, et la profondeur décide : le bord du rayon se paie en NECTAR,
-// que le joueur rapporte lui-même dès la première minute ; le fond de chaque
-// branche se paie en MIEL, que seule la ruche produit. Passer de l'une à l'autre
-// est le moment où le jeu cesse d'être un mini-jeu de vol pour devenir une
-// colonie — l'icône du prix le dit sans une ligne de texte.
+// Tout le rayon se paie en NECTAR — celui que le joueur rapporte lui-même. Le
+// miel reste la monnaie de la colonie (castes, prestige) : le rayon, lui, est
+// l'affaire de la butineuse, et son prix se lit dans la seule ressource qu'un
+// bon trajet fait monter. (`Currency` garde ses deux valeurs : le rayon sait
+// afficher un prix en miel, il n'en pose simplement plus aucun.)
 //
-// Les prix en nectar sont calés sur la réserve : voir `UPGRADE_EFFECT.storageStep`.
+// Les prix sont calés sur la réserve : voir `UPGRADE_EFFECT.storageStep`.
 export const COMB: readonly CombCell[] = [
   // Réserve — vers le haut.
   { id: 'storage-1', kind: 'storage', tier: 1, cost: 30, currency: 'nectar', q: 0, r: -1 },
   { id: 'storage-2', kind: 'storage', tier: 2, cost: 90, currency: 'nectar', q: 1, r: -2 },
-  { id: 'storage-3', kind: 'storage', tier: 3, cost: 40, currency: 'honey', q: 1, r: -3 },
+  { id: 'storage-3', kind: 'storage', tier: 3, cost: 200, currency: 'nectar', q: 1, r: -3 },
 
   // Butineuses — une seule alvéole, à droite de la ruche.
   { id: 'foragers-1', kind: 'foragers', tier: 1, cost: 80, currency: 'nectar', q: 1, r: 0 },
@@ -63,12 +63,12 @@ export const COMB: readonly CombCell[] = [
   // Vol — vers le bas.
   { id: 'flight-1', kind: 'flight', tier: 1, cost: 40, currency: 'nectar', q: 0, r: 1 },
   { id: 'flight-2', kind: 'flight', tier: 2, cost: 110, currency: 'nectar', q: -1, r: 2 },
-  { id: 'flight-3', kind: 'flight', tier: 3, cost: 60, currency: 'honey', q: -1, r: 3 },
+  { id: 'flight-3', kind: 'flight', tier: 3, cost: 240, currency: 'nectar', q: -1, r: 3 },
 
   // Pousse — vers la gauche.
   { id: 'growth-1', kind: 'growth', tier: 1, cost: 40, currency: 'nectar', q: -1, r: 0 },
   { id: 'growth-2', kind: 'growth', tier: 2, cost: 110, currency: 'nectar', q: -2, r: 0 },
-  { id: 'growth-3', kind: 'growth', tier: 3, cost: 60, currency: 'honey', q: -2, r: -1 },
+  { id: 'growth-3', kind: 'growth', tier: 3, cost: 240, currency: 'nectar', q: -2, r: -1 },
 ] as const
 
 /** Nombre d'alvéoles achetables au total (jauge du bouton d'accès). */
@@ -78,12 +78,19 @@ export const COMB_TOTAL = COMB.length
  * Effet d'UN niveau de chaque branche.
  *
  * `storageStep` n'est pas un chiffre libre : c'est LUI qui décide si le rayon
- * est finissable. Une alvéole en nectar plus chère que la réserve maximale du
- * moment est un cul-de-sac — le joueur butine, la réserve sature, et le prix
- * reste hors d'atteinte pour toujours. Avec 100 par palier, la réserve fait
- * 50 / 150 / 250 / 350, et la plus chère des alvéoles en nectar (110) tient
- * dans la réserve de départ passé le premier palier. Le miel, lui, n'est pas
- * plafonné : les alvéoles de fond de branche n'ont pas cette contrainte.
+ * est finissable. Tout s'y paie en nectar, or le nectar est PLAFONNÉ — une
+ * alvéole plus chère que la réserve du moment est hors d'atteinte, le joueur
+ * butine et la réserve sature avant le prix. Avec 100 par palier, la réserve
+ * fait 50 / 150 / 250 / 350 :
+ *
+ *   - la branche « réserve » reste toujours payable (30, puis 90 sous 150,
+ *     puis 200 sous 250) — c'est elle qui déverrouille tout le reste ;
+ *   - les alvéoles de fond de branche (240) demandent donc deux paliers de
+ *     réserve. Ce n'est pas un cul-de-sac, c'est un ORDRE : on agrandit sa
+ *     ruche avant de s'offrir le luxe.
+ *
+ * Toute nouvelle alvéole doit tenir sous 350, le plafond une fois la branche
+ * « réserve » complète, sinon elle est inachetable pour toujours.
  */
 export const UPGRADE_EFFECT = {
   storageStep: 100,
