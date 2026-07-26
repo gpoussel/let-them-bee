@@ -273,7 +273,7 @@ export function installDevMenu(game: Phaser.Game): void {
 /** Prise de la scène de jeu, ou `null` si le potager n'est pas ouvert. */
 function devContext(game: Phaser.Game): DevContext | null {
   const scene = game.scene.getScene('Game') as SceneWithDevContext | null
-  return scene && scene.scene.isActive() ? scene.devContext() : null
+  return scene?.scene.isActive() ? scene.devContext() : null
 }
 
 /** Ajoute (ou retire) une ressource, en restant dans ses bornes. */

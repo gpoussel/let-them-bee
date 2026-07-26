@@ -125,7 +125,9 @@ export class Hud {
       alpha: 0,
       duration: HUD.popDuration,
       ease: 'Cubic.Out',
-      onComplete: () => group.destroy(),
+      onComplete: () => {
+        group.destroy()
+      },
     })
   }
 }
