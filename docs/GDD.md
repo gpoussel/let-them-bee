@@ -253,6 +253,21 @@ verdict, le bilan du meilleur tour (durée, nectar, **nectar/s**) en trois cases
 côte à côte, le compte à rebours (visible **uniquement** pendant un
 enregistrement — un cadran mort ne dit rien à personne) et le bouton.
 
+Deux règles de dévoilement s'y appliquent, pour la même raison — **rien à
+l'écran ne doit rester affiché après avoir cessé de parler** :
+
+- **Le bilan ne s'affiche qu'à partir du premier tour.** Tant qu'il n'y en a
+  pas, sa case porte à la place l'**appel à l'action** (« dessinez un chemin de
+  nectar, de fleur en fleur, et rentrez à la ruche »). Trois tirets sous trois
+  libellés forment un tableau vide, là où le joueur a précisément besoin qu'on
+  lui dise quoi faire. L'appel à l'action se tait aussi **pendant**
+  l'enregistrement : le joueur est en train de faire ce qu'on lui demande, et le
+  bouton dit désormais « Give up ».
+- **Le verdict d'un tour est transitoire** (`HUD.verdictMs`). « New best run! »
+  s'efface au profit de la consigne permanente : passé quelques secondes, il ne
+  parle plus du tour que le joueur a en tête, et rien ne le distingue d'une
+  consigne.
+
 **Le Rayon** occupe **l'union exacte des quatre cadres du bas** et se présente
 comme un cadre de plus, du même bois : regarder sa ruche est une activité du jeu,
 pas une parenthèse. Le pré continue de tourner dessous ; seules ses entrées sont
@@ -260,8 +275,21 @@ coupées, pour que le glissé du rayon ne pilote pas l'abeille. Le rayon se
 déplace au glissé (un glissé n'achète rien) et la barre de ressources reste
 découverte au-dessus : le joueur doit voir sa réserve fondre à l'achat.
 
-**Le bouton du Rayon** bat quand une alvéole est payable : c'est le seul appel à
-l'action non sollicité du jeu.
+**Le bouton du Rayon** bat quand une alvéole est payable.
+
+**Les relances (« nudges »)** sont les seuls appels à l'action non sollicités du
+jeu, et le jeu n'en montre une que lorsque le joueur n'a **aucun moyen de
+deviner** le geste attendu. Une flèche ambrée qui va et vient — immobile, elle
+se confondrait avec le décor — désigne alors le bouton concerné :
+
+| Relance | Condition | S'éteint |
+| --- | --- | --- |
+| Flèche sur *Record a run* | aucun tour enregistré, et pas d'enregistrement en cours | au premier tour enregistré |
+| Flèche + « New upgrade! » sur le Rayon | une alvéole payable **et aucune encore bâtie** | au premier achat |
+
+La relance du Rayon ne vise **que le premier achat** : ensuite le joueur sait où
+est le rayon, et le battement de la ruche reprend seul le relais pour toutes les
+alvéoles suivantes.
 
 **Infobulles** au survol de tout ce qui porte un nom : ressources, castes,
 alvéoles.
@@ -316,8 +344,9 @@ de jeu et ça ne doit surtout pas y ressembler.
 
 **Fait** — pré déterministe et ses huit espèces · enregistrement / jugement /
 relecture du trajet · nectar plafonné · le Rayon (4 branches, dévoilement,
-achats) · production passive des castes · HUD complet et infobulles · écran-titre
-complet, transitions, audio, pause · déploiements Pages + itch.
+achats) · production passive des castes · HUD complet et infobulles · relances de
+première fois (trajet, rayon) et dévoilement du bandeau · écran-titre complet,
+transitions, audio, pause · déploiements Pages + itch.
 
 **Manquant, par ordre d'impact design**
 

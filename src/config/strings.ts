@@ -22,6 +22,11 @@ export const STR = {
   recordAgain: 'Beat this run',
   stopRecording: 'Give up',
   bestRun: 'Best run',
+  /** Appel à l'action affiché À LA PLACE du bilan tant qu'aucun tour n'existe. */
+  firstRunTitle: 'No run yet',
+  firstRunHint: 'Hit the button, then draw a nectar route: flower to flower, and back to the hive.',
+  /** Relance du rayon, tant que le joueur n'a bâti aucune alvéole. */
+  combOffer: 'New upgrade!',
   lapTime: 'Lap',
   lapRate: 'Nectar/s',
   noRoute: 'No run recorded yet. Record one and your forager will fly it forever.',

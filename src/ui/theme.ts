@@ -94,4 +94,19 @@ export const HUD = {
   nectarBarWidth: 124,
   popRise: 34, // px de remontée du texte flottant
   popDuration: 700, // ms
+  /**
+   * Durée d'un VERDICT dans le bandeau (« New best run! », « Time's up »).
+   * Il s'efface ensuite au profit de la consigne permanente : un verdict qui
+   * reste à l'écran cesse d'être une nouvelle et devient un décor, et le joueur
+   * ne sait plus s'il parle du dernier tour ou de l'avant-dernier.
+   */
+  verdictMs: 3500,
+} as const
+
+// Flèche de relance (cf. ui/Nudge).
+export const NUDGE = {
+  /** Au-dessus des cadres, sous les textes flottants du jeu. */
+  depth: 290,
+  bob: 8, // amplitude du va-et-vient, en px
+  bobMs: 620,
 } as const

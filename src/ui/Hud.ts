@@ -50,15 +50,20 @@ export class Hud {
     this.bar = new ResourceBar(left, this.tips)
     this.colony = new ColonyPanel(left, this.tips)
     this.comb = new CombButton(scene, left, { onOpen: o.onOpenComb })
-    this.status = new StatusPanel(left, right, { onToggleRecord: o.onToggleRecord })
+    this.status = new StatusPanel(scene, left, right, { onToggleRecord: o.onToggleRecord })
 
     this.tips.build()
     this.ui.commit()
   }
 
-  /** Consigne / verdict affiché dans le bandeau du pré. */
+  /** Consigne permanente du bandeau du pré (elle décrit l'état courant). */
   setMessage(text: string): void {
     this.status.setMessage(text)
+  }
+
+  /** Verdict d'un tour : il passe devant la consigne, puis s'efface tout seul. */
+  flashMessage(text: string): void {
+    this.status.flashMessage(text)
   }
 
   /** Libellé du bouton d'enregistrement (il change d'état en cours de tour). */
@@ -71,11 +76,12 @@ export class Hud {
     this.status.setElapsed(ms)
   }
 
-  update(): void {
+  /** @param recording un tour est en cours d'enregistrement (cf. StatusPanel). */
+  update(recording = false): void {
     this.bar.update()
     this.colony.update()
     this.comb.update()
-    this.status.update(gameState.route)
+    this.status.update(gameState.route, recording)
     this.tips.update()
   }
 

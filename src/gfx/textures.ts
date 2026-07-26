@@ -67,6 +67,8 @@ export const TEX = {
   iconHoneySmall: 'tex-icon-honey-sm',
   iconJelly: 'tex-icon-jelly',
   iconBee: 'tex-icon-bee',
+  /** Flèche de relance (cf. ui/Nudge) : bakée vers le bas, pivotée à l'usage. */
+  arrow: 'tex-arrow',
   hexIdle: 'tex-hex-idle',
   hexReady: 'tex-hex-ready',
   hexDone: 'tex-hex-done',
@@ -231,6 +233,28 @@ const ICON_ABOUT = [
   '..gggggggggggg..',
   '...gggggggggg...',
   '.....gggggg.....',
+  '................',
+]
+
+// Flèche de relance : une hampe épaisse et une pointe pleine. Dessinée vers le
+// BAS une seule fois — les autres directions sont obtenues par rotation, ce qui
+// évite trois grilles à maintenir en accord.
+const ICON_ARROW = [
+  '................',
+  '......gggg......',
+  '......gggg......',
+  '......gggg......',
+  '......gggg......',
+  '......gggg......',
+  '..gggggggggggg..',
+  '..gggggggggggg..',
+  '...gggggggggg...',
+  '....gggggggg....',
+  '.....gggggg.....',
+  '......gggg......',
+  '.......gg.......',
+  '................',
+  '................',
   '................',
 ]
 
@@ -418,6 +442,7 @@ export function bakeAll(scene: Phaser.Scene) {
   bake(scene, TEX.iconItch, ICON_ITCH, IP, ICON_PX)
   bake(scene, TEX.iconGithub, ICON_GITHUB, IP, ICON_PX)
   bake(scene, TEX.iconAbout, ICON_ABOUT, IP, ICON_PX)
+  bake(scene, TEX.arrow, ICON_ARROW, IP, ICON_PX)
 
   // L'abeille est bakée à sa taille d'affichage : 2 points par pixel d'art,
   // comme les fleurs et la ruche. La réduire après coup revenait à la rendre

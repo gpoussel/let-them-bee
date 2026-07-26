@@ -12,6 +12,7 @@ import { COMB_TOTAL } from '../config/upgrades'
 import { FONT_KEY } from '../gfx/font'
 import { TEX } from '../gfx/textures'
 import { gameState } from '../systems/GameState'
+import { Nudge } from './Nudge'
 import { handCursor, ninePanel, OriginX, OriginY, setText, UI9 } from './pixui'
 import { COLORS, FONTS, PALETTE, PANEL_TINT, SCREEN } from './theme'
 
@@ -36,6 +37,9 @@ export class CombButton {
   private readonly hive: Image
   private readonly progress: BitmapText
   private readonly hit: Clickable
+  /** Annonce de la toute première alvéole payable, et la flèche qui la désigne. */
+  private readonly offer: BitmapText
+  private readonly nudge: Nudge
 
   constructor(scene: Phaser.Scene, f: ComponentFactory, o: CombButtonOpts) {
     this.scene = scene
@@ -76,6 +80,24 @@ export class CombButton {
       y: y + 48,
     })
 
+    // Le battement de la ruche (cf. update) suffit à qui sait déjà que le rayon
+    // s'ouvre ; il ne dit rien à qui l'ignore encore. Pour la PREMIÈRE alvéole
+    // seulement, on le dit avec des mots, et une flèche pointe la ruche depuis
+    // la droite du cadre — le seul espace libre de ce coin d'écran.
+    this.offer = f.bitmapText({
+      ...anchor,
+      font: FONT_KEY,
+      size: FONTS.sizeHint,
+      text: STR.combOffer,
+      tint: PALETTE.amber,
+      x: textX,
+      y: y + 64,
+    })
+    // Calée en BAS à droite, pas à mi-hauteur : le titre « The Comb » court
+    // jusqu'au bord droit du cadre, et une flèche posée à sa hauteur le percute
+    // au lieu de le désigner.
+    this.nudge = new Nudge(scene, x + w - 26, y + h - 22, 'left')
+
     this.hit = f.clickable({
       ...anchor,
       x,
@@ -98,5 +120,12 @@ export class CombButton {
       this.hive.tint = PALETTE.oliveBrown
     }
     setText(this.progress, `${gameState.comb.size}/${COMB_TOTAL}`)
+
+    // La relance ne vise QUE le premier achat : dès qu'une alvéole est bâtie, le
+    // joueur sait où est le rayon, et le battement de la ruche reprend seul le
+    // relais pour toutes les suivantes.
+    const firstOffer = gameState.combHasOffer && gameState.comb.size === 0
+    this.offer.visible = firstOffer
+    this.nudge.setVisible(firstOffer)
   }
 }
