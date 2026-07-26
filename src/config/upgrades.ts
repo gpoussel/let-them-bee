@@ -21,7 +21,7 @@ export interface CombCell {
   /** Identifiant stable, persisté en sauvegarde (`storage-2`, `flight-1`…). */
   id: string
   kind: UpgradeKind
-  /** Rang dans sa branche, à partir de 1. Sert au libellé (I, II, III). */
+  /** Rang dans sa branche, à partir de 1. Sert au libellé (I, II, III, IV). */
   tier: number
   /** Prix, dans la monnaie ci-dessous. Une alvéole s'achète une fois, et pour de bon. */
   cost: number
@@ -56,6 +56,7 @@ export const COMB: readonly CombCell[] = [
   { id: 'storage-1', kind: 'storage', tier: 1, cost: 30, currency: 'nectar', q: 0, r: -1 },
   { id: 'storage-2', kind: 'storage', tier: 2, cost: 90, currency: 'nectar', q: 1, r: -2 },
   { id: 'storage-3', kind: 'storage', tier: 3, cost: 200, currency: 'nectar', q: 1, r: -3 },
+  { id: 'storage-4', kind: 'storage', tier: 4, cost: 330, currency: 'nectar', q: 2, r: -4 },
 
   // Butineuses — une seule alvéole, à droite de la ruche.
   { id: 'foragers-1', kind: 'foragers', tier: 1, cost: 80, currency: 'nectar', q: 1, r: 0 },
@@ -64,11 +65,13 @@ export const COMB: readonly CombCell[] = [
   { id: 'flight-1', kind: 'flight', tier: 1, cost: 40, currency: 'nectar', q: 0, r: 1 },
   { id: 'flight-2', kind: 'flight', tier: 2, cost: 110, currency: 'nectar', q: -1, r: 2 },
   { id: 'flight-3', kind: 'flight', tier: 3, cost: 240, currency: 'nectar', q: -1, r: 3 },
+  { id: 'flight-4', kind: 'flight', tier: 4, cost: 400, currency: 'nectar', q: -2, r: 4 },
 
   // Pousse — vers la gauche.
   { id: 'growth-1', kind: 'growth', tier: 1, cost: 40, currency: 'nectar', q: -1, r: 0 },
   { id: 'growth-2', kind: 'growth', tier: 2, cost: 110, currency: 'nectar', q: -2, r: 0 },
   { id: 'growth-3', kind: 'growth', tier: 3, cost: 240, currency: 'nectar', q: -2, r: -1 },
+  { id: 'growth-4', kind: 'growth', tier: 4, cost: 400, currency: 'nectar', q: -3, r: -1 },
 ] as const
 
 /** Nombre d'alvéoles achetables au total (jauge du bouton d'accès). */
@@ -80,16 +83,16 @@ export const COMB_TOTAL = COMB.length
  * `storageStep` n'est pas un chiffre libre : c'est LUI qui décide si le rayon
  * est finissable. Tout s'y paie en nectar, or le nectar est PLAFONNÉ — une
  * alvéole plus chère que la réserve du moment est hors d'atteinte, le joueur
- * butine et la réserve sature avant le prix. Avec 100 par palier, la réserve
- * fait 50 / 150 / 250 / 350 :
+ * butine et la réserve sature avant le prix. Avec 100 par palier et quatre
+ * alvéoles de réserve, le plafond monte 50 / 150 / 250 / 350 / 450 :
  *
  *   - la branche « réserve » reste toujours payable (30, puis 90 sous 150,
- *     puis 200 sous 250) — c'est elle qui déverrouille tout le reste ;
- *   - les alvéoles de fond de branche (240) demandent donc deux paliers de
- *     réserve. Ce n'est pas un cul-de-sac, c'est un ORDRE : on agrandit sa
- *     ruche avant de s'offrir le luxe.
+ *     200 sous 250, 330 sous 350) — c'est elle qui déverrouille tout le reste ;
+ *   - les alvéoles de rang III (240) demandent deux paliers de réserve, celles
+ *     de rang IV (400) les quatre. Ce n'est pas un cul-de-sac, c'est un ORDRE :
+ *     on agrandit sa ruche avant de s'offrir le luxe.
  *
- * Toute nouvelle alvéole doit tenir sous 350, le plafond une fois la branche
+ * Toute nouvelle alvéole doit tenir sous 450, le plafond une fois la branche
  * « réserve » complète, sinon elle est inachetable pour toujours.
  */
 export const UPGRADE_EFFECT = {
