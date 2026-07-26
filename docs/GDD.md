@@ -148,6 +148,44 @@ déplacement du pré, et la sauvegarde reste compacte.
   référence, puisque le premier tour gagne toujours.
 - Le bouton permet d'abandonner à tout moment.
 
+**L'abeille nue vole mal, et c'est le point de départ du jeu.** Sous la main du
+joueur, elle est lourde (`BEE.lerp` = 2,6) et elle **dérive** : sa cible s'écarte
+du pointeur, portée par trois sinusoïdes de périodes incommensurables. Le motif ne
+se lit pas à l'œil et pourtant il ne tire **aucun hasard** — la même seconde du
+même tour donne la même dérive, le pré reste déterministe (§4.3), et un trajet
+enregistré est exactement ce que le joueur a volé.
+
+**Deux choses font que la dérive se voit** — une amplitude fixe passait
+inaperçue, parce qu'à pleine vitesse vingt pixels de flottement disparaissent
+sous le geste :
+
+- elle **s'emballe avec la distance au pointeur**, et pas linéairement :
+  `34 px × (0,25 + (distance / 110)^1,8)`, plafonné à 260 px d'écart. Pointeur
+  collé à l'abeille, elle frémit ; à deux longueurs de bras, elle serpente ; à
+  l'autre bout du pré, **elle fait n'importe quoi**. L'exposant est ce qui sépare
+  « un peu mou » d'« incontrôlable » : une montée proportionnelle se corrige
+  d'instinct, une montée qui s'emballe **oblige à rapprocher le pointeur**. Le
+  plafond n'adoucit rien — sans lui la cible sortirait du pré et l'abeille
+  filerait tout droit au lieu de battre la campagne ;
+- elle est **surtout latérale** (65 %), perpendiculaire à la course : un écart de
+  **cap**, pas une vibration. C'est ce qu'on apprend à corriger. La troisième
+  sinusoïde, la plus lente, ne se voit pas de près et commande le vol de loin.
+
+La leçon de pilotage est la même dans les deux cas : on **mène** une abeille, on
+ne la téléporte pas.
+
+La dérive **fond avec les améliorations** : −7 % par cran de la branche _Flight_,
+et inversement proportionnelle au lissage — « ailes sûres » de la lignée et
+**No Inertia** (§7.7) l'effacent en même temps que l'inertie. Une colonie nue dérive au
+coefficient 1,0 ; six crans de vol la ramènent à 0,65 ; _No Inertia_ à 0,05, ce qui
+revient à voler droit.
+
+C'est le seul progrès du jeu que le joueur sente **au geste** plutôt que dans un
+compteur. Une abeille docile dès la première minute ne laisserait rien à gagner au
+pilotage : le rayon n'aurait plus qu'à vendre des chiffres. La dérive n'existe
+**que** sous la main du joueur — la relecture repasse au pixel sur le trajet volé
+(§5.4).
+
 ### 5.3 Juger
 
 **Un seul critère : le nectar par seconde.** Un tour plus long peut donc gagner
@@ -290,6 +328,31 @@ du rayon une ruche qui s'étend plutôt qu'une liste de compteurs.
 Les branches partent de quatre voisines de la ruche puis **s'incurvent** : quatre
 rayons droits auraient fait une étoile, pas un rayon de miel.
 
+**Le rayon fait 156 alvéoles, et il n'est pas écrit : il est engendré.** Trois
+populations s'y côtoient, et la façon dont chacune existe dit son rôle.
+
+| Population           | Combien | Comment elle existe                         | Pourquoi                                                                                                                    |
+| -------------------- | ------- | ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| **Début de partie**  | 46      | posée à la main (§7.3, §7.5)                | Son ordre de dévoilement **porte l'apprentissage du jeu** ; un ordre appris ne se recalcule pas                             |
+| **Le grind**         | 100     | huit boucles `for` (§7.6)                   | Un « Aérodynamisme XIII » écrit à la main serait une ligne de copie ; ce qui se décide est une **courbe**, en trois nombres |
+| **Jalons et pièges** | 10      | effet et prix à la main, **place calculée** | Chacun retourne une règle du jeu (§7.7) ou tend un traquenard (§7.8) — mais aucune coordonnée n'est écrite deux fois        |
+
+**Une seule géométrie, une seule table d'occupation.** Les 250 alvéoles se
+placent toutes par la même règle : _une branche pousse par son bord, vers le
+dehors, dans sa direction_. À chaque pas, on prend la case **libre** qui touche la
+branche et qui minimise `distance à la ruche + 2,5 × écart d'angle avec le cap`.
+Le premier terme pousse vers l'extérieur, le second tient le cap — et comme le cap
+est un **coût** et non une interdiction, une branche coincée contourne au lieu de
+mourir : c'est ce qui fait la **spirale**. Les huit branches poussent **à tour de
+rôle**, un cran chacune par tour, sinon la première aurait tout l'espace et la
+dernière ce qui reste.
+
+Deux alvéoles ne peuvent donc pas se superposer : la table d'occupation est
+commune, et une branche entièrement **murée** par ses voisines ne s'arrête pas —
+elle reprend la case libre du rayon la plus proche de sa pointe, qui touche
+forcément de la cire existante. Le dévoilement (§7.2) reste vrai : le rayon n'a
+pas d'île, quel que soit le nombre d'alvéoles demandé.
+
 ### 7.2 Dévoilement
 
 Une alvéole se dévoile dès qu'elle **touche de la cire bâtie** : la ruche, ou
@@ -316,13 +379,13 @@ Une alvéole s'achète **une fois, et pour de bon**.
 
 **Le rayon du vol**, payé en nectar, part de quatre voisines de la ruche :
 
-| Branche      | Effet d'une alvéole                               | Forme                                                                   | Intention                                                                                                                                                                                                          |
-| ------------ | ------------------------------------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Storage**  | + un palier de réserve, **quadratique** (§7.5)    | **15 alvéoles** (I à XV), vers le haut, en nappe                        | Le déverrouilleur : c'est elle qui rend le reste payable — courte, mais chaque palier prend les trois quarts de la réserve qu'a offerte le précédent                                                               |
-| **Foragers** | +1 butineuse sur le trajet (rang I)               | 3 alvéoles, à droite (les rangs II-III en miel)                         | Le doublement sec — la récompense la plus lisible                                                                                                                                                                  |
-| **Flight**   | Vitesse de vol, **très** légèrement               | 6 alvéoles, vers le bas                                                 | Assez pour raser un virage, jamais pour voler le tour à votre place                                                                                                                                                |
-| **Growth**   | Accélère le calendrier du pré                     | 6 alvéoles, vers la gauche                                              | Les fleurs reviennent plus tôt : un tour croise plus de corolles ouvertes                                                                                                                                          |
-| **Workers**  | Donne une ouvrière, donc la transformation (§6.1) | 4 alvéoles, **au bout de la branche Storage** (les rangs II-IV en miel) | Le basculement du jeu : jusque-là le nectar s'améliore, à partir de là il se transforme ; elle pousse **au bout de la branche Storage** : rien ne la montre avant que la réserve soit menée à son quatrième palier |
+| Branche      | Effet d'une alvéole                                    | Forme                                                                   | Intention                                                                                                                                                                                                          |
+| ------------ | ------------------------------------------------------ | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Storage**  | + un palier de réserve, **quadratique** (§7.5)         | **15 alvéoles** (I à XV), vers le haut, en nappe                        | Le déverrouilleur : c'est elle qui rend le reste payable — courte, mais chaque palier prend les trois quarts de la réserve qu'a offerte le précédent                                                               |
+| **Foragers** | +1 butineuse sur le trajet (rang I)                    | 3 alvéoles, à droite (les rangs II-III en miel)                         | Le doublement sec — la récompense la plus lisible                                                                                                                                                                  |
+| **Flight**   | Vitesse de vol (très légèrement) **et −7 % de dérive** | 6 alvéoles, vers le bas                                                 | Assez pour raser un virage, jamais pour voler le tour à votre place — et c'est le seul achat que le joueur sente **au geste** (§5.2)                                                                               |
+| **Growth**   | Accélère le calendrier du pré                          | 6 alvéoles, vers la gauche                                              | Les fleurs reviennent plus tôt : un tour croise plus de corolles ouvertes                                                                                                                                          |
+| **Workers**  | Donne une ouvrière, donc la transformation (§6.1)      | 4 alvéoles, **au bout de la branche Storage** (les rangs II-IV en miel) | Le basculement du jeu : jusque-là le nectar s'améliore, à partir de là il se transforme ; elle pousse **au bout de la branche Storage** : rien ne la montre avant que la réserve soit menée à son quatrième palier |
 
 **Le rayon de la ruche**, payé en miel, remplit les **creux du centre** laissés
 par les quatre premières branches. Il ne se dévoile qu'avec la première ouvrière.
@@ -389,6 +452,19 @@ D'où deux règles :
 
 L'absence de plafond est ce qui autorise cette liberté : aucun prix en miel, si
 bas ou si haut soit-il, ne peut rendre le rayon inachevable.
+
+**Le prix mixte.** Une alvéole porte un prix `{ honey?, nectar? }` : les deux
+monnaies sont facultatives et **cumulatives**. Une alvéole qui porte les deux se
+paie dans les deux **à la fois**, jamais au choix — il n'y a pas de conversion
+dans ce jeu. C'est ce qui manquait au rayon pour que ses deux moitiés se parlent :
+le nectar **se pilote** et il est plafonné, le miel **s'accumule** et ne l'est
+pas ; un prix mixte demande donc les deux vertus en même temps — avoir volé assez
+bien pour remplir une réserve, et avoir laissé la ruche tourner assez longtemps
+pour la transformer. Le bouton d'achat vérifie `honey >= cost.honey` **et**
+`nectar >= cost.nectar` ; le panneau d'information affiche **deux lignes de prix**
+distinctes, chacune avec son icône, et chacune se grise séparément — le joueur
+voit laquelle des deux lui manque. Une alvéole mixte reste cachée tant qu'aucune
+ouvrière n'existe, comme n'importe quel prix en miel (§7.2).
 
 ### 7.4 La Lignée de la Reine (prestige)
 
@@ -538,6 +614,131 @@ chiffres-là se comparent (« il me manque combien ? »), et « 1.4k » perd la 
 qui décide. Le rayon, lui, se **glisse** : sa course est bornée séparément des
 quatre côtés, parce que la cire monte deux rangées de nappe au-dessus de la ruche
 et que rien ne descend autant.
+
+### 7.6 Le grind : huit branches, 100 alvéoles
+
+Le début de partie apprend le jeu ; le grind est ce qu'on achète **en regardant
+ailleurs**. Aucune de ses alvéoles ne déverrouille quoi que ce soit : elles font
+monter un chiffre de 0,5 % à 5 % à la fois. C'est la différence entre un **palier**
+(la réserve : peu de décisions, chacune coûteuse) et un **cran** (le grind : des
+centaines, dont aucune ne se pense).
+
+Quatre thèmes, deux branches chacun. Chaque branche s'amorce contre une alvéole
+du début de partie — son point d'attache appartient à une **autre** branche, il
+sert de départ sans jamais compter comme un cran : la première alvéole du grind se
+montre donc dès que la branche d'accueil est bâtie.
+
+| Thème                    | Branche      | Crans  | Effet d'un cran                                         | Prix du I → du dernier                 |
+| ------------------------ | ------------ | ------ | ------------------------------------------------------- | -------------------------------------- |
+| **Architecture de cire** | _Micro-naps_ | **15** | −1 % sur `batchMs` (multiplicatif : n'atteint jamais 0) | miel ×1,35 · 60 → 4,0 k                |
+| **Architecture de cire** | _Slow Cure_  | **15** | +4 % de miel par lot **et** +3 % de durée de lot        | miel ×1,35 · 120 → 8,0 k               |
+| **Botanique avancée**    | _Airflow_    | **15** | +0,5 % de vitesse de vol (additif au vol de départ)     | nectar, courbe du plafond · 240 → 28 k |
+| **Botanique avancée**    | _Deep Roots_ | **10** | −2 % sur le repos d'une fleur fanée                     | nectar, courbe du plafond · 350 → 23 k |
+| **Phéromones**           | _Frenzy_     | **10** | +0,5 s sur le chrono du tour                            | **mixte** miel ×1,45 + nectar          |
+| **Phéromones**           | _Synergy_    | **15** | +5 % sur ce que vaut une ouvrière                       | miel ×1,60 · 200 → 144 k               |
+| **Génétique**            | _Brood_      | **10** | +1 butineuse **fantôme**                                | **mixte** miel ×1,90 + nectar          |
+| **Génétique**            | _Hatchery_   | **10** | +1 ouvrière, offerte                                    | miel ×2,00 · 400 → 205 k               |
+
+**Quinze crans au plus, dix pour la moitié d'entre elles — c'est une contrainte de
+lisibilité, et elle prime sur le nombre total d'alvéoles.** Un rang s'affiche en
+chiffres romains : « XV » se lit, « XXXVII » se déchiffre. Et une branche de
+cinquante crans n'est pas cinquante décisions, c'est une décision suivie de
+quarante-neuf clics — au quarantième cran de la même chose, le joueur ne choisit
+plus rien. Quinze pour les branches qui **règlent** (elles ont besoin
+d'amplitude), dix pour celles qui donnent des abeilles ou du temps de vol (chaque
+cran y pèse déjà lourd). Le prix, lui, se durcit d'autant : ces croissances sont
+raides parce que c'est le seul moyen de garder le même horizon de fin de partie
+avec trois fois moins d'alvéoles.
+
+**Trois nombres par branche.** Ce qui se décide ici n'est pas une alvéole mais une
+**courbe** : combien de crans, à quelle base, et à quelle vitesse le prix double.
+Le miel suit `base × croissance^(n-1)` — il n'a pas de plafond, sa courbe peut
+donc être aussi raide qu'on veut. Le nectar, lui, **est** la courbe du plafond :
+`capacité(15 × n / crans) × part`, avec `part < 1` — et comme il est écrit en
+fonction du nombre de crans, raccourcir une branche ne peut pas la rendre
+impayable, seulement resserrer ses paliers. Une branche en nectar ne peut
+donc pas se rendre inachetable en s'allongeant : son dernier cran demande une
+fraction du plafond ultime, pas un multiple. Un assert le vérifie **à l'import du
+module** — un rayon bloqué ne se découvre pas au bout de six heures de partie, il
+ne démarre pas.
+
+**Pourquoi additivement, pour le vol.** _Airflow_ s'ajoute au vol du début de
+partie au lieu de le multiplier, pour que le quinzième cran pèse exactement autant
+que le premier. Une branche de grind ne doit pas s'emballer : elle doit
+**durer**.
+
+**Pourquoi une branche qui va dans les deux sens.** _Slow Cure_ allonge le lot en
+le rendant plus riche, _Micro-naps_ le raccourcit. Les acheter toutes les deux
+n'est pas une contradiction, c'est le **réglage** : le joueur place son curseur
+entre une ruche qui bat vite et une ruche qui rend gros. Le net est positif dans
+les deux cas — ce sont des crans, pas des pièges (§7.8).
+
+**Les fantômes.** _Brood_ verse des butineuses qui ne sont **pas dessinées**
+et ne comptent pas dans les effectifs : elles volent le même trajet et multiplient
+ce qu'il rapporte. Une seule abeille à l'écran reste lisible, et le tour de
+référence reste le même pour toutes (§5.5).
+
+### 7.7 Les jalons : six alvéoles qui retournent une règle
+
+Au **bout** de leur branche — le seul endroit du rayon où une récompense de
+plusieurs heures ne peut pas tomber trop tôt. Leur effet et leur prix sont pesés à
+la main, un par un ; leur place est calculée comme le reste.
+
+| Jalon          | Au bout de   | Ce qu'il retourne                                         | Prix                     |
+| -------------- | ------------ | --------------------------------------------------------- | ------------------------ |
+| **Waggle**     | _Brood_      | +1 butineuse fantôme par **tranche de 10 ouvrières**      | 250 k miel **+ plafond** |
+| **Mutants**    | _Deep Roots_ | Le _Perfect_ passe de ×2 à **×3**                         | 150 k miel               |
+| **Digestion**  | _Airflow_    | Seuil de gelée royale **−20 %** (50 → 40 miel)            | 80 k miel **+ plafond**  |
+| **No Inertia** | _Frenzy_     | L'inertie du pilotage manuel disparaît à **95 %**         | 500 k miel               |
+| **Gold Swarm** | _Hatchery_   | L'essaimage garde **10 %** du miel accumulé               | 300 k miel               |
+| **Bud Clock**  | _Slow Cure_  | Un bourgeon **annonce** son ouverture (losange qui enfle) | plafond de nectar        |
+
+Chacun dit quelque chose que le grind ne peut pas dire :
+
+- **Waggle** est le seul nœud qui fasse se parler la ruche et le pré :
+  embaucher à l'intérieur fait enfin voler plus fort dehors ;
+- **Mutants** et **No Inertia** récompensent le **pilotage** et rien
+  d'autre. Ils ne valent que ce que vaut le trajet du joueur, et pour un trajet
+  quelconque ils ne valent rien. _No Inertia_ ne rapporte pas un nectar de plus :
+  il rend possible le trajet qu'on n'arrivait pas à tracer ;
+- **Digestion** est le seul nœud du rayon qui accélère le **méta-jeu** — d'où
+  son prix au plafond ;
+- **Gold Swarm** est le seul qui **survive** au rayon, et donc le seul qui pousse
+  à **retarder** le prestige au lieu de le précipiter (§7.4) ;
+- **Bud Clock** ne change aucun chiffre : il change ce que le joueur **voit**, et
+  c'est ce qui fait les meilleurs trajets. Le repère s'allume à 70 % de la pousse et
+  enfle jusqu'à l'ouverture — il est piloté par l'**avancement du bourgeon**, jamais
+  par l'horloge réelle, sinon deux relectures du même trajet ne se ressembleraient
+  plus (§4.3).
+
+### 7.8 Les pièges et les cosmétiques
+
+Quatre alvéoles posées **tout près de la ruche**, contre les branches du début de
+partie. C'est indispensable : un piège qu'on ne rencontre qu'à la fin n'apprend
+rien. Aucun ne ferme quoi que ce soit — ils sont en bout de course, rien ne pousse
+derrière.
+
+| Alvéole        | Contre     | Ce qu'elle fait                                | Prix        |
+| -------------- | ---------- | ---------------------------------------------- | ----------- |
+| **Heavy Load** | _Foragers_ | **+0,1 nectar par vol**, à plat, pour toujours | 2,5 k miel  |
+| **Sentries**   | _Workers_  | **+10 guerrières**, mécaniquement inutiles     | 40 k miel   |
+| **Bright Wax** | _Ripening_ | Des étincelles sur la ruche                    | 30 k nectar |
+| **Low Hum**    | _Flight_   | Le son de butinage descend de 120 cents        | 6 k miel    |
+
+**Heavy Load est le piège mathématique**, et il est honnête : le jeu affiche
+exactement ce qu'il donne. Un bonus **additif** au milieu d'un jeu multiplicatif est
+excellent au premier tour et risible au centième ; le prix est calé pour être
+tentant au moment où on le croise. Le joueur qui lit ce qu'il achète y coupe,
+l'autre paie sa leçon — une fois.
+
+**Sentries donne enfin un emploi à la caste _Warrior_** : monter la garde
+contre des pillards qui n'existent pas. Le jeu ne le cache pas — les guerrières
+apparaissent dans les effectifs, et c'est la seule chose qu'elles font. C'est du
+roleplay assumé, pas une promesse en attente.
+
+**Bright Wax et Low Hum ne touchent à rien.** Ce sont des achats qu'on fait pour
+soi ; les étincelles vivent hors du calendrier du tour, elles ne peuvent donc pas
+fausser une relecture (§4.3).
 
 ## 8. Écrans & interface
 
@@ -741,8 +942,10 @@ de jeu et ça ne doit surtout pas y ressembler.
 ## 12. État d'implémentation
 
 **Fait** — pré déterministe et ses huit espèces · enregistrement / jugement /
-relecture du trajet · nectar plafonné · le Rayon (8 branches sur deux monnaies,
-dévoilement, achats) · **usage du miel** : effectifs et réglages des lots ·
+relecture du trajet · **dérive du vol piloté, qui fond avec les améliorations**
+(§5.2) · nectar plafonné · le Rayon (**156 alvéoles engendrées** : 8 branches de
+début de partie, 8 branches de grind, 6 jalons, 4 pièges et cosmétiques, sur deux
+monnaies dont des **prix mixtes**, dévoilement, achats) · **usage du miel** : effectifs et réglages des lots ·
 transformation du nectar en miel par lots, sa jauge et ses gains
 flottants · gelée royale par paliers · **la Lignée de la Reine** (9 branches, 16
 nœuds, essaimage en deux clics, guichet ouvert pour toujours ensuite, héritage
@@ -755,37 +958,42 @@ l'écran-titre, invalidation par version · déploiements Pages + itch.
 
 1. **Anneau de timing « Perfect »** — la mécanique est le cœur du skill et n'a
    aucun retour visuel autour de la corolle.
-2. **La lignée a une fin** — seize nœuds, et l'arbre se solde. Le rayon aussi : la
-   branche Storage a quinze alvéoles, et sa courbe quadratique (§7.5) fait tenir la
-   fin de partie sur le prix de ses derniers paliers plutôt que sur leur nombre.
-   Passé XV, plus rien à bâtir — il manque toujours un horizon au-delà du rayon.
-3. **Warrior** — caste sans rôle : aucune menace à garder.
+2. **La lignée a une fin** — seize nœuds, et l'arbre se solde. Le rayon, lui, en a
+   désormais 156 : le grind, les six jalons et les quatre pièges (§7.6 à §7.8)
+   tiennent l'horizon bien au-delà de la branche Storage. Il manque toujours un
+   horizon au-delà de la **lignée**.
+3. **Warrior** — caste sans rôle : aucune menace à garder. _Sentries_ (§7.8) lui
+   donne un emploi de figuration, pas une mécanique.
 4. SFX du dépôt à la ruche et du « Perfect » ; sprites abeille/fleur/ruche encore
    procéduraux ; migration des couleurs historiques vers la palette.
 
 ## 13. Décisions de design écartées (et pourquoi)
 
-| Écarté                                                                      | Raison                                                                                                                                                                                                                             |
-| --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Combo / multiplicateur d'enchaînement** (`systems/Combo.ts`, supprimé)    | Récompensait le pilotage en direct, alors que le jeu automatise le pilotage. Le trajet, jugé au nectar/s, joue ce rôle mieux et une seule fois.                                                                                    |
-| **Plafond de sacoche sur la butineuse**                                     | Se traduisait par des corolles survolées sans effet ni explication. Le plafond est passé à la **ruche**, où il est lisible et améliorable.                                                                                         |
-| **Améliorations de vol généreuses**                                         | Rendre le pilotage facile viderait l'enregistrement de son intérêt. Le gain est volontairement minuscule.                                                                                                                          |
-| **Rayon en pop-up**                                                         | Une parenthèse modale disait « le jeu s'arrête ». Le rayon est un cadre de l'écran de jeu, et le pré tourne dessous.                                                                                                               |
-| **Production de miel passive** (0,5/s/ouvrière, sans intrant)               | Du miel créé à partir de rien : le nectar rapporté ne servait qu'au rayon, et une fois le rayon bâti plus rien ne justifiait de voler. Le miel se transforme désormais depuis la réserve (§6.1).                                   |
-| **Taux continu de gelée royale** (0,05 % du miel gagné)                     | Une décimale qui bouge n'est pas un événement. Remplacé par une dose franche tous les 50 miel, annoncée au-dessus de la ruche.                                                                                                     |
-| **Bilan chiffré en bas de colonne** (production, record, reines)            | Trois nombres inertes que personne ne lisait. Remplacés par la porte du Rayon. Le bilan reviendra quand il aura quelque chose à dire.                                                                                              |
-| **Recrutement des castes dans le panneau _Colony_** (`BEE_KINDS.cost`)      | Un second guichet à côté du Rayon : deux endroits pour une seule décision. Les effectifs se paient au rayon comme tout le reste (§6.2), et le panneau reste un état.                                                               |
-| **Un rayon en nectar uniquement**                                           | Le miel se produisait sans jamais se dépenser. Le rayon se paie désormais dans deux monnaies (§6, §7.3) — le vol en nectar, la ruche en miel — et la boucle se ferme.                                                              |
-| **Trois branches en miel tirées vers l'extérieur**                          | Huit bras auraient rendu le rayon illisible sans glissé. Elles remplissent les creux du centre : le rayon s'épaissit au lieu de s'étendre.                                                                                         |
-| **Paliers de réserve à pas fixe** (`storageStep`, 150 par alvéole)          | Six alvéoles et la branche était soldée ; au-delà, un pas constant aurait fait de la quinzième un « +5 % » inaudible. La contenance suit une courbe quadratique (§7.5), raide, sur quinze paliers.                                 |
-| **Une branche Storage de cinquante paliers**                                | Premier essai de la refonte quadratique : cinquante alvéoles à cliquer, dont aucune ne pesait vraiment. Quinze paliers sur une courbe deux fois plus raide donnent le même horizon avec quinze décisions au lieu de cinquante.     |
-| **Branche Storage écrite alvéole par alvéole**                              | Les prix sortent d'une formule ; garder les coordonnées à la main rendait tout changement de longueur ou de courbe manuel. La branche est générée, et la règle d'or est vérifiée par le code (§7.5).                               |
-| **Arbre de lignée ouvert seulement après l'essaimage**                      | Il aurait fallu signer le reset sans voir ce qu'on achète. L'arbre se lit à tout moment ; seule la dépense attend le départ de la reine (§7.4).                                                                                    |
-| **Fenêtre de dépense ouverte par l'essaimage, fermée par un second bouton** | Deux boutons pour un seul écran, et une fenêtre qui obligeait à tout dépenser sur-le-champ : impossible de mettre de côté pour un rang III. Un seul bouton (l'essaimage), et le guichet reste ouvert dès la première reine (§7.4). |
-| **Essaimage sur un clic sec**                                               | Le geste détruit une partie entière. Il s'arme d'abord (_Click again to leave_) et se désamorce seul ; une pop-up de confirmation aurait caché l'arbre dont elle parle.                                                            |
-| **Bouton d'essaimage masqué quand rien n'est payable**                      | Un bouton qui disparaît laisse croire à un bug. La gelée n'est plus perdue par l'essaimage : partir tôt reste un choix, pas un piège.                                                                                              |
-| **Lignée pannable et zoomable comme le rayon**                              | Un plan doit se lire d'un coup d'œil : neuf branches tiennent sur un écran, et un arbre qu'on explore au glissé se compare mal à lui-même.                                                                                         |
-| **Bouton _Buy all_ affiché grisé tant qu'il n'est pas acquis**              | Une promesse morte dans un coin du rayon. Il n'existe qu'une fois `busyWax` acquis, et se tait quand rien n'est payable (§8).                                                                                                      |
+| Écarté                                                                      | Raison                                                                                                                                                                                                                                                                                            |
+| --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Combo / multiplicateur d'enchaînement** (`systems/Combo.ts`, supprimé)    | Récompensait le pilotage en direct, alors que le jeu automatise le pilotage. Le trajet, jugé au nectar/s, joue ce rôle mieux et une seule fois.                                                                                                                                                   |
+| **Plafond de sacoche sur la butineuse**                                     | Se traduisait par des corolles survolées sans effet ni explication. Le plafond est passé à la **ruche**, où il est lisible et améliorable.                                                                                                                                                        |
+| **Améliorations de vol généreuses**                                         | Rendre le pilotage facile viderait l'enregistrement de son intérêt. Le gain est volontairement minuscule.                                                                                                                                                                                         |
+| **Rayon en pop-up**                                                         | Une parenthèse modale disait « le jeu s'arrête ». Le rayon est un cadre de l'écran de jeu, et le pré tourne dessous.                                                                                                                                                                              |
+| **Production de miel passive** (0,5/s/ouvrière, sans intrant)               | Du miel créé à partir de rien : le nectar rapporté ne servait qu'au rayon, et une fois le rayon bâti plus rien ne justifiait de voler. Le miel se transforme désormais depuis la réserve (§6.1).                                                                                                  |
+| **Taux continu de gelée royale** (0,05 % du miel gagné)                     | Une décimale qui bouge n'est pas un événement. Remplacé par une dose franche tous les 50 miel, annoncée au-dessus de la ruche.                                                                                                                                                                    |
+| **Bilan chiffré en bas de colonne** (production, record, reines)            | Trois nombres inertes que personne ne lisait. Remplacés par la porte du Rayon. Le bilan reviendra quand il aura quelque chose à dire.                                                                                                                                                             |
+| **Recrutement des castes dans le panneau _Colony_** (`BEE_KINDS.cost`)      | Un second guichet à côté du Rayon : deux endroits pour une seule décision. Les effectifs se paient au rayon comme tout le reste (§6.2), et le panneau reste un état.                                                                                                                              |
+| **Un rayon en nectar uniquement**                                           | Le miel se produisait sans jamais se dépenser. Le rayon se paie désormais dans deux monnaies (§6, §7.3) — le vol en nectar, la ruche en miel — et la boucle se ferme.                                                                                                                             |
+| **Trois branches en miel tirées vers l'extérieur**                          | Huit bras auraient rendu le rayon illisible sans glissé. Elles remplissent les creux du centre : le rayon s'épaissit au lieu de s'étendre.                                                                                                                                                        |
+| **Paliers de réserve à pas fixe** (`storageStep`, 150 par alvéole)          | Six alvéoles et la branche était soldée ; au-delà, un pas constant aurait fait de la quinzième un « +5 % » inaudible. La contenance suit une courbe quadratique (§7.5), raide, sur quinze paliers.                                                                                                |
+| **Une branche Storage de cinquante paliers**                                | Premier essai de la refonte quadratique : cinquante alvéoles à cliquer, dont aucune ne pesait vraiment. Quinze paliers sur une courbe deux fois plus raide donnent le même horizon avec quinze décisions au lieu de cinquante.                                                                    |
+| **Branche Storage écrite alvéole par alvéole**                              | Les prix sortent d'une formule ; garder les coordonnées à la main rendait tout changement de longueur ou de courbe manuel. La branche est générée, et la règle d'or est vérifiée par le code (§7.5).                                                                                              |
+| **Arbre de lignée ouvert seulement après l'essaimage**                      | Il aurait fallu signer le reset sans voir ce qu'on achète. L'arbre se lit à tout moment ; seule la dépense attend le départ de la reine (§7.4).                                                                                                                                                   |
+| **Fenêtre de dépense ouverte par l'essaimage, fermée par un second bouton** | Deux boutons pour un seul écran, et une fenêtre qui obligeait à tout dépenser sur-le-champ : impossible de mettre de côté pour un rang III. Un seul bouton (l'essaimage), et le guichet reste ouvert dès la première reine (§7.4).                                                                |
+| **Essaimage sur un clic sec**                                               | Le geste détruit une partie entière. Il s'arme d'abord (_Click again to leave_) et se désamorce seul ; une pop-up de confirmation aurait caché l'arbre dont elle parle.                                                                                                                           |
+| **Bouton d'essaimage masqué quand rien n'est payable**                      | Un bouton qui disparaît laisse croire à un bug. La gelée n'est plus perdue par l'essaimage : partir tôt reste un choix, pas un piège.                                                                                                                                                             |
+| **Lignée pannable et zoomable comme le rayon**                              | Un plan doit se lire d'un coup d'œil : neuf branches tiennent sur un écran, et un arbre qu'on explore au glissé se compare mal à lui-même.                                                                                                                                                        |
+| **Un rayon d'environ 250 alvéoles**                                         | Le brief visait 250 nœuds ; les branches de trente et cinquante crans qu'il fallait pour y arriver se lisaient « XXXVII » et s'achetaient sans qu'on choisisse rien. Le plafond est **quinze crans** (dix pour la moitié), le rayon fait 156 alvéoles, et les prix se durcissent d'autant (§7.6). |
+| **Longueurs de branches proportionnelles au brief** (40/24/24/18…)          | Premier essai du plafond : mise à l'échelle des nombres du brief pour tomber sur 250 pile. Les rangs restaient illisibles en chiffres romains. La lisibilité prime sur le total.                                                                                                                  |
+| **Noms d'améliorations longs** (_Aerodynamics_, _Guard of Honour_…)         | Ils débordaient de l'alvéole et mordaient sur les voisines. L'alvéole est passée de 34 à 40 px de rayon (onze caractères de monogram), et les noms tiennent tous dessous : _Airflow_, _Sentries_, _Brood_, _Waggle_…                                                                              |
+| **Une abeille docile dès le premier tour**                                  | Sans dérive ni inertie sérieuse, le pilotage n'avait rien à rendre : le rayon ne vendait que des chiffres. L'abeille nue vole de travers, et chaque cran de vol lui rend un peu de main (§5.2) — c'est le seul progrès qui se sente au geste.                                                     |
+| **Bouton _Buy all_ affiché grisé tant qu'il n'est pas acquis**              | Une promesse morte dans un coin du rayon. Il n'existe qu'une fois `busyWax` acquis, et se tait quand rien n'est payable (§8).                                                                                                                                                                     |
 
 ---
 

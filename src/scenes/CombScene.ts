@@ -1,6 +1,13 @@
 import Phaser from 'phaser'
 import { STR, UPGRADE_STR } from '../config/strings'
-import { COMB, COMB_TOTAL, tierLabel, type CombCell, type Currency } from '../config/upgrades'
+import {
+  COMB,
+  COMB_TOTAL,
+  costLines,
+  tierLabel,
+  type CombCell,
+  type Currency,
+} from '../config/upgrades'
 import { FONT_KEY } from '../gfx/font'
 import { HEX_R, TEX } from '../gfx/textures'
 import { audio } from '../systems/Audio'
@@ -95,6 +102,18 @@ const PAN_MARGIN = 24
 const COIN = 16
 /** Blanc entre la vignette et le chiffre. */
 const COIN_GAP = 3
+/**
+ * Interligne des deux prix d'une alvéole MIXTE, dans l'hexagone.
+ *
+ * Un prix mixte tient sur deux lignes et rien d'autre ne peut le dire : il n'y a
+ * pas de monnaie commune où les additionner, et « 12k + 3k » ne voudrait rien
+ * dire. Deux lignes serrées, chacune avec sa vignette — c'est plus dense qu'une
+ * alvéole ordinaire, et c'est précisément le signal : ces alvéoles-là demandent
+ * les deux moitiés du jeu.
+ */
+const COST_LINE_H = 13
+/** Nombre maximal de lignes de prix : deux monnaies, pas plus (cf. `Cost`). */
+const COST_LINES = 2
 
 /**
  * Monnaie d'une alvéole, reprise TELLE QUELLE de la barre de ressources :
@@ -110,13 +129,21 @@ const COIN_TINT: Record<Currency, number> = {
   honey: PALETTE.amber,
 }
 
+/** Une ligne de prix : sa vignette et son chiffre, recentrés ensemble. */
+interface CostRow {
+  coin: Phaser.GameObjects.Image
+  text: Phaser.GameObjects.BitmapText
+}
+
 interface CellView {
   cell: CombCell
   root: Phaser.GameObjects.Container
   hex: Phaser.GameObjects.Image
   name: Phaser.GameObjects.BitmapText
-  coin: Phaser.GameObjects.Image
-  cost: Phaser.GameObjects.BitmapText
+  /** Une ligne par monnaie demandée ; la seconde reste cachée pour un prix simple. */
+  rows: CostRow[]
+  /** Le mot « Built », à la place des prix, une fois l'alvéole bâtie. */
+  built: Phaser.GameObjects.BitmapText
 }
 
 export class CombScene extends Phaser.Scene {
@@ -124,6 +151,8 @@ export class CombScene extends Phaser.Scene {
   private views: CellView[] = []
   private detail!: Phaser.GameObjects.BitmapText
   private detailName!: Phaser.GameObjects.BitmapText
+  /** Les deux lignes de prix de la colonne de détail (cf. `buildChrome`). */
+  private detailCost!: CostRow[]
   private progress!: Phaser.GameObjects.BitmapText
   /** Achat groupé, légué par la lignée (`busyWax`) : absent sans elle. */
   private buyAll!: ButtonHandle
@@ -305,10 +334,13 @@ export class CombScene extends Phaser.Scene {
     const tier = tierLabel(cell)
     // Le rang passe à la ligne : « Storage III » d'un seul tenant déborde d'une
     // alvéole et vient mordre sur ses voisines.
+    const lines = costLines(cell.cost)
     const name = pixelText(
       this,
       0,
-      -10,
+      // Le nom remonte d'un cran quand le prix prend deux lignes, pour que les
+      // deux tiennent dans l'hexagone sans se toucher.
+      lines.length > 1 ? -17 : -12,
       tier ? `${label}\n${tier}` : label,
       FONTS.sizeHint,
       HEX.cream,
@@ -317,20 +349,34 @@ export class CombScene extends Phaser.Scene {
       .setCenterAlign()
 
     // Prix = vignette + chiffre, recentrés ensemble à chaque rafraîchissement
-    // (la largeur du chiffre change avec sa valeur, et « Built » n'a pas de
-    // vignette du tout).
-    const coin = this.add
-      .image(0, 16, COIN_TEX[cell.currency])
-      .setOrigin(0.5, 0.5)
-      .setTint(COIN_TINT[cell.currency])
-    const cost = pixelText(this, 0, 16, fmtBig(cell.cost), FONTS.sizeHint, HEX.cream).setOrigin(
-      0,
-      0.5,
-    )
+    // (la largeur du chiffre change avec sa valeur). Les deux lignes sont
+    // fabriquées TOUTES LES DEUX, même pour un prix simple : le rayon se
+    // rafraîchit à chaque frame, et créer un objet Phaser en cours de route
+    // coûterait plus cher que d'en cacher un.
+    const rows: CostRow[] = []
+    const top = 19 - ((lines.length - 1) * COST_LINE_H) / 2
+    for (let i = 0; i < COST_LINES; i++) {
+      const line = lines[i] as { currency: Currency; amount: number } | undefined
+      const currency: Currency = line?.currency ?? 'nectar'
+      const y = top + i * COST_LINE_H
+      rows.push({
+        coin: this.add
+          .image(0, y, COIN_TEX[currency])
+          .setOrigin(0.5, 0.5)
+          .setTint(COIN_TINT[currency]),
+        text: pixelText(this, 0, y, '', FONTS.sizeHint, HEX.cream).setOrigin(0, 0.5),
+      })
+    }
 
-    root.add([hex, name, coin, cost])
+    // « Built » prend la place des prix : pas de vignette, un mot centré.
+    const built = pixelText(this, 0, 19, STR.combOwned, FONTS.sizeHint, HEX.cream)
+      .setOrigin(0.5, 0.5)
+      .setTint(PALETTE.lime)
+      .setVisible(false)
+
+    root.add([hex, name, ...rows.flatMap((r) => [r.coin, r.text]), built])
     this.layer.add(root)
-    return { cell, root, hex, name, coin, cost }
+    return { cell, root, hex, name, rows, built }
   }
 
   /** Titre, jauge, ligne de détail et bouton de fermeture — posés en pixui, fixes. */
@@ -409,6 +455,23 @@ export class CombScene extends Phaser.Scene {
       FONTS.sizeHint,
       HEX.cream,
     ).setOrigin(0, 0)
+
+    // LE PRIX, EN TOUTES LETTRES, sous l'infobulle. L'hexagone dit déjà le prix,
+    // mais serré et abrégé ; ici il a la place de dire aussi ce qu'il MANQUE, et
+    // surtout de tenir deux lignes sans se tasser. C'est là que se lit un prix
+    // mixte : une ligne nectar, une ligne miel, chacune avec son icône, et
+    // chacune de la couleur de son verdict.
+    this.detailCost = []
+    for (let i = 0; i < COST_LINES; i++) {
+      const y = side.y + (FONTS.sizeHint + 4) * (i + 1)
+      this.detailCost.push({
+        coin: this.add.image(sideX + COIN / 2, y, TEX.iconNectarSmall).setOrigin(0.5, 0.5),
+        text: pixelText(this, sideX + COIN + COIN_GAP, y, '', FONTS.sizeHint, HEX.cream).setOrigin(
+          0,
+          0.5,
+        ),
+      })
+    }
   }
 
   // --- Entrées -------------------------------------------------------------
@@ -520,7 +583,7 @@ export class CombScene extends Phaser.Scene {
       if (!revealed) continue
 
       const owned = gameState.owns(cell)
-      const affordable = !owned && gameState.balanceFor(cell) >= cell.cost
+      const affordable = !owned && gameState.canAfford(cell)
 
       // Les trois états demandés, et rien de plus : bâtie / payable / trop
       // chère. La texture porte l'état, le prix le confirme.
@@ -533,23 +596,32 @@ export class CombScene extends Phaser.Scene {
       const dim = owned || affordable ? 1 : DIM_ALPHA
       view.name.setTint(COLORS.cream)
       view.name.setAlpha(dim)
-      view.cost.setTint(owned ? PALETTE.lime : COLORS.cream)
-      view.cost.setAlpha(dim)
-      // Le prix s'abrège au-delà de cinq chiffres : les derniers rangs de la
-      // réserve coûtent six chiffres, qui débordaient de l'alvéole sur ses
-      // voisines.
-      view.cost.setText(owned ? STR.combOwned : fmtBig(cell.cost))
 
-      // Une alvéole bâtie n'a plus de prix : la vignette de monnaie s'efface et
-      // le mot se recentre seul.
-      view.coin.visible = !owned
-      // La vignette s'éteint avec le prix : c'est le couple entier qui dit
-      // « hors d'atteinte », pas le seul chiffre.
-      view.coin.setTint(COIN_TINT[cell.currency])
-      view.coin.setAlpha(dim)
-      const total = owned ? view.cost.width : COIN + COIN_GAP + view.cost.width
-      view.coin.x = -total / 2 + COIN / 2
-      view.cost.x = owned ? -total / 2 : -total / 2 + COIN + COIN_GAP
+      // Une alvéole bâtie n'a plus de prix : ses lignes s'effacent, le mot les
+      // remplace au centre.
+      view.built.setVisible(owned)
+      const lines = costLines(cell.cost)
+      view.rows.forEach((row, i) => {
+        const line = lines[i] as { currency: Currency; amount: number } | undefined
+        const show = !owned && line !== undefined
+        row.coin.setVisible(show)
+        row.text.setVisible(show)
+        if (!show || !line) return
+        // Le prix s'abrège au-delà de cinq chiffres : les alvéoles de fin de
+        // partie en coûtent six ou sept, qui débordaient de l'hexagone sur ses
+        // voisines.
+        row.text.setText(fmtBig(line.amount))
+        // Chaque ligne s'éteint SÉPARÉMENT. Sur un prix mixte, c'est la seule
+        // information qui compte : le joueur doit voir LAQUELLE des deux
+        // monnaies lui manque, pas seulement que l'alvéole est hors d'atteinte.
+        const rowDim = gameState[line.currency] >= line.amount ? 1 : DIM_ALPHA
+        row.text.setTint(COLORS.cream)
+        row.text.setAlpha(rowDim)
+        row.coin.setAlpha(rowDim)
+        const total = COIN + COIN_GAP + row.text.width
+        row.coin.x = -total / 2 + COIN / 2
+        row.text.x = -total / 2 + COIN + COIN_GAP
+      })
     }
 
     this.progress.setText(`${gameState.comb.size}/${COMB_TOTAL}`)
@@ -564,6 +636,27 @@ export class CombScene extends Phaser.Scene {
     this.detailName.setText(
       hovered ? `${UPGRADE_STR[hovered.kind].name}${tier ? ` ${tier}` : ''}` : '',
     )
+
+    // Le prix s'intercale entre le nom et l'infobulle, et l'infobulle descend de
+    // ce qu'il occupe : une ligne pour un prix simple, deux pour un prix mixte.
+    // C'est ce qui permet à la colonne de dire un prix mixte sans jamais pousser
+    // le texte hors du cadre.
+    const owned = hovered ? gameState.owns(hovered) : false
+    const lines = hovered && !owned ? costLines(hovered.cost) : []
+    this.detailCost.forEach((row, i) => {
+      const line = lines[i] as { currency: Currency; amount: number } | undefined
+      row.coin.setVisible(line !== undefined)
+      row.text.setVisible(line !== undefined)
+      if (!line) return
+      row.coin.setTexture(COIN_TEX[line.currency]).setTint(COIN_TINT[line.currency])
+      row.text.setText(fmtBig(line.amount))
+      // Vert quand la bourse suffit, ambre quand elle ne suffit pas : sur un prix
+      // mixte, c'est la seule façon de voir laquelle des deux monnaies bloque.
+      row.text.setTint(gameState[line.currency] >= line.amount ? PALETTE.lime : PALETTE.amber)
+    })
+
+    const side = this.hiveView()
+    this.detail.y = side.y + (FONTS.sizeHint + 4) * (lines.length + 1) + 4
     this.detail.setText(hovered ? wrap(UPGRADE_STR[hovered.kind].tip, SIDE_COLS) : '')
   }
 }

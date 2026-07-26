@@ -9,7 +9,47 @@ export const BEE = {
   // Plus petit = abeille plus "lourde". Elle traîne juste assez pour qu'un
   // virage serré se paie : viser une corolle au vol demande de l'anticipation,
   // sinon le trajet parfait serait une simple ligne brisée.
-  lerp: 4.2,
+  //
+  // NUE, ELLE EST LOURDE, ET C'EST LE POINT DE DÉPART DU JEU. Une abeille docile
+  // dès la première minute ne laisse rien à gagner au pilotage : le rayon n'aurait
+  // plus qu'à vendre des chiffres. Ici, le premier trajet se vole de travers — et
+  // chaque cran de vol, chaque « ailes sûres » de la lignée, rend un peu de la
+  // main que le joueur croyait avoir.
+  lerp: 2.6,
+  // DÉRIVE DU VOL LIBRE : l'abeille ne va pas droit à ce qu'on lui montre, elle
+  // flotte autour. Deux sinusoïdes de périodes incommensurables — le motif ne se
+  // répète pas à vue d'œil, mais il ne tire aucun hasard : la même seconde du même
+  // tour donne la même dérive, et le pré reste déterministe (§4.3 du GDD).
+  //
+  // Elle ne s'applique QU'AU PILOTAGE : la relecture passe par `moveTo`, qui
+  // replace l'abeille au pixel sur le trajet qu'elle a réellement volé.
+  //
+  // L'amplitude n'est PAS fixe, et elle ne croît PAS proportionnellement : elle
+  // vaut `driftPx × (driftNear + (distance au pointeur / driftFullPx)^driftPow)`.
+  // Pointeur collé à l'abeille, il reste un quart d'amplitude — elle frémit ;
+  // pointeur à deux longueurs de bras, elle serpente ; pointeur à l'autre bout
+  // du pré, ELLE FAIT N'IMPORTE QUOI. L'exposant est ce qui fait la différence
+  // entre « un peu mou » et « incontrôlable » : une croissance linéaire se
+  // corrige d'instinct, une croissance qui s'emballe oblige à RAPPROCHER le
+  // pointeur, c'est-à-dire à mener l'abeille au lieu de la montrer du doigt.
+  //
+  // Le plafond n'est pas un adoucissement : sans lui, la cible part hors du pré
+  // et l'abeille file en ligne droite au lieu de battre la campagne.
+  driftPx: 34,
+  /** Part d'amplitude qui subsiste pointeur collé à l'abeille. */
+  driftNear: 0.25,
+  /** Distance, en px, qui vaut une amplitude pleine de plus. */
+  driftFullPx: 110,
+  /** Exposant de la montée en distance : > 1 = ça s'emballe au loin. */
+  driftPow: 1.8,
+  /** Écart maximal de la cible, en px. Au-delà, l'abeille sortirait du pré. */
+  driftMaxPx: 260,
+  /** Part de la dérive qui flotte dans tous les sens ; le reste est LATÉRAL. */
+  driftFloat: 0.35,
+  driftHzA: 0.31,
+  driftHzB: 0.53,
+  /** Troisième période, lente : c'est elle qui fait les grands écarts. */
+  driftHzC: 0.13,
   forageRadius: 28, // px
 } as const
 

@@ -124,6 +124,84 @@ export const UPGRADE_STR: Record<string, { name: string; tip: string }> = {
     name: 'Ripening',
     tip: 'Honey capped and cured properly. The very same batch yields more of it.',
   },
+
+  // --- Le grind : huit longues branches, quatre thèmes ---------------------
+  microNaps: {
+    name: 'Micro-naps',
+    tip: 'The hive learns to sleep in snatches. Every cell shaves one more percent off a batch - a percent of a percent, forever, and it never quite reaches zero.',
+  },
+  slowRipening: {
+    name: 'Slow Cure',
+    tip: 'Left in the cell a little longer. Each batch yields more honey and takes more time - a touch more of both. The net is positive, but the hive gets quieter with every cell: this is a dial, not a ladder.',
+  },
+  aerodynamics: {
+    name: 'Airflow',
+    tip: 'A half-percent off the drag. Nothing you will feel in one lap, and everything you will feel in a hundred.',
+  },
+  deepRoots: {
+    name: 'Deep Roots',
+    tip: 'The meadow holds its ground. A wilted flower rests a shade less before it climbs back up, so the same lap finds fewer bare stems.',
+  },
+  frenzy: {
+    name: 'Frenzy',
+    tip: 'Half a second more on the lap timer. A longer lap wins nothing by itself - it is still judged on nectar per second - but it leaves room for one more corolla.',
+  },
+  synergy: {
+    name: 'Synergy',
+    tip: 'Workers that know each other work better. Five percent onto what a single worker is worth - so it is worth nothing at all in an empty hive, and everything in a full one.',
+  },
+  queenMother: {
+    name: 'Brood',
+    tip: 'One more daughter flies your lap, and she is never drawn: a ghost forager carries the same nectar as the rest without crowding the meadow.',
+  },
+  workerQueen: {
+    name: 'Hatchery',
+    tip: 'A worker walks in, free of charge, and stays. The most expensive cells of the comb - and the only ones that pay themselves back.',
+  },
+
+  // --- Les jalons : ils changent une règle ---------------------------------
+  frenzyDance: {
+    name: 'Waggle',
+    tip: 'The hive dances what it knows. One ghost forager takes wing for every ten workers you keep indoors - hiring inside finally makes you fly harder outside.',
+  },
+  mutantCorollas: {
+    name: 'Mutants',
+    tip: 'The meadow answers your timing. A Perfect harvest is worth triple instead of double - which pays exactly nothing to a lap that never catches one.',
+  },
+  royalDigestion: {
+    name: 'Digestion',
+    tip: 'A drop of jelly settles out of every 40 honey instead of 50. The whole lineage comes a fifth sooner, for good.',
+  },
+  zeroInertia: {
+    name: 'No Inertia',
+    tip: 'The bee stops dragging. Ninety-five percent of the weight is gone and the corner you kept missing is suddenly there. It buys no nectar - it buys the lap you always had in mind.',
+  },
+  goldenSwarm: {
+    name: 'Gold Swarm',
+    tip: 'The queen leaves with a tenth of the honey in her keeping. The only thing a hive has ever carried through a swarm - and a reason to leave rich rather than leave early.',
+  },
+  floralClock: {
+    name: 'Bud Clock',
+    tip: 'You read the meadow before it opens. A bud about to bloom says so, and a lap can be drawn to arrive exactly then.',
+  },
+
+  // --- Les pièges et cosmétiques -------------------------------------------
+  heavyPollen: {
+    name: 'Heavy Load',
+    tip: 'A tenth of a nectar on top of every lap, flat, forever. It multiplies with nothing and it never grows. Read the number, then decide.',
+  },
+  honorGuard: {
+    name: 'Sentries',
+    tip: 'Ten warriors take up post at the entrance. No raider has ever come. They look magnificent.',
+  },
+  shinyWax: {
+    name: 'Bright Wax',
+    tip: 'The hive catches the light and keeps a little of it. Changes nothing at all, and you will know it is there.',
+  },
+  dullBuzz: {
+    name: 'Low Hum',
+    tip: 'The buzz drops half a tone. That is the whole of it.',
+  },
 }
 
 /** Nom et infobulle de chaque branche de la lignée (clés : `LineageKind`). */
