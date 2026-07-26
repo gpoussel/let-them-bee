@@ -98,7 +98,7 @@ export function getNectarCapacity(storageLevel: number): number {
 // l'enjeu d'un trajet est d'arriver au bon moment, pas seulement de passer.
 export const FLOWER = {
   /** Nombre d'emplacements dans le pré (une fleur y repousse indéfiniment). */
-  count: 16,
+  count: 19,
   /** Nectar d'une corolle tout juste ouverte, avant le facteur d'espèce. */
   baseNectar: 2,
   /** Fraîcheur au-delà de laquelle la récolte est « Perfect ». */

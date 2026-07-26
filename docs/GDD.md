@@ -545,8 +545,8 @@ mais par pas de 0,05 seulement : au rang III il reste les trois quarts de la
 corolle à ne pas manquer, et la récolte double reste un geste (règle 1).
 
 **Les fleurs de `wideMeadow` sont semées EN PLUS des autres, dans le même
-tirage** : les seize premiers emplacements d'un pré à dix-neuf fleurs sont
-rigoureusement ceux d'un pré à seize. Un héritage n'invalide pas le terrain appris
+tirage** : les dix-neuf premiers emplacements d'un pré à vingt-deux fleurs sont
+rigoureusement ceux d'un pré à dix-neuf. Un héritage n'invalide pas le terrain appris
 à la colonie précédente, il lui ajoute des corolles.
 
 **Les prix.** La gelée tombe par doses de 0,5 tous les 50 miel : une première

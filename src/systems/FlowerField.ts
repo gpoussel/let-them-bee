@@ -142,8 +142,8 @@ export class FlowerField {
    *               les fleurs poussent ET ce qui y repousse, cycle après cycle
    *
    * Les fleurs supplémentaires de la lignée sont semées EN PLUS des autres, avec
-   * le même tirage : les seize premiers emplacements d'un pré à dix-neuf fleurs
-   * sont rigoureusement ceux d'un pré à seize. Un héritage n'invalide donc pas
+   * le même tirage : les dix-neuf premiers emplacements d'un pré à vingt-deux
+   * fleurs sont rigoureusement ceux d'un pré à dix-neuf. Un héritage n'invalide donc pas
    * le trajet de la colonie précédente, il lui ajoute des corolles.
    */
   constructor(
