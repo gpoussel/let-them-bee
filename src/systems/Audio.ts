@@ -54,7 +54,7 @@ class AudioManager {
 
   /** SFX de clic, joué par tous les boutons de l'interface. */
   playClick(): void {
-    this.manager?.play(SND.click, { volume: settings.sfxVolume })
+    this.manager?.play(SND.click, { volume: settings.sfxGain })
   }
 
   /**
@@ -71,14 +71,14 @@ class AudioManager {
     this.musicKey = key
     const music = this.manager.add(key, {
       loop: true,
-      volume: fadeMs > 0 ? 0 : settings.musicVolume,
+      volume: fadeMs > 0 ? 0 : settings.musicGain,
     }) as Phaser.Sound.BaseSound & { volume: number }
     this.music = music
     if (fadeMs > 0) {
       this.fades.push({
         sound: music,
         from: 0,
-        to: settings.musicVolume,
+        to: settings.musicGain,
         elapsed: 0,
         duration: fadeMs,
         stopAtEnd: false,
@@ -138,8 +138,8 @@ class AudioManager {
     // Pendant un fondu entrant, c'est la cible qui bouge : sinon le curseur
     // serait écrasé à la frame suivante.
     const fade = this.fades.find((f) => f.sound === music)
-    if (fade) fade.to = settings.musicVolume
-    else music.volume = settings.musicVolume
+    if (fade) fade.to = settings.musicGain
+    else music.volume = settings.musicGain
   }
 }
 

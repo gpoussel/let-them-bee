@@ -387,8 +387,11 @@ alvéoles.
 - **Séparation moteur / skin** : `src/config/*` (moteur, aucune valeur en dur
   ailleurs) vs `src/ui/theme.ts` (skin remplaçable d'un bloc).
 - **Audio** : musique de titre et de potager en fondu croisé, son de clic UI,
-  volumes musique/SFX persistés. Manquent les SFX de gameplay (butinage, dépôt,
-  Perfect).
+  volumes musique/SFX persistés. La position d'un curseur n'est **pas** le gain :
+  elle est élevée à la puissance 1/0,6 (loi de Stevens) avant d'atteindre le
+  moteur audio, sinon toute la variation perçue se concentrerait dans les
+  premiers pourcents et la moitié haute paraîtrait plate. Manquent les SFX de
+  gameplay (butinage, dépôt, Perfect).
 - **Crédits** : tout asset entre dans `CREDITS` (`strings.ts`) **en même temps
   que l'asset**, avec auteur et licence.
 
