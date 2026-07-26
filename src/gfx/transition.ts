@@ -5,16 +5,26 @@ import { WORLD } from '../config/game'
 // referme sur l'écran depuis le centre, puis se rouvre sur la scène suivante.
 // Utilisée dans les deux sens (titre → jeu et jeu → titre).
 
-/** Clé de la texture d'hexagone bakée au boot. */
-export const HEX_TEX = 'tex-hex-cell'
+/** Clés des textures d'hexagone bakées au boot (variantes de moucheture). */
+export const HEX_TEX = ['tex-hex-cell-0', 'tex-hex-cell-1', 'tex-hex-cell-2'] as const
 
 /** Largeur d'un hexagone (pointe gauche → pointe droite), en pixels. */
 const HEX_W = 72
 /** Hauteur d'un hexagone à plat (√3/2 × largeur). */
 const HEX_H = HEX_W * 0.866
-/** Couleurs de la cellule : miel et liseré brun olive (palette du jeu). */
+/** Couleurs de la cellule (palette du jeu, cf. CLAUDE.md) : miel pour la cire,
+ * brun olive pour le liseré et l'ombre, jaune-vert clair pour la lumière. */
 const HEX_FILL = 0xf3b468
 const HEX_EDGE = 0x71653f
+const HEX_LIGHT = 0xd6dc53
+
+/** Décalage du remplissage vers le bas-droite : c'est lui qui crée le biseau —
+ * un liseré clair en haut-gauche, une ombre épaissie en bas-droite. */
+const BEVEL_X = 2
+const BEVEL_Y = 2
+/** Nombre de mouchetures par variante et taille d'une moucheture (en px). */
+const SPECKS = 8
+const SPECK = 2
 
 /** Durée d'apparition/disparition d'une cellule. */
 const CELL_MS = 260
@@ -39,21 +49,76 @@ function hexPoints(w: number, h: number): Phaser.Math.Vector2[] {
   ].map(([x, y]) => new Phaser.Math.Vector2(x, y))
 }
 
-/** Bake la cellule hexagonale. À appeler une fois au boot. */
+/** Vrai si (x, y) est dans un hexagone pointe-à-gauche/droite centré sur (0,0). */
+function insideHex(x: number, y: number, w: number, h: number): boolean {
+  const ax = Math.abs(x)
+  const ay = Math.abs(y)
+  if (ax > w / 2 || ay > h / 2) return false
+  if (ax <= w / 4) return true
+  // Sur les biseaux gauche/droite, la hauteur autorisée décroît linéairement.
+  return ay <= (h / 2) * ((w / 2 - ax) / (w / 4))
+}
+
+/** Générateur pseudo-aléatoire déterministe : la moucheture d'une variante ne
+ * change pas d'une partie à l'autre. */
+function seeded(seed: number): () => number {
+  let s = seed * 2654435761 + 1
+  return () => {
+    s = (s * 1664525 + 1013904223) % 4294967296
+    return s / 4294967296
+  }
+}
+
+/**
+ * Bake les variantes de cellule hexagonale. À appeler une fois au boot.
+ *
+ * Chaque cellule est construite en trois passes : le liseré brun olive, un
+ * hexagone clair, puis le miel décalé vers le bas-droite — ce décalage laisse
+ * apparaître le clair en haut-gauche et épaissit l'ombre en bas-droite, ce qui
+ * donne le relief. Quelques mouchetures achèvent de casser l'aplat.
+ */
 export function bakeHex(scene: Phaser.Scene): void {
-  const g = scene.make.graphics({ x: 0, y: 0 }, false)
   // Centre de la texture : les sommets sont exprimés autour de (0,0).
   const offset = new Phaser.Math.Vector2(HEX_W / 2 + 1, HEX_H / 2 + 1)
   // Léger débord (+1px) pour que les cellules voisines se recouvrent et ne
   // laissent pas de liseré de fond une fois l'écran couvert.
-  const pts = hexPoints(HEX_W + 2, HEX_H + 2).map((p) => p.add(offset))
-  g.fillStyle(HEX_EDGE, 1)
-  g.fillPoints(pts, true)
-  const inner = hexPoints(HEX_W - 4, HEX_H - 4).map((p) => p.add(offset))
-  g.fillStyle(HEX_FILL, 1)
-  g.fillPoints(inner, true)
-  g.generateTexture(HEX_TEX, HEX_W + 2, HEX_H + 2)
-  g.destroy()
+  const edge = hexPoints(HEX_W + 2, HEX_H + 2).map((p) => p.add(offset))
+  const light = hexPoints(HEX_W - 4, HEX_H - 4).map((p) => p.add(offset))
+  // Le miel est rétréci de 2× le biseau puis décalé de 1× : il affleure le bord
+  // bas-droite de l'hexagone clair et s'en écarte d'autant en haut-gauche.
+  const fillW = HEX_W - 4 - 2 * BEVEL_X
+  const fillH = HEX_H - 4 - 2 * BEVEL_Y
+  const fillCenter = offset.clone().add(new Phaser.Math.Vector2(BEVEL_X, BEVEL_Y))
+  const fill = hexPoints(fillW, fillH).map((p) => p.add(fillCenter))
+
+  HEX_TEX.forEach((key, variant) => {
+    const g = scene.make.graphics({ x: 0, y: 0 }, false)
+    g.fillStyle(HEX_EDGE, 1)
+    g.fillPoints(edge, true)
+    g.fillStyle(HEX_LIGHT, 1)
+    g.fillPoints(light, true)
+    g.fillStyle(HEX_FILL, 1)
+    g.fillPoints(fill, true)
+
+    // Mouchetures : alternance clair / ombre posée dans la cire, en restant à
+    // l'intérieur de l'hexagone de miel pour ne pas manger le biseau.
+    const rnd = seeded(variant + 1)
+    for (let i = 0; i < SPECKS; i++) {
+      const dx = (rnd() - 0.5) * fillW
+      const dy = (rnd() - 0.5) * fillH
+      if (!insideHex(dx, dy, fillW - SPECK * 4, fillH - SPECK * 4)) continue
+      g.fillStyle(i % 2 === 0 ? HEX_LIGHT : HEX_EDGE, 1)
+      g.fillRect(
+        Math.round(fillCenter.x + dx),
+        Math.round(fillCenter.y + dy),
+        SPECK,
+        i % 2 === 0 ? SPECK : SPECK - 1,
+      )
+    }
+
+    g.generateTexture(key, HEX_W + 2, HEX_H + 2)
+    g.destroy()
+  })
 }
 
 interface Cell {
@@ -78,8 +143,10 @@ function buildGrid(scene: Phaser.Scene, scale: number): Cell[] {
     const offset = col % 2 === 0 ? 0 : HEX_H / 2
     for (let row = -1; row * HEX_H + offset <= height + HEX_H; row++) {
       const y = row * HEX_H + offset
+      // Variante de moucheture choisie sur la position : deux cellules voisines
+      // ne portent pas le même grain, mais une cellule garde le sien.
       const image = scene.add
-        .image(x, y, HEX_TEX)
+        .image(x, y, HEX_TEX[Math.abs(col * 7 + row * 3) % HEX_TEX.length])
         .setScale(scale)
         .setDepth(DEPTH)
         .setScrollFactor(0)
