@@ -27,7 +27,9 @@ Séparation stricte **moteur / skin UI** (une autre version peut réutiliser le 
 - `src/scenes/` — `BootScene`, `TitleScene`, `GameScene`, `PauseScene`
 - `src/entities/` — `Bee` (suivi souris + inertie), `Flower` (cycle d'ouverture)
 - `src/systems/` — `GameState` (monnaies + save localStorage), `Combo`, `Audio`, `Settings`
-- `src/ui/` — `Hud`, `pixui` (widgets), `prefsPanel`, `cursor`, `text`
+- `src/ui/` — `Hud` (chef d'orchestre) et ses cadres `ResourceBar` / `ColonyPanel` /
+  `StatsPanel` / `StatusPanel`, `tooltip` (survol), `format`, `pixui` (widgets),
+  `prefsPanel`, `cursor`, `text`
 - `src/gfx/` — `font` (monogram bitmap), `logo`, `garden` (tileset Tiny Garden),
   `ui9` (nine-slice), `transition` (nid d'abeille), `textures.ts` (placeholders procéduraux,
   encore utilisés pour l'abeille / les fleurs / la ruche)
@@ -44,7 +46,17 @@ Séparation stricte **moteur / skin UI** (une autre version peut réutiliser le 
 - [x] Gelée royale qui s'accumule (fraction du miel)
 - [x] HUD complet + feedbacks « +N » / « Perfect! » + particules de pollen
 - [x] Sauvegarde localStorage + autosave + rechargement
-- [x] Production passive des ouvrières (`GameState.tickWorkers`) — *côté moteur uniquement*
+- [x] Production passive des castes (`GameState.tickBees`) — *côté moteur uniquement*
+
+**Écran de jeu**
+
+- [x] Le mini-jeu de vol est confiné au pré (`SCREEN.field`, ~38 % de l'écran) : cadre, fond
+      prairie bakée depuis Tiny Garden, cible de l'abeille bornée à la zone
+- [x] Barre de ressources : nectar / miel / gelée royale, icônes + valeurs, nom et rôle au survol
+- [x] Cadre « Colony » : effectif par caste, avec la règle N+1 (`GameState.visibleKinds`) —
+      butineuse et ouvrière au premier lancement, guerrière encore invisible
+- [x] Bilan (miel/s, record, reines) et bandeau du pré (charge, combo) sous forme de jauges
+- [x] Infobulles de survol génériques (`src/ui/tooltip.ts`)
 
 **Écran-titre & habillage**
 
@@ -61,17 +73,16 @@ Séparation stricte **moteur / skin UI** (une autre version peut réutiliser le 
 ## Reste à faire
 
 **Gameplay — le plus gros manque**
-- [ ] `HivePanel` (overlay ruche) + `Upgrades` : rien ne permet aujourd'hui *d'acheter*
-      des ouvrières ni des améliorations — le champ `workers` existe mais reste à 0
+- [ ] Achat de recrues + `Upgrades` : les effectifs s'affichent (cf. `ColonyPanel`) mais rien
+      ne permet encore de *dépenser* du miel — la place est réservée sous les castes
 - [ ] Prestige : gelée royale → reset + arbre de reines (`queens` est sauvegardé mais inutilisé)
 - [ ] Anneau de timing « Perfect » autour des fleurs (la mécanique existe, le retour visuel non)
 
 **Assets**
-- [ ] Palette officielle (cf. `CLAUDE.md`) : `src/ui/theme.ts` (cream, honey, amber, bgDark,
-      grassA/B, comboLow, perfect, jelly…) et la palette pixel de `src/gfx/textures.ts`
-      sont encore hors palette
-- [ ] Scène de jeu encore en placeholders : gazon en damier tracé par `drawField()` au lieu du
-      tileset Tiny Garden déjà chargé, sprites abeille / fleur / ruche procéduraux
+- [ ] Palette officielle (cf. `CLAUDE.md`) : `PALETTE` existe dans `src/ui/theme.ts` et sert à
+      tout l'écran de jeu, mais les anciennes couleurs (cream, honey, bgDark, grassA/B,
+      comboLow, perfect, jelly…) et la palette pixel de `src/gfx/textures.ts` restent à aligner
+- [ ] Sprites abeille / fleur / ruche encore procéduraux (le fond, lui, est passé au tileset)
 - [ ] Créer le sprite d'abeille custom 16×16
 
 **Charme AV**

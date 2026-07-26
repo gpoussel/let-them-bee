@@ -4,6 +4,7 @@ import { bakeFont } from '../gfx/font'
 import { bakeLogo } from '../gfx/logo'
 import { bakeSlider, bakeUi9 } from '../gfx/ui9'
 import { bakeGarden, TILE } from '../gfx/garden'
+import { bakeFlowers } from '../gfx/flowers'
 import { bakeHex } from '../gfx/transition'
 import { WORLD } from '../config/game'
 import { audio, SND } from '../systems/Audio'
@@ -31,11 +32,13 @@ export class BootScene extends Phaser.Scene {
     bakeLogo(this)
     bakeUi9(this)
     bakeSlider(this)
-    bakeGarden(this, {
-      key: TEX.garden,
-      cols: Math.ceil(WORLD.width / TILE),
-      rows: Math.ceil(WORLD.height / TILE),
-    })
+    bakeFlowers(this)
+    const cols = Math.ceil(WORLD.width / TILE)
+    const rows = Math.ceil(WORLD.height / TILE)
+    bakeGarden(this, { key: TEX.garden, cols, rows })
+    // Décor de l'écran de jeu : la même prairie, mais nue — l'interface s'y
+    // pose et l'abeille y vole.
+    bakeGarden(this, { key: TEX.gardenField, cols, rows, style: 'meadow', seed: 21 })
     bakeAll(this)
     bakeHex(this)
     bakeFont(this)

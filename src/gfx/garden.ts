@@ -1,5 +1,6 @@
 import Phaser from 'phaser'
 import { TEX } from './textures'
+import { random } from '../systems/rng'
 
 // Jardin : décor de fond composé à partir du pack « Tiny Garden ».
 //
@@ -85,23 +86,26 @@ const BED_COMPANION = 0.3
 /** Probabilité qu'un arbre pousse devant un parterre. */
 const TREE_CHANCE = 0.5
 
+/**
+ * Composition du décor :
+ *   - `beds`    : l'écran-titre — parterres alignés, bassin, maison du jardinier ;
+ *   - `meadow`  : l'écran de jeu — une prairie SANS AUCUNE FLEUR : gazon, touffes,
+ *                 cailloux et buissons. Les seules fleurs de l'écran de jeu sont
+ *                 celles que l'on butine, dans le pré, et rien ne doit pouvoir
+ *                 se confondre avec elles.
+ */
+export type GardenStyle = 'beds' | 'meadow'
+
 export interface GardenOpts {
   /** Nom de la texture produite. */
   key: string
   /** Dimensions en tuiles. */
   cols: number
   rows: number
+  /** Composition (défaut : `beds`). */
+  style?: GardenStyle
   /** Graine du tirage (le décor est identique d'une exécution à l'autre). */
   seed?: number
-}
-
-/** Générateur pseudo-aléatoire déterministe (LCG), pour un décor reproductible. */
-function random(seed: number): () => number {
-  let state = seed >>> 0
-  return () => {
-    state = (state * 1103515245 + 12345) % 2147483648
-    return state / 2147483648
-  }
 }
 
 type SourceImage = HTMLImageElement | HTMLCanvasElement
@@ -117,6 +121,7 @@ function sourceImage(scene: Phaser.Scene, key: string): SourceImage {
  */
 export function bakeGarden(scene: Phaser.Scene, o: GardenOpts): void {
   const { key, cols, rows } = o
+  const style = o.style ?? 'beds'
   const width = cols * TILE
   const height = rows * TILE
 
@@ -170,9 +175,11 @@ export function bakeGarden(scene: Phaser.Scene, o: GardenOpts): void {
     }
   }
 
-  // 2. Bassin, en bas à gauche, avec quelques nénuphars.
+  // 2. Bassin, en bas à gauche, avec quelques nénuphars. La prairie de l'écran
+  //    de jeu s'en passe : elle n'accueille ni eau, ni parterres, ni maison —
+  //    l'interface a besoin de toute la surface (cf. étapes 3 à 5).
   const pond = { x: 3, y: rows - 9, w: 16, h: 6 }
-  for (let j = 0; j < pond.h; j++) {
+  for (let j = 0; style === 'beds' && j < pond.h; j++) {
     const row = j === 0 ? POND_ROW[0] : j === pond.h - 1 ? POND_ROW[3] : POND_ROW[1 + (j % 2)]
     for (let i = 0; i < pond.w; i++) {
       const col = i === 0 ? POND_COL[0] : i === pond.w - 1 ? POND_COL[3] : POND_COL[1 + (i % 2)]
@@ -182,12 +189,16 @@ export function bakeGarden(scene: Phaser.Scene, o: GardenOpts): void {
   }
   // Les nénuphars restent sur l'eau : jamais sur la berge (j = 0) ni sur la
   // rive basse (dernière ligne).
-  for (const [dx, dy] of [
-    [3, 2],
-    [8, 4],
-    [12, 2],
-    [6, 3],
-  ]) {
+  const lotuses: Array<[number, number]> =
+    style === 'beds'
+      ? [
+          [3, 2],
+          [8, 4],
+          [12, 2],
+          [6, 3],
+        ]
+      : []
+  for (const [dx, dy] of lotuses) {
     blit(objects, LOTUS, STAGES[3][0], pond.x + dx, pond.y + dy - 1, 1, 2)
   }
 
@@ -209,12 +220,12 @@ export function bakeGarden(scene: Phaser.Scene, o: GardenOpts): void {
   const beds: Array<[number, number, number]> = []
   // Le bas de l'écran reste libre : c'est là que passent le score et la barre
   // de bas de page.
-  for (let k = 0; bedRow(k) + BED_H <= rows - 4; k++) {
+  for (let k = 0; style === 'beds' && bedRow(k) + BED_H <= rows - 4; k++) {
     beds.push([2, bedRow(k), k % SPECIES])
     beds.push([bedX, bedRow(k), (k + 4) % SPECIES])
   }
   // Un dernier parterre à droite, en face du bassin, pour équilibrer le bas.
-  beds.push([bedX, rows - 9, 7])
+  if (style === 'beds') beds.push([bedX, rows - 9, 7])
 
   for (const [bx, by, species] of beds) {
     // Un parterre ne mord jamais sur le bassin.
@@ -299,18 +310,20 @@ export function bakeGarden(scene: Phaser.Scene, o: GardenOpts): void {
 
   // 5. La maisonnette, posée par-dessus la terre du parterre qu'elle borde.
   //    Ses tuiles sont réservées : le décor dispersé ne la parasitera pas.
-  blit(tiles, HOUSE.col, HOUSE.row, house.x, house.y, HOUSE.w, HOUSE.h)
-  for (let j = 0; j < HOUSE.h; j++) {
-    for (let i = 0; i < HOUSE.w; i++) take(house.x + i, house.y + j)
-  }
-  // Un buisson d'un côté, deux touffes de l'autre : la maison est assise dans
-  // le gazon au lieu d'y être posée.
-  const houseBase = house.y + HOUSE.h - 1
-  blit(tiles, HOUSE_BUSH[0], HOUSE_BUSH[1], house.x - 1, houseBase)
-  take(house.x - 1, houseBase)
-  for (const [dx, dy] of HOUSE_TUFTS) {
-    blit(tiles, TUFTS[0][0], TUFTS[0][1], house.x + HOUSE.w + dx, houseBase + dy)
-    take(house.x + HOUSE.w + dx, houseBase + dy)
+  if (style === 'beds') {
+    blit(tiles, HOUSE.col, HOUSE.row, house.x, house.y, HOUSE.w, HOUSE.h)
+    for (let j = 0; j < HOUSE.h; j++) {
+      for (let i = 0; i < HOUSE.w; i++) take(house.x + i, house.y + j)
+    }
+    // Un buisson d'un côté, deux touffes de l'autre : la maison est assise dans
+    // le gazon au lieu d'y être posée.
+    const houseBase = house.y + HOUSE.h - 1
+    blit(tiles, HOUSE_BUSH[0], HOUSE_BUSH[1], house.x - 1, houseBase)
+    take(house.x - 1, houseBase)
+    for (const [dx, dy] of HOUSE_TUFTS) {
+      blit(tiles, TUFTS[0][0], TUFTS[0][1], house.x + HOUSE.w + dx, houseBase + dy)
+      take(house.x + HOUSE.w + dx, houseBase + dy)
+    }
   }
 
   // 6. Cailloux et buissons dispersés sur le gazon libre.

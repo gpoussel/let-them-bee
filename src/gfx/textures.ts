@@ -54,10 +54,22 @@ export const TEX = {
   tileset: 'img-garden-tiles',
   objects: 'img-garden-objects',
   garden: 'tex-garden',
+  gardenField: 'tex-garden-field',
   iconItch: 'tex-icon-itch',
   iconGithub: 'tex-icon-github',
   iconAbout: 'tex-icon-about',
   iconPrefs: 'tex-icon-prefs',
+  iconNectar: 'tex-icon-nectar',
+  iconHoney: 'tex-icon-honey',
+  // Les mêmes gouttes, bakées au point d'art : le prix d'une alvéole se lit à
+  // côté d'un chiffre de 12 px, pas d'un chiffre de 36.
+  iconNectarSmall: 'tex-icon-nectar-sm',
+  iconHoneySmall: 'tex-icon-honey-sm',
+  iconJelly: 'tex-icon-jelly',
+  iconBee: 'tex-icon-bee',
+  hexIdle: 'tex-hex-idle',
+  hexReady: 'tex-hex-ready',
+  hexDone: 'tex-hex-done',
 } as const
 
 // Les icônes du bas de l'écran-titre sont dessinées sur une grille 16x16 et
@@ -106,6 +118,55 @@ function beeGrid(flap: boolean): string[] {
     '...kyyk...',
   ]
   return flap ? down : up
+}
+
+/**
+ * Ruche en paille (skep) de 32x32 : un dôme de bourrelets tressés, un trou
+ * d'entrée voûté et une planche d'envol.
+ *
+ * La grille est calculée plutôt que tapée à la main : les bourrelets, le
+ * galbe et les ombres se déduisent de la silhouette, ce qui donne un dessin
+ * régulier là où trente-deux lignes de texte finiraient forcément de travers.
+ */
+function hiveGrid(): string[] {
+  const S = 32
+  const rows: string[][] = Array.from({ length: S }, () => Array<string>(S).fill('.'))
+
+  // Dôme : plus large en descendant, mais en s'évasant de moins en moins —
+  // une racine carrée donne l'épaule arrondie du panier de paille.
+  const TOP = 2
+  const BASE = 25
+  const halfAt = (y: number) => Math.round(3 + 11 * Math.sqrt((y - TOP) / (BASE - TOP)))
+
+  for (let y = TOP; y <= BASE; y++) {
+    const half = halfAt(y)
+    const left = 16 - half
+    const right = 15 + half
+    // Un bourrelet tous les quatre rangs : c'est la corde de paille cousue.
+    const seam = (y - TOP) % 4 === 3
+    for (let x = left; x <= right; x++) {
+      let c: string
+      if (x === left || x === right) c = 'k'
+      else if (x <= left + 2) c = seam ? 'o' : 'y' // lumière rasante à gauche
+      else if (x >= right - 3) c = seam ? 'k' : 'b' // le flanc droit est dans l'ombre
+      else c = seam ? 'b' : 'd'
+      rows[y][x] = c
+    }
+  }
+
+  // Entrée : une voûte creusée dans le bas du dôme.
+  for (let x = 14; x <= 17; x++) rows[19][x] = 'k'
+  for (let y = 20; y <= 24; y++) for (let x = 13; x <= 18; x++) rows[y][x] = 'k'
+  for (let x = 14; x <= 17; x++) rows[25][x] = 'd' // le seuil, éclairé
+
+  // Planche d'envol : elle déborde du panier, et porte son ombre.
+  for (let x = 1; x <= 30; x++) {
+    rows[26][x] = x <= 2 || x >= 29 ? 'k' : 'd'
+    rows[27][x] = 'b'
+    rows[28][x] = x <= 3 || x >= 28 ? '.' : 'k'
+  }
+
+  return rows.map((r) => r.join(''))
 }
 
 // Les icônes de liens sont monochromes (crème) : leur couleur de marque est
@@ -193,14 +254,176 @@ const ICON_PREFS = [
   '................',
 ]
 
+// Goutte de nectar (pleine, avec un éclat évidé sur la joue gauche).
+const ICON_NECTAR = [
+  '................',
+  '.......gg.......',
+  '.......gg.......',
+  '......gggg......',
+  '......gggg......',
+  '.....gggggg.....',
+  '.....gggggg.....',
+  '....gggggggg....',
+  '....gggggggg....',
+  '...gggggggggg...',
+  '...gg..gggggg...',
+  '...gg..gggggg...',
+  '...gggggggggg...',
+  '....gggggggg....',
+  '......gggg......',
+  '................',
+]
+
+// Pot de miel : couvercle, col, panse et bandeau d'étiquette évidé.
+const ICON_HONEY = [
+  '................',
+  '....gggggggg....',
+  '....gggggggg....',
+  '.....gggggg.....',
+  '...gggggggggg...',
+  '..gggggggggggg..',
+  '..gggggggggggg..',
+  '..gg........gg..',
+  '..gg........gg..',
+  '..gggggggggggg..',
+  '..gggggggggggg..',
+  '..gggggggggggg..',
+  '..gggggggggggg..',
+  '...gggggggggg...',
+  '....gggggggg....',
+  '................',
+]
+
+// Gelée royale : la cellule hexagonale où on l'élève, en contour.
+const ICON_JELLY = [
+  '................',
+  '......gggg......',
+  '.....gg..gg.....',
+  '....gg....gg....',
+  '...gg......gg...',
+  '..gg........gg..',
+  '..gg........gg..',
+  '..gg........gg..',
+  '..gg........gg..',
+  '..gg........gg..',
+  '..gg........gg..',
+  '...gg......gg...',
+  '....gg....gg....',
+  '.....gg..gg.....',
+  '......gggg......',
+  '................',
+]
+
+// Abeille vue de dessus, monochrome : l'effectif de chaque caste la reprend,
+// teintée à la couleur de la caste (cf. BEE_TINT).
+const ICON_BEE = [
+  '................',
+  '......g..g......',
+  '......gggg......',
+  '......gggg......',
+  '..gg..gggg..gg..',
+  '.gggg.gggg.gggg.',
+  '.gggggggggggggg.',
+  '..gg..gggg..gg..',
+  '......gggg......',
+  '.....gggggg.....',
+  '.....g....g.....',
+  '.....gggggg.....',
+  '......g..g......',
+  '......gggg......',
+  '.......gg.......',
+  '................',
+]
+
+/**
+ * Rayon (centre → SOMMET) d'une alvéole du rayon d'améliorations, en px.
+ *
+ * Il n'est pas libre : le rayon entier doit tenir dans sa fenêtre À L'ÉCHELLE 1.
+ * Le dézoomer pour l'y faire entrer rendrait la police bitmap floue — un demi-
+ * pixel de monogram n'existe pas. Le rayon fait 11 R de haut (3 alvéoles de part
+ * et d'autre de la ruche) pour une fenêtre de 378 px : 34 est le plus grand
+ * rayon qui passe.
+ */
+export const HEX_R = 34
+/** Largeur d'une alvéole pointe en haut : de plat à plat, et non de pointe à pointe. */
+const HEX_W = Math.ceil(Math.sqrt(3) * HEX_R)
+/** Hauteur d'une alvéole pointe en haut. */
+const HEX_H = HEX_R * 2
+/** Épaisseur du liseré, et marge qui l'empêche d'être rogné au bord de la texture. */
+const HEX_LINE = 3
+const HEX_PAD = 2
+/**
+ * Retrait du dessin par rapport au pas du pavage. Jointoyées EXACTEMENT, deux
+ * voisines partagent une arête : les deux liserés se recouvrent, celui de la
+ * dernière dessinée efface celui de l'autre, et le rayon devient une seule tache
+ * sans découpe. En rentrant chaque hexagone de quelques pixels, chacun garde son
+ * liseré entier et le fond passe entre eux — c'est la cire qui sépare les
+ * alvéoles d'un vrai rayon.
+ */
+const HEX_GAP = 4
+
+/**
+ * Alvéole du rayon : hexagone POINTE EN HAUT, dessiné en vectoriel plutôt qu'en
+ * grille de pixels — une diagonale d'hexagone rendue au gros pixel devient un
+ * escalier illisible à cette taille.
+ *
+ * Un hexagone pointe en haut n'est PAS carré : il fait `√3·r` de large pour
+ * `2r` de haut. Le baker dans une boîte carrée revenait à dessiner l'hexagone
+ * couché (pointes à gauche et à droite), et le pavage axial — calculé, lui,
+ * pour du pointe en haut — ne pouvait alors pas jointoyer.
+ *
+ * Le sprite est centré sur la texture, dont la taille reste celle du PAS du
+ * pavage (`√3·R` / `2R`) même si le dessin est rentré de `HEX_GAP` : le pavage
+ * ne bouge pas, seule la cire entre alvéoles apparaît.
+ */
+function bakeHex(scene: Phaser.Scene, key: string, fill: number, line: number): void {
+  const r = HEX_R - HEX_GAP
+  const w = HEX_W + HEX_PAD * 2
+  const h = HEX_H + HEX_PAD * 2
+  const cx = w / 2
+  const cy = h / 2
+
+  const g = scene.make.graphics({ x: 0, y: 0 }, false)
+  const pts: number[] = []
+  for (let i = 0; i < 6; i++) {
+    const a = (Math.PI / 180) * 60 * i
+    pts.push(cx + r * Math.sin(a), cy - r * Math.cos(a))
+  }
+  g.fillStyle(fill, 1)
+  g.lineStyle(HEX_LINE, line, 1)
+  g.beginPath()
+  g.moveTo(pts[0], pts[1])
+  for (let i = 2; i < pts.length; i += 2) g.lineTo(pts[i], pts[i + 1])
+  g.closePath()
+  g.fillPath()
+  g.strokePath()
+  g.generateTexture(key, w, h)
+  g.destroy()
+}
+
 export function bakeAll(scene: Phaser.Scene) {
+  // Les trois états d'une alvéole : achetable, hors de prix, terminée.
+  bakeHex(scene, TEX.hexIdle, 0x4a655a, 0x71653f)
+  bakeHex(scene, TEX.hexReady, 0x71653f, 0xf3b468)
+  bakeHex(scene, TEX.hexDone, 0x639b35, 0xd6dc53)
+
   bake(scene, TEX.iconPrefs, ICON_PREFS, IP, ICON_PX)
+  bake(scene, TEX.iconNectar, ICON_NECTAR, IP, ICON_PX)
+  bake(scene, TEX.iconHoney, ICON_HONEY, IP, ICON_PX)
+  // Version 16x16 des deux monnaies du rayon (un point d'art = un pixel écran).
+  bake(scene, TEX.iconNectarSmall, ICON_NECTAR, IP, 1)
+  bake(scene, TEX.iconHoneySmall, ICON_HONEY, IP, 1)
+  bake(scene, TEX.iconJelly, ICON_JELLY, IP, ICON_PX)
+  bake(scene, TEX.iconBee, ICON_BEE, IP, ICON_PX)
   bake(scene, TEX.iconItch, ICON_ITCH, IP, ICON_PX)
   bake(scene, TEX.iconGithub, ICON_GITHUB, IP, ICON_PX)
   bake(scene, TEX.iconAbout, ICON_ABOUT, IP, ICON_PX)
 
-  bake(scene, TEX.bee, beeGrid(false), P)
-  bake(scene, TEX.beeFlap, beeGrid(true), P)
+  // L'abeille est bakée à sa taille d'affichage : 2 points par pixel d'art,
+  // comme les fleurs et la ruche. La réduire après coup revenait à la rendre
+  // à une échelle fractionnaire de sa texture, d'où sa bouillie de pixels.
+  bake(scene, TEX.bee, beeGrid(false), P, 2)
+  bake(scene, TEX.beeFlap, beeGrid(true), P, 2)
 
   bake(scene, TEX.flowerClosed, [
     '..gg..',
@@ -229,16 +452,10 @@ export function bakeAll(scene: Phaser.Scene) {
     '..gg..',
   ], P)
 
-  bake(scene, TEX.hive, [
-    '..dddd..',
-    '.dddddd.',
-    'bddddddb',
-    'bbbbbbbb',
-    'bbkkkkbb',
-    'bbkkkkbb',
-    'bbbbbbbb',
-    'bbbbbbbb',
-  ], P)
+  // La ruche est le seul décor dessiné à la vraie résolution du pixel art :
+  // 32x32 points, bakés à 2 px écran chacun — la même densité que les fleurs
+  // du tileset, pour qu'elle ne détonne pas à côté d'elles.
+  bake(scene, TEX.hive, hiveGrid(), P, 2)
 
   bake(scene, TEX.pollen, [
     '.cc.',

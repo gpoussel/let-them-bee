@@ -63,20 +63,13 @@ export class TitleScene extends Phaser.Scene {
     const cy = height / 2
     // Le bouton principal se place à mi-hauteur entre l'accroche et la barre
     // de bas d'écran ; le meilleur score, quand il existe, s'intercale dessous.
-    const taglineY = height * 0.3 + 132
+    // Le logo occupe le haut de l'écran ; le bouton se place à mi-hauteur entre
+    // lui et la barre de bas d'écran. (Il y avait ici une accroche : retirée, le
+    // jeu n'en a pas encore une qui dise juste ce qu'il est.)
+    const logoBottomY = height * 0.3 + 132
     const footerTopY = height - FOOTER_Y - ICON_SIZE
-    const buttonY = (taglineY + footerTopY) / 2
+    const buttonY = (logoBottomY + footerTopY) / 2
     const scoreY = (buttonY + footerTopY) / 2
-    center.bitmapText({
-      font: FONT_KEY,
-      size: FONTS.sizeSmall,
-      text: STR.tagline,
-      tint: COLORS.amberSoft,
-      x: 0,
-      y: taglineY - cy,
-      originX: OriginX.Center,
-      originY: OriginY.Center,
-    })
 
     // Bouton principal.
     button(center, {
