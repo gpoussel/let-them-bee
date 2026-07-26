@@ -1,5 +1,5 @@
 import Phaser from 'phaser'
-import { BEE, ROUTE } from '../config/balance'
+import { BEE } from '../config/balance'
 import { FEEL } from '../config/feel'
 import { STR } from '../config/strings'
 import { HEX, COLORS, FONTS, PALETTE, SCREEN } from '../ui/theme'
@@ -429,7 +429,11 @@ export class GameScene extends Phaser.Scene {
       // ce que le tour rapporterait, pour le comparer au tour de référence.
       this.recordedNectar += gained
       this.hud.popText(this.hive.x, this.hive.y - 40, `+${Math.floor(gained)}`, HEX.cream)
-      if ((this.recorder?.durationMs ?? 0) >= ROUTE.minDurationMs) this.finishRecording()
+      // Rentrer avec du nectar clôt le tour, TOUJOURS. Un tour très court n'est
+      // pas un tour invalide (le critère est le nectar par seconde) ; et même
+      // battu, il doit se solder par un verdict, sinon le joueur reste en vol
+      // sans savoir que sa boucle est déjà jugée.
+      this.finishRecording()
       return
     }
 
