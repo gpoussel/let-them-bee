@@ -3,6 +3,7 @@
   "version": "0.5.0",
   "description": "Let them bee, an incremental game made for DTJ36 Game Jam",
   "type": "module",
+  "packageManager": "pnpm@10.33.0",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
@@ -13,7 +14,7 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "check": "npm run format:check && npm run lint && npm run typecheck",
+    "check": "pnpm run format:check && pnpm run lint && pnpm run typecheck",
     "prepare": "husky"
   },
   "lint-staged": {
@@ -22,6 +23,11 @@
       "eslint --fix --max-warnings=0"
     ],
     "*.{json,md,yml,yaml,html,css}": "prettier --write"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
   },
   "dependencies": {
     "phaser": "^4.2.1",

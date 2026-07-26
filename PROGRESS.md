@@ -9,10 +9,10 @@ Stack : **Phaser 4 + Vite + TypeScript**. Design détaillé : [`docs/GDD.md`](do
 ## Lancer le projet
 
 ```bash
-npm install
-npm run dev          # http://localhost:5173/let-them-bee/
-npm run build        # build GitHub Pages (base /let-them-bee/)
-npm run build:itch   # build itch.io (base relative ./)
+pnpm install
+pnpm run dev          # http://localhost:5173/let-them-bee/
+pnpm run build        # build GitHub Pages (base /let-them-bee/)
+pnpm run build:itch   # build itch.io (base relative ./)
 ```
 
 ## Architecture
