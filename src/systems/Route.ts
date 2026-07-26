@@ -74,11 +74,17 @@ export class RouteRecorder {
   }
 
   /**
-   * Clôt le tour. Renvoie `null` si le tour est trop court pour valoir un
-   * trajet (aller-retour immédiat, clic malheureux…).
+   * Clôt le tour. Renvoie `null` si le tour ne vaut pas un trajet.
+   *
+   * Un tour qui RAPPORTE est toujours un tour valable, même bouclé en une
+   * seconde : c'est même le meilleur des cas, puisque le critère est le nectar
+   * par seconde. Seul le tour BREDOUILLE doit durer un minimum pour compter —
+   * sinon un aller-retour vide s'installerait comme premier trajet de référence
+   * (le premier gagne toujours).
    */
   finish(nectar: number): Route | null {
-    if (this.elapsed < ROUTE.minDurationMs || this.pts.length < 4) return null
+    if (this.pts.length < 4) return null
+    if (nectar <= 0 && this.elapsed < ROUTE.minDurationMs) return null
     // La durée retenue est celle des points effectivement enregistrés : c'est
     // elle que la relecture mettra à reproduire.
     const duration = (this.pts.length / 2 - 1) * ROUTE.sampleMs

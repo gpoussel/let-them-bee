@@ -132,8 +132,14 @@ déplacement du pré, et la sauvegarde reste compacte.
 - **Couperet de 10 s** : le tour se clôt en l'état, rentré ou pas. Un tour rejoué
   en boucle _doit_ être court — dix secondes bien remplies valent mieux qu'une
   minute de promenade. Le compteur passe au rouge dans les deux dernières.
-- Rentrer à la ruche avec du nectar **clôt le tour** (au-delà de la durée
-  minimale). En dessous de cette durée, le tour est rejeté (« too short »).
+- Rentrer à la ruche avec du nectar **clôt le tour, toujours** — et le tour est
+  jugé sur-le-champ. Un tour très court n'est pas un tour invalide : le critère
+  étant le nectar par seconde, une boucle d'une seconde bien remplie est même le
+  meilleur des cas. Et un tour battu se solde quand même par un verdict, sinon le
+  joueur reste en vol sans savoir que sa boucle est déjà jugée.
+- Seul le tour **bredouille** doit durer un minimum pour compter (« too short ») :
+  faute de quoi un aller-retour vide s'installerait comme premier trajet de
+  référence, puisque le premier tour gagne toujours.
 - Le bouton permet d'abandonner à tout moment.
 
 ### 5.3 Juger
