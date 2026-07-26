@@ -451,8 +451,12 @@ alvéoles.
 - **Séparation moteur / skin** : `src/config/*` (moteur, aucune valeur en dur
   ailleurs) vs `src/ui/theme.ts` (skin remplaçable d'un bloc).
 - **Audio** : musique de titre et de potager en fondu croisé, son de clic UI,
-  volumes musique/SFX persistés. Manquent les SFX de gameplay (butinage, dépôt,
-  Perfect).
+  volumes musique/SFX persistés. Deux SFX de gameplay : une fleur butinée, un lot
+  de miel versé. **Le butinage sonne moins fort en rejeu qu'en enregistrement** —
+  le trajet tourne en boucle sans le joueur, à plein volume il deviendrait un
+  métronome ; pendant un enregistrement, chaque corolle prise est un geste du
+  joueur et s'entend en entier. Manquent le son du dépôt à la ruche et celui du
+  « Perfect ».
 - **Crédits** : tout asset entre dans `CREDITS` (`strings.ts`) **en même temps
   que l'asset**, avec auteur et licence.
 
@@ -508,8 +512,8 @@ transitions, audio, pause · déploiements Pages + itch.
 3. **Le rayon a une fin** — 37 alvéoles et puis plus rien. Tant que le prestige
    n'existe pas, la dernière alvéole bâtie est la fin de fait du jeu.
 4. **Warrior** — caste sans rôle : aucune menace à garder.
-5. SFX de gameplay ; sprites abeille/fleur/ruche encore procéduraux ; migration
-   des couleurs historiques vers la palette.
+5. SFX du dépôt à la ruche et du « Perfect » ; sprites abeille/fleur/ruche encore
+   procéduraux ; migration des couleurs historiques vers la palette.
 
 ## 13. Décisions de design écartées (et pourquoi)
 

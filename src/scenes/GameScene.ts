@@ -62,6 +62,13 @@ const REACH_RISE = 44
 const PERCH = { dx: -46, dy: -10 } as const
 /** Période minimale entre deux « Full! » : un par corolle saturerait l'écran. */
 const FULL_POP_MS = 900
+/**
+ * Atténuation du son de butinage quand le trajet est rejoué. Le tour tourne en
+ * boucle sans le joueur : à plein volume il deviendrait un métronome. Pendant un
+ * enregistrement, au contraire, chaque fleur prise est un geste du joueur — elle
+ * s'entend en entier.
+ */
+const FORAGE_REPLAY_GAIN = 0.35
 
 /**
  * Mode du pré :
@@ -410,6 +417,7 @@ export class GameScene extends Phaser.Scene {
 
     this.bee.nectar += nectar
 
+    audio.playSfx(SND.forage, this.mode === 'recording' ? 1 : FORAGE_REPLAY_GAIN)
     this.hud.popText(
       x,
       y - 56,
@@ -462,6 +470,7 @@ export class GameScene extends Phaser.Scene {
     const gained = gameState.tickHoney(dt)
     if (!gained) return
 
+    audio.playSfx(SND.honey)
     const top = this.honeyGauge.topY
     this.hud.popGain(
       this.hive.x,
