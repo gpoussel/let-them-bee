@@ -66,6 +66,21 @@ export interface SlotState {
   cycle: number
 }
 
+/**
+ * Ce que rapporterait un emplacement dans cet état. Pur : sert aussi bien à la
+ * récolte qu'à l'ANTICIPER (cf. `stateOf(i, at)`).
+ */
+export function nectarFrom(state: SlotState): { nectar: number; perfect: boolean } {
+  if (state.phase !== 'bloom') return { nectar: 0, perfect: false }
+  const perfect = state.freshness >= FLOWER.perfectFreshness
+  const kind = FLOWER_KINDS[state.species]
+  // Une corolle qui vient de s'ouvrir paie plein tarif ; une fleur sur le
+  // point de faner ne rapporte presque plus, mais jamais rien.
+  let nectar = Math.max(1, Math.round(FLOWER.baseNectar * kind.value * state.freshness))
+  if (perfect) nectar *= FLOWER.perfectMultiplier
+  return { nectar, perfect }
+}
+
 export class FlowerField {
   readonly slots: Slot[] = []
   /** Cycle durant lequel chaque emplacement a déjà été butiné (-1 : jamais). */
@@ -107,6 +122,11 @@ export class FlowerField {
     }
   }
 
+  /** Horloge du tour, en ms. Permet de lire le pré à une date FUTURE. */
+  get now(): number {
+    return this.t
+  }
+
   /** Remet le pré à son état de départ. À appeler au début de CHAQUE tour. */
   reset(): void {
     this.t = 0
@@ -117,14 +137,17 @@ export class FlowerField {
     this.t += deltaMs
   }
 
-  /** État de l'emplacement `i` à l'instant courant. */
-  stateOf(i: number): SlotState {
+  /**
+   * État de l'emplacement `i` à l'instant courant — ou à la date `at` (en ms
+   * d'horloge du tour), ce qui permet de PRÉVOIR le pré sans l'avancer.
+   */
+  stateOf(i: number, at: number = this.t): SlotState {
     const slot = this.slots[i]
     // Les cycles n'ont plus tous la même durée — une orchidée met trois fois
     // plus longtemps qu'une marguerite —, donc on les déroule depuis le début
     // du tour. C'est bon marché : un tour dure 10 s, un cycle jamais moins de
     // 5, cela fait deux ou trois pas.
-    const { cycle, local } = this.cycleAt(slot, this.t)
+    const { cycle, local } = this.cycleAt(slot, at)
     const species = speciesAt(slot.seed, cycle)
     const kind = FLOWER_KINDS[species]
     const base = { species, cycle }
@@ -168,12 +191,6 @@ export class FlowerField {
     if (state.phase !== 'bloom') return { nectar: 0, perfect: false }
 
     this.harvested[i] = state.cycle
-    const perfect = state.freshness >= FLOWER.perfectFreshness
-    const kind = FLOWER_KINDS[state.species]
-    // Une corolle qui vient de s'ouvrir paie plein tarif ; une fleur sur le
-    // point de faner ne rapporte presque plus, mais jamais rien.
-    let nectar = Math.max(1, Math.round(FLOWER.baseNectar * kind.value * state.freshness))
-    if (perfect) nectar *= FLOWER.perfectMultiplier
-    return { nectar, perfect }
+    return nectarFrom(state)
   }
 }
