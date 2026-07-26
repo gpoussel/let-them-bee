@@ -370,9 +370,27 @@ la réserve complète et deviendraient inachetables. **Prix et plafond bougent
 ensemble, toujours** — c'est la même décision, pas deux.
 
 Le **miel n'a pas de plafond** : la moitié en miel échappe à cette contrainte, et
-c'est ce qui lui permet de commencer très bas (3 miel, une douzaine de lots) puis
-de monter sans borne. Le premier achat en miel doit tomber peu après la première
+c'est ce qui lui permet de commencer très bas (1 miel, **quatre lots**) puis de
+monter sans borne. Le premier achat en miel doit tomber peu après la première
 ouvrière — sinon la ressource qu'on vient de débloquer resterait muette.
+
+**La moitié en miel se paie moins cher que la moitié en nectar, et c'est la même
+décision que le durcissement du rayon du vol.** Le nectar **se pilote** : chaque
+alvéole doit se gagner par des trajets. Le miel **récompense la transition** :
+une fois la première ouvrière posée, l'automatisation doit se faire sentir tout
+de suite, sinon la bascule du jeu (§7.2) se paie d'une attente au lieu d'un gain.
+D'où deux règles :
+
+- les **rangs I** de _Fanning_, _Thrift_ et _Ripening_ tiennent en une poignée de
+  lots (1, 2 et 3 miel) — le premier réglage arrive avant que l'attente du lot
+  n'ait eu le temps de lasser ;
+- les **rangs II-III des effectifs** (_Workers_, _Foragers_) sont bas parce
+  qu'eux seuls ferment la boucle : plus de miel achète une ouvrière, qui rend
+  plus de miel. Une boucle de rétroaction qui met trop longtemps à se refermer ne
+  se lit pas comme une boucle.
+
+L'absence de plafond est ce qui autorise cette liberté : aucun prix en miel, si
+bas ou si haut soit-il, ne peut rendre le rayon inachevable.
 
 ### 7.4 La Lignée de la Reine (prestige)
 
