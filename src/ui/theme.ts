@@ -103,6 +103,21 @@ export const HUD = {
   verdictMs: 3500,
 } as const
 
+// Jauge de transformation, posée au-dessus de la ruche (cf. ui/HoneyGauge).
+// Elle vit DANS le pré, sur ce qu'elle décrit, et non dans la barre du haut : le
+// joueur doit associer le miel à la ruche. Horizontale et large comme le toit —
+// elle se lit d'un coup d'œil sans quitter l'abeille des yeux, là où un tube
+// vertical obligeait à évaluer une hauteur.
+export const HONEY_GAUGE = {
+  width: 56,
+  height: 12,
+  /**
+   * Écart entre le sommet de la ruche et le bas de la jauge, en px. Court :
+   * plus haut, la jauge flotte au lieu de coiffer le toit.
+   */
+  rise: 10,
+} as const
+
 // Flèche de relance (cf. ui/Nudge).
 export const NUDGE = {
   /** Au-dessus des cadres, sous les textes flottants du jeu. */

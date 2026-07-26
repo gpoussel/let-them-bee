@@ -84,9 +84,33 @@ export const ROUTE = {
   minDurationMs: 1500,
 } as const
 
+// La TRANSFORMATION. Le miel ne tombe plus du ciel : les ouvrières le tirent du
+// nectar de la réserve, par LOTS. Un lot est une dépense franche (on voit la
+// réserve tomber d'un coup), une attente visible (la jauge au-dessus de la
+// ruche), puis un gain net. C'est ce qui donne enfin un débouché au nectar
+// au-delà du rayon — et une raison de continuer à voler quand le rayon est bâti.
+export const HONEY = {
+  /**
+   * Nectar consommé pour lancer un lot. Rien ne démarre en dessous : la
+   * transformation attend, et repart d'elle-même dès que la réserve repasse le
+   * seuil. Le montant est franc (un cinquième de la réserve pleine) pour que le
+   * joueur voie ce qu'il paie.
+   */
+  nectarPerBatch: 100,
+  /** Durée d'un lot, en ms. C'est le temps que met la jauge à se remplir. */
+  batchMs: 8000,
+  /**
+   * Miel rendu par un lot, PAR OUVRIÈRE. Volontairement minuscule devant les
+   * 100 nectar dépensés : le miel n'est pas du nectar converti, c'est une
+   * ressource d'un autre ordre, et son prix se compte en réserves entières.
+   */
+  honeyPerWorker: 0.25,
+  /** Miel cumulé qui donne une dose de gelée royale (ci-dessous). */
+  jellyThreshold: 50,
+  jellyPerThreshold: 0.5,
+} as const
+
 export const ECONOMY = {
-  // 1 nectar déposé = 1 miel.
-  royalJellyRate: 0.0005, // 0.05 % du miel gagné accumulé en gelée royale
   firstPrestigeThreshold: 1, // gelée royale min. pour prestige
   upgradeCostGrowth: 1.15,
 } as const
@@ -96,16 +120,16 @@ export type BeeKindId = 'forager' | 'worker' | 'warrior'
 
 export interface BeeKind {
   id: BeeKindId
-  /** Miel produit passivement, par individu et par seconde. */
-  production: number
   /** Coût de la première recrue, en miel (croissance : `upgradeCostGrowth`). */
   cost: number
 }
 
 // La butineuse est l'abeille que l'on pilote : elle ne produit rien toute seule,
-// c'est le joueur qui récolte. Les suivantes travaillent en fond.
+// c'est le joueur qui récolte. L'ouvrière ne récolte rien non plus — elle
+// TRANSFORME (cf. `HONEY`) : aucune caste ne fabrique de ressource à partir de
+// rien, tout ce qui entre dans la ruche a été rapporté par un vol.
 export const BEE_KINDS: readonly BeeKind[] = [
-  { id: 'forager', production: 0, cost: 0 },
-  { id: 'worker', production: 0.5, cost: 50 },
-  { id: 'warrior', production: 0, cost: 500 },
+  { id: 'forager', cost: 0 },
+  { id: 'worker', cost: 50 },
+  { id: 'warrior', cost: 500 },
 ] as const

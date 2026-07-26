@@ -161,9 +161,9 @@ définition le même tour de référence.
 
 | Ressource | Origine | Usage | Plafond |
 | --- | --- | --- | --- |
-| **Nectar** | Récolté par la butineuse, versé à la ruche | **Toutes** les alvéoles du rayon | Oui — `nectarCapacity` |
-| **Miel** | Production passive des castes (1 nectar déposé = 1 miel côté moteur) | Monnaie de la colonie : castes, prestige | Non |
-| **Gelée royale** | Fraction infime du miel gagné | Prestige (§7.4) | Non |
+| **Nectar** | Récolté par la butineuse, versé à la ruche | **Toutes** les alvéoles du rayon, puis la transformation (§6.2) | Oui — `nectarCapacity` |
+| **Miel** | **Transformé** du nectar par les ouvrières, par lots | Monnaie de la colonie : castes, prestige | Non |
+| **Gelée royale** | Une dose tous les `jellyThreshold` de miel gagné | Prestige (§7.4) | Non |
 
 **Pourquoi le rayon se paie en nectar.** Le miel est l'affaire de la colonie ; le
 rayon est l'affaire de la butineuse. Son prix se lit dans la seule ressource
@@ -175,12 +175,67 @@ corolles survolées sans effet et sans explication. Le stock, lui, est lisible e
 haut de l'écran — et il se débloque dans le rayon. Quand il déborde, le jeu
 l'annonce (« Full! »), sur la ruche ou sur la fleur concernée.
 
-### 6.1 Castes (`BEE_KINDS`, l'ordre fait foi)
+### 6.1 La transformation (`HONEY`)
+
+**Rien ne se crée dans cette ruche.** Le miel ne tombe plus du ciel : les
+ouvrières le tirent du nectar de la réserve. Une caste qui produisait « 0,5 par
+seconde » à partir de rien faisait de la moitié du jeu un décor — le nectar
+rapporté ne servait qu'au rayon, et une fois le rayon bâti, plus rien ne
+justifiait de voler.
+
+Le miel se fabrique donc par **lots**, et un lot est un **engagement** :
+
+- il coûte `nectarPerBatch` **à l'allumage**, pas à l'arrivée. La réserve tombe
+  d'un coup, en haut de l'écran — le joueur voit ce qu'il paie ;
+- sous ce montant, rien ne démarre, et la transformation **repart d'elle-même**
+  dès que la réserve repasse le seuil. Pas de bouton « lancer » : l'attente,
+  c'est le nectar qui manque, et le joueur sait déjà comment en avoir ;
+- il dure `batchMs` et rend `honeyPerWorker` **par ouvrière**. La quantité est
+  minuscule devant les 100 nectar dépensés : le miel n'est pas du nectar
+  converti, c'est une ressource d'un autre ordre, et son prix se compte en
+  réserves entières.
+
+La **gelée royale** n'a plus de taux continu : une dose (`jellyPerThreshold`)
+se dépose tous les `jellyThreshold` de miel gagné, reliquat conservé. Un
+événement rare et visible plutôt qu'une décimale qui bouge.
+
+**L'interrupteur.** La transformation mord sur la réserve, or une réserve qui ne
+monte plus ne paie plus les alvéoles de rang IV — le premier lot priverait à
+jamais le joueur de ce qu'il n'a pas encore acheté. On peut donc couper et
+relancer la transformation. C'est le seul réglage manuel du jeu, et il existe
+uniquement pour que rien ne devienne inatteignable (cf. la règle d'équilibrage de
+§7.3).
+
+Couper, c'est couper **tout de suite** : le lot en cours est abandonné et son
+nectar rendu à la réserve, dans la limite du plafond. Laisser le lot finir
+trahirait le geste — on coupe justement parce qu'on a besoin de ce nectar, et
+faire attendre huit secondes pour qu'une décision prenne effet, c'est répondre
+non. Le rendu écrêté est le prix d'une réserve déjà pleine, pas une punition.
+
+Il a **deux commandes pour un seul état** : un clic sur la jauge, qui est le
+geste direct — on coupe là où on voit tourner — et un bouton dans le panneau
+**Colonie**, qui est le geste qu'on trouve. Une jauge cliquable ne dit pas
+qu'elle l'est ; le panneau des effectifs, si.
+
+Ce bouton est **sur la ligne des ouvrières**, pas au bas du panneau : au bas, il
+commanderait « la colonie », alors qu'on n'endort que les ouvrières — la
+butineuse, elle, vole toujours. Sur leur ligne, sa portée se lit sans phrase. Il
+n'apparaît qu'avec la première ouvrière et nomme l'action à venir, pas l'état
+courant (« Rest » / « Brew ») ; l'état, lui, se dit à côté de l'effectif par un
+**Zzz** posé, suivi de points qui respirent — le mot ne clignote pas, il doit se
+lire ; ce sont les points qui font le sommeil. C'est cet état qu'on cherche quand
+on se demande pourquoi le miel ne monte plus, et un libellé de bouton ne le
+donne pas.
+
+La jauge, elle, prend la **main gravée du jeu** au survol, comme tout ce qui se
+clique ici — pas la main du navigateur : une seule main à l'écran.
+
+### 6.2 Castes (`BEE_KINDS`, l'ordre fait foi)
 
 | Caste | Rôle | Statut |
 | --- | --- | --- |
 | **Forager** | L'abeille que l'on pilote. Ne produit rien seule. | Effectif porté par la branche `foragers` du rayon |
-| **Worker** | Ne quitte jamais la ruche, transforme les stocks en miel. | Production passive **implémentée**, **achat non implémenté** |
+| **Worker** | Ne quitte jamais la ruche, transforme le nectar en miel (§6.1). | Donnée par la branche `workers` du rayon ; **achat au miel non implémenté** |
 | **Warrior** | Garde l'entrée. | Coquille : aucun effet, non achetable |
 
 Le panneau *Colony* affiche les castes possédées **+ la suivante**
@@ -206,7 +261,7 @@ Une alvéole n'apparaît que si elle **touche du construit** (la ruche, ou une
 alvéole payée). Acheter une case ouvre ses voisines, et rien d'autre. Une alvéole
 s'achète **une fois, et pour de bon**.
 
-### 7.3 Les quatre branches
+### 7.3 Les cinq branches
 
 | Branche | Effet d'une alvéole | Forme | Intention |
 | --- | --- | --- | --- |
@@ -214,6 +269,15 @@ s'achète **une fois, et pour de bon**.
 | **Foragers** | +1 butineuse sur le trajet | 1 alvéole, à droite | Le doublement sec — la récompense la plus lisible |
 | **Flight** | Vitesse de vol, **très** légèrement | 4 alvéoles, vers le bas | Assez pour raser un virage, jamais pour voler le tour à votre place |
 | **Growth** | Accélère le calendrier du pré | 4 alvéoles, vers la gauche | Les fleurs reviennent plus tôt : un tour croise plus de corolles ouvertes |
+| **Workers** | Donne la première ouvrière, donc la transformation (§6.1) | 1 alvéole, **au bout de la branche Storage** | Le basculement du jeu : jusque-là le nectar s'améliore, à partir de là il se transforme |
+
+**Pourquoi l'alvéole des ouvrières est là et pas ailleurs.** Elle est la plus
+chère du rayon (la réserve pleine à vingt nectar près) et n'est **visible**
+qu'une fois les quatre paliers de réserve bâtis. Deux raisons : c'est la seule
+place où un tel prix est payable, et l'ordre d'apprentissage y gagne — on
+n'ouvre le second métier de la ruche qu'après avoir compris le premier.
+L'alvéole ne déverrouille pas un achat, elle **donne** l'ouvrière : le miel
+n'existe pas encore pour la payer.
 
 **Règle d'équilibrage structurante.** Tout se paie en nectar, or le nectar est
 plafonné : une alvéole plus chère que la réserve du moment est **inatteignable à
@@ -275,6 +339,19 @@ coupées, pour que le glissé du rayon ne pilote pas l'abeille. Le rayon se
 déplace au glissé (un glissé n'achète rien) et la barre de ressources reste
 découverte au-dessus : le joueur doit voir sa réserve fondre à l'achat.
 
+**La jauge de transformation** coiffe **le toit de la ruche**, dans le pré, et
+pas dans la barre du haut : le miel est une affaire de ruche, et le joueur doit
+faire le lien entre la réserve qui tombe et le pot qui monte. Elle est
+**horizontale**, large comme le toit, et se remplit de gauche à droite — elle se
+lit d'un coup d'œil sans quitter l'abeille des yeux. Trois états lisibles
+d'emblée : elle n'existe pas tant qu'il n'y a pas d'ouvrière, son liseré s'éteint
+quand rien ne transforme (coupée, ou faute de nectar), il s'allume quand un lot
+est en cours. À l'arrivée du lot, le gain sort **juste au-dessus**, avec son
+pot : `+0.25`
+pour le miel, `+0.5` plus haut pour la gelée royale quand elle tombe. Un nombre
+nu ne dirait pas de quelle ressource il parle — et les deux tombent au même
+endroit, à quelques lots d'écart.
+
 **Le bouton du Rayon** bat quand une alvéole est payable.
 
 **Les relances (« nudges »)** sont les seuls appels à l'action non sollicités du
@@ -318,7 +395,10 @@ alvéoles.
 ## 10. Sauvegarde
 
 localStorage, autosave périodique. Persistés : nectar, miel, gelée royale,
-effectifs, meilleur miel, reines, identifiants d'alvéoles, meilleur trajet.
+effectifs, meilleur miel, reines, identifiants d'alvéoles, meilleur trajet, et
+l'état de la transformation (lot en cours et son avancement, reliquat de miel
+vers la gelée royale, interrupteur). Le nectar d'un lot engagé a déjà quitté la
+réserve : on reprend le lot où il en était plutôt que de le perdre.
 
 Deux garde-fous à la relecture : une alvéole dont l'identifiant a disparu du
 rayon n'est pas ressuscitée, et un trajet tronqué est écarté plutôt que rejoué de
@@ -336,6 +416,11 @@ de jeu et ça ne doit surtout pas y ressembler.
 
 - **Menu de triche** (`Tab`) : donner/retirer des ressources, posséder des
   alvéoles.
+- **Vitesse du jeu** (x1 / x2 / x4, dans le menu) : multiplie le `delta` de la
+  scène de jeu en un seul point, avant tout calcul — un lot de miel de 8 s ou une
+  repousse de fleur ne s'observe pas en temps réel. Des radios, parce que c'est un
+  état : le menu doit dire à quelle vitesse tourne le jeu. Retour à x1 dès que la
+  scène est recréée.
 - **`planRoute`** : fabrique un trajet correct par simulation (le pré est pur, on
   peut donc le lire dans le futur), imposé sans être comparé au meilleur.
 - En dev, le jeu est exposé sur `window.__game`.
@@ -343,8 +428,9 @@ de jeu et ça ne doit surtout pas y ressembler.
 ## 12. État d'implémentation
 
 **Fait** — pré déterministe et ses huit espèces · enregistrement / jugement /
-relecture du trajet · nectar plafonné · le Rayon (4 branches, dévoilement,
-achats) · production passive des castes · HUD complet et infobulles · relances de
+relecture du trajet · nectar plafonné · le Rayon (5 branches, dévoilement,
+achats) · transformation du nectar en miel par lots, sa jauge et ses gains
+flottants · gelée royale par paliers · HUD complet et infobulles · relances de
 première fois (trajet, rayon) et dévoilement du bandeau · écran-titre complet,
 transitions, audio, pause · déploiements Pages + itch.
 
@@ -352,8 +438,9 @@ transitions, audio, pause · déploiements Pages + itch.
 
 1. **Prestige** — gelée royale et reines accumulées mais indépensables : le jeu
    n'a pas de fin.
-2. **Achat de castes** — l'ouvrière se voit, se comprend, et ne s'achète pas. Le
-   miel n'a donc aujourd'hui **aucun usage**.
+2. **Achat de castes** — la première ouvrière s'obtient au rayon, mais rien ne
+   permet d'en recruter une seconde. Le miel n'a donc toujours **aucun usage** :
+   il se produit et s'accumule, sa seule sortie est la gelée royale.
 3. **Anneau de timing « Perfect »** — la mécanique est le cœur du skill et n'a
    aucun retour visuel autour de la corolle.
 4. SFX de gameplay ; sprites abeille/fleur/ruche encore procéduraux ; migration
@@ -367,6 +454,8 @@ transitions, audio, pause · déploiements Pages + itch.
 | **Plafond de sacoche sur la butineuse** | Se traduisait par des corolles survolées sans effet ni explication. Le plafond est passé à la **ruche**, où il est lisible et améliorable. |
 | **Améliorations de vol généreuses** | Rendre le pilotage facile viderait l'enregistrement de son intérêt. Le gain est volontairement minuscule. |
 | **Rayon en pop-up** | Une parenthèse modale disait « le jeu s'arrête ». Le rayon est un cadre de l'écran de jeu, et le pré tourne dessous. |
+| **Production de miel passive** (0,5/s/ouvrière, sans intrant) | Du miel créé à partir de rien : le nectar rapporté ne servait qu'au rayon, et une fois le rayon bâti plus rien ne justifiait de voler. Le miel se transforme désormais depuis la réserve (§6.1). |
+| **Taux continu de gelée royale** (0,05 % du miel gagné) | Une décimale qui bouge n'est pas un événement. Remplacé par une dose franche tous les 50 miel, annoncée au-dessus de la ruche. |
 | **Bilan chiffré en bas de colonne** (production, record, reines) | Trois nombres inertes que personne ne lisait. Remplacés par la porte du Rayon. Le bilan reviendra quand il aura quelque chose à dire. |
 
 ---

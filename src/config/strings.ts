@@ -36,6 +36,11 @@ export const STR = {
   keptOld: 'Slower than your best - run discarded.',
   runTooShort: 'Too short to count.',
   colony: 'Colony',
+  /** Interrupteur de la transformation, sur la ligne des ouvrières. */
+  workerRest: 'Rest',
+  workerBrew: 'Brew',
+  /** Ouvrières au repos, à côté de leur effectif. Suivi de points qui respirent. */
+  asleep: 'Zzz',
   locked: 'locked',
   perSecond: '/s',
   meadow: 'Meadow',
@@ -67,6 +72,10 @@ export const UPGRADE_STR: Record<string, { name: string; tip: string }> = {
     name: 'Flight',
     tip: 'Slightly faster wings. Enough to shave a corner, not enough to fly the lap for you.',
   },
+  workers: {
+    name: 'Workers',
+    tip: 'Your first worker moves in. From now on the hive turns stored nectar into honey, one batch at a time. Click the bar above the hive to stop or restart it.',
+  },
   growth: {
     name: 'Growth',
     tip: 'The meadow runs a little faster. Flowers come back sooner, so a lap meets more of them open.',
@@ -81,7 +90,7 @@ export const BEE_STR: Record<string, { name: string; tip: string }> = {
   },
   worker: {
     name: 'Worker',
-    tip: 'Never leaves the hive. Turns the stores into honey on her own, even while you fly.',
+    tip: 'Never leaves the hive. Takes nectar out of the stores by the batch and turns it into honey, even while you fly.',
   },
   warrior: {
     name: 'Warrior',
@@ -93,15 +102,15 @@ export const BEE_STR: Record<string, { name: string; tip: string }> = {
 export const RESOURCE_STR = {
   nectar: {
     name: STR.nectar,
-    tip: 'Nectar carried by your forager. Fly back to the hive to turn it into honey.',
+    tip: 'The nectar your hive holds. It pays for the comb - and, once you have workers, it is what they brew into honey.',
   },
   honey: {
     name: STR.honey,
-    tip: 'Honey, the currency of the colony. Spent on new bees and on upgrades.',
+    tip: 'Honey, the currency of the colony. Brewed from nectar by your workers, one batch at a time.',
   },
   royalJelly: {
     name: STR.royalJelly,
-    tip: 'Royal jelly, rare and precious. It feeds the next queen when you start over.',
+    tip: 'Royal jelly, rare and precious. A drop settles out of every 50 honey. It feeds the next queen when you start over.',
   },
 } as const
 

@@ -264,12 +264,24 @@ const labelOffsetY = (size: number): number => Math.round(BUTTON_FACE_OFFSET + s
 // boîte de texte (un demi-pixel natif = size/24 à l'écran).
 const labelOffsetX = (size: number): number => Math.round(size / 24)
 
+/** Prise sur un bouton construit : réécriture du libellé, et masquage en bloc. */
+export interface ButtonHandle {
+  /**
+   * Le libellé, à réécrire avec `setText` quand l'action change d'état
+   * (enregistrer / abandonner). Il est centré, donc il se recentre tout seul —
+   * d'où l'intérêt d'imposer `width` dans ce cas.
+   */
+  label: BitmapText
+  /** Masque le bouton ENTIER : fond, libellé et zone cliquable. */
+  visible: boolean
+}
+
 /**
  * Bouton texte sur fond nine-slice (fond + libellé + zone cliquable), sous une
  * fabrique ancrée. Le fond change de tuile au survol/appui. Générique : aucune
  * dépendance à une scène particulière. À appeler AVANT Ui.commit().
  */
-export function button(f: ComponentFactory, o: ButtonOpts): BitmapText {
+export function button(f: ComponentFactory, o: ButtonOpts): ButtonHandle {
   const padX = o.padX ?? 20
   const padY = o.padY ?? 10
   const x = o.x ?? 0
@@ -292,9 +304,6 @@ export function button(f: ComponentFactory, o: ButtonOpts): BitmapText {
   const bg = ninePanel(f, { x, y, width: w, height: h, skin })
   const bgHover = ninePanel(f, { x, y, width: w, height: h, skin: skinHover })
   bgHover.visible = false
-  // Le libellé est renvoyé : un bouton dont l'action change d'état (enregistrer
-  // / abandonner) se contente de le réécrire. Il est centré, donc il se
-  // recentre tout seul — d'où l'intérêt d'imposer `width` dans ce cas.
   const label = f.bitmapText({
     font: o.font,
     size: o.size,
@@ -305,6 +314,16 @@ export function button(f: ComponentFactory, o: ButtonOpts): BitmapText {
     originX: OriginX.Center,
     originY: OriginY.Center,
   })
+
+  // Le masquage passe par un drapeau plutôt que par les visibilités directes :
+  // `onUpdate` tourne à chaque frame et rallumerait un fond qu'on vient
+  // d'éteindre.
+  let shown = true
+  const paintBg = (): void => {
+    const hover = shown && (hit.hovered || hit.pressed)
+    bg.visible = shown && !hover
+    bgHover.visible = hover
+  }
 
   const hit = f.clickable({
     x,
@@ -317,14 +336,22 @@ export function button(f: ComponentFactory, o: ButtonOpts): BitmapText {
       audio.playClick()
       o.onClick()
     },
-    onUpdate: () => {
-      const hover = hit.hovered || hit.pressed
-      bg.visible = !hover
-      bgHover.visible = hover
-    },
+    onUpdate: paintBg,
   })
   handCursor(hit.events)
-  return label
+
+  return {
+    label,
+    get visible() {
+      return shown
+    },
+    set visible(value: boolean) {
+      shown = value
+      label.visible = value
+      hit.visible = value
+      paintBg()
+    },
+  }
 }
 
 export interface SliderOpts {

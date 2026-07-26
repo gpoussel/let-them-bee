@@ -1,4 +1,4 @@
-import { BEE_KINDS, ECONOMY, HIVE, type BeeKindId } from '../config/balance'
+import { BEE_KINDS, HIVE, HONEY, type BeeKindId } from '../config/balance'
 import { GAME } from '../config/game'
 import {
   COMB,
@@ -27,6 +27,13 @@ export interface SaveData {
   queens: number
   /** Identifiants des alvéoles achetées (cf. config/upgrades). */
   comb: string[]
+  /** Lot de transformation en cours : nectar déjà engagé, avancement (0..1). */
+  brewing: boolean
+  brewProgress: number
+  /** Miel gagné depuis la dernière dose de gelée royale. */
+  honeySinceJelly: number
+  /** La transformation est-elle en marche (cf. `setBrewing`). */
+  brewEnabled: boolean
   /** Meilleur trajet de butinage connu (cf. systems/Route). */
   route: Route | null
 }
@@ -44,6 +51,20 @@ export class GameState {
   route: Route | null = null
   /** Alvéoles du rayon déjà payées. */
   comb = new Set<string>()
+  /** Un lot de nectar est engagé dans la transformation. */
+  brewing = false
+  /** Avancement du lot en cours, de 0 à 1 (c'est la jauge au-dessus de la ruche). */
+  brewProgress = 0
+  /** Miel gagné depuis la dernière dose de gelée royale. */
+  honeySinceJelly = 0
+  /**
+   * Interrupteur de la transformation. Elle tourne toute seule dès qu'il y a de
+   * quoi, c'est le comportement par défaut — mais elle mord sur la réserve, et
+   * une réserve qui ne monte plus ne paie plus les alvéoles de rang IV. Le
+   * joueur doit donc pouvoir la couper le temps d'économiser, sinon le premier
+   * lot le priverait pour toujours de ce qu'il n'a pas encore acheté.
+   */
+  brewEnabled = true
 
   // --- Le rayon (améliorations) -------------------------------------------
 
@@ -113,6 +134,9 @@ export class GameState {
     // La branche « butineuses » n'améliore rien : elle ajoute une abeille de
     // plus sur le trajet, donc c'est l'effectif qu'il faut bouger.
     if (cell.kind === 'foragers') this.bees.forager += 1
+    // Idem pour l'ouvrière : l'alvéole n'ouvre pas un achat, elle DONNE la
+    // première ouvrière. Le miel n'existe pas encore pour la payer.
+    if (cell.kind === 'workers') this.bees.worker += 1
     return true
   }
 
@@ -156,21 +180,82 @@ export class GameState {
     return BEE_KINDS.slice(0, Math.min(last + 2, BEE_KINDS.length)).map((k) => k.id)
   }
 
-  /** Miel produit passivement par la ruche, par seconde. */
-  get honeyPerSecond(): number {
-    return BEE_KINDS.reduce((sum, kind) => sum + this.bees[kind.id] * kind.production, 0)
+  /** Miel rendu par un lot, effectif d'ouvrières compris. */
+  get honeyPerBatch(): number {
+    return this.bees.worker * HONEY.honeyPerWorker
   }
 
-  addHoney(amount: number): void {
+  /** La ruche sait-elle transformer ? (au moins une ouvrière) */
+  get canBrew(): boolean {
+    return this.bees.worker > 0
+  }
+
+  /**
+   * Coupe ou relance la transformation.
+   *
+   * Couper, c'est couper TOUT DE SUITE : le lot en cours est abandonné et son
+   * nectar rendu à la réserve. Laisser le lot finir trahirait le geste — on
+   * coupe justement parce qu'on a besoin de ce nectar, et on ne peut pas
+   * demander au joueur d'attendre huit secondes pour que sa décision prenne
+   * effet. Le rendu est plafonné : une réserve pleine ne déborde pas.
+   */
+  setBrewing(on: boolean): void {
+    this.brewEnabled = on
+    if (on || !this.brewing) return
+    this.brewing = false
+    this.brewProgress = 0
+    this.nectar = Math.min(this.nectarCapacity, this.nectar + HONEY.nectarPerBatch)
+  }
+
+  /**
+   * Verse du miel et en tire la gelée royale : une dose tous les
+   * `jellyThreshold` de miel gagné. Le reliquat est conservé (`honeySinceJelly`)
+   * — sinon un lot à 0,25 ne compterait jamais pour rien.
+   *
+   * @returns la gelée royale gagnée à cette occasion (0 le plus souvent).
+   */
+  addHoney(amount: number): number {
     this.honey += amount
-    this.royalJelly += amount * ECONOMY.royalJellyRate
     if (this.honey > this.bestHoney) this.bestHoney = this.honey
+
+    this.honeySinceJelly += amount
+    let jelly = 0
+    while (this.honeySinceJelly >= HONEY.jellyThreshold) {
+      this.honeySinceJelly -= HONEY.jellyThreshold
+      jelly += HONEY.jellyPerThreshold
+    }
+    this.royalJelly += jelly
+    return jelly
   }
 
-  /** Production passive de la ruche (appelée chaque frame). */
-  tickBees(dt: number): void {
-    const rate = this.honeyPerSecond
-    if (rate > 0) this.addHoney(rate * dt)
+  /**
+   * Transformation du nectar en miel (appelée chaque frame).
+   *
+   * Un lot est un engagement : les 100 nectar partent à l'allumage, pas à
+   * l'arrivée. Faute de quoi, rien ne démarre — et ça redémarre tout seul dès
+   * que la réserve repasse le seuil.
+   *
+   * @returns le gain du lot qui vient de se clore, pour que la scène l'annonce
+   * au-dessus de la ruche. `null` tant qu'il ne se passe rien.
+   */
+  tickHoney(dt: number): { honey: number; jelly: number } | null {
+    if (!this.canBrew) return null
+
+    if (!this.brewing) {
+      if (!this.brewEnabled) return null
+      if (this.nectar < HONEY.nectarPerBatch) return null
+      this.nectar -= HONEY.nectarPerBatch
+      this.brewing = true
+      this.brewProgress = 0
+    }
+
+    this.brewProgress += (dt * 1000) / HONEY.batchMs
+    if (this.brewProgress < 1) return null
+
+    this.brewing = false
+    this.brewProgress = 0
+    const honey = this.honeyPerBatch
+    return { honey, jelly: this.addHoney(honey) }
   }
 
   spendHoney(amount: number): boolean {
@@ -190,6 +275,10 @@ export class GameState {
       queens: this.queens,
       comb: [...this.comb],
       route: this.route,
+      brewing: this.brewing,
+      brewProgress: this.brewProgress,
+      honeySinceJelly: this.honeySinceJelly,
+      brewEnabled: this.brewEnabled,
     }
     try {
       localStorage.setItem(SAVE_KEY, JSON.stringify(data))
@@ -215,6 +304,12 @@ export class GameState {
       this.comb = new Set(saved.filter((id) => COMB.some((c) => c.id === id)))
       this.bestHoney = data.bestHoney ?? 0
       this.queens = data.queens ?? 0
+      // Le nectar d'un lot en cours a déjà quitté la réserve : on reprend le
+      // lot où il en était plutôt que de le perdre (ou de le rembourser).
+      this.brewing = data.brewing ?? false
+      this.brewProgress = Math.min(Math.max(data.brewProgress ?? 0, 0), 1)
+      this.honeySinceJelly = data.honeySinceJelly ?? 0
+      this.brewEnabled = data.brewEnabled ?? true
       // Un trajet tronqué (sauvegarde d'une version antérieure, altération)
       // est écarté plutôt que rejoué de travers.
       const route = data.route

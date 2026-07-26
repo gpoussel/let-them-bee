@@ -2,7 +2,7 @@ import Phaser from 'phaser'
 import { BEE, ROUTE } from '../config/balance'
 import { FEEL } from '../config/feel'
 import { STR } from '../config/strings'
-import { HEX, FONTS, PALETTE, SCREEN } from '../ui/theme'
+import { HEX, COLORS, FONTS, PALETTE, SCREEN } from '../ui/theme'
 import { pixelText } from '../ui/text'
 import { TEX } from '../gfx/textures'
 import { Bee } from '../entities/Bee'
@@ -11,6 +11,8 @@ import { gameState } from '../systems/GameState'
 import { RoutePlayer, RouteRecorder, type Route } from '../systems/Route'
 import { FlowerField } from '../systems/FlowerField'
 import { Hud } from '../ui/Hud'
+import { HoneyGauge } from '../ui/HoneyGauge'
+import { fmtFine } from '../ui/format'
 import { audio, SND } from '../systems/Audio'
 import { transitionIn, TRANSITION_MS } from '../gfx/transition'
 
@@ -82,6 +84,7 @@ export class GameScene extends Phaser.Scene {
   private flowers: Flower[] = []
   private hive!: Phaser.GameObjects.Sprite
   private hud!: Hud
+  private honeyGauge!: HoneyGauge
   private autosaveTimer = 0
   /** Zone de vol : le pré, moins la marge du cadre. */
   private field!: Phaser.Geom.Rectangle
@@ -93,6 +96,11 @@ export class GameScene extends Phaser.Scene {
   private recordedNectar = 0
   /** Temps restant avant de pouvoir re-signaler que la butineuse est pleine, en ms. */
   private fullPopTimer = 0
+  /**
+   * Accélérateur des OUTILS DE DÉVELOPPEMENT (cf. `devContext`). Toujours 1 en
+   * jeu : rien ici ne le change, seul le menu de triche y touche.
+   */
+  private timeScale = 1
 
   constructor() {
     super('Game')
@@ -126,6 +134,9 @@ export class GameScene extends Phaser.Scene {
     this.flowers = this.fieldFlowers.slots.map(
       (slot) => new Flower(this, slot, FLOWER_SCALE, DEPTH.flowers),
     )
+
+    // Le tube de transformation, planté sur le toit de la ruche (cf. HoneyGauge).
+    this.honeyGauge = new HoneyGauge(this, this.hive.x, this.hive.y - this.hive.height / 2)
 
     this.bee = new Bee(this, this.hive.x + PERCH.dx, this.hive.y + PERCH.dy)
     this.bee.setScale(BEE_SCALE).setDepth(DEPTH.bee)
@@ -196,6 +207,19 @@ export class GameScene extends Phaser.Scene {
       speed: BEE.maxSpeed * gameState.flightMult,
       growthMult: gameState.growthMult,
       newField: () => this.makeFlowerField(),
+      timeScale: () => this.timeScale,
+      /**
+       * Accélère TOUT ce qui dépend du temps ici : le calendrier du pré, le vol,
+       * la transformation, le compteur d'enregistrement. Un seul point d'entrée
+       * (le `delta` de `update`), sinon les horloges divergeraient et le pré ne
+       * serait plus déterministe vis-à-vis du trajet rejoué.
+       */
+      setTimeScale: (mult: number) => {
+        this.timeScale = mult
+        // Les feedbacks (textes flottants, pollen) suivent : à x4, des pops qui
+        // durent leur temps normal s'empileraient à l'écran.
+        this.tweens.timeScale = mult
+      },
       applyRoute: (route: Route) => {
         // Imposé, pas proposé : un trajet d'outil n'a pas à battre le précédent.
         gameState.route = route
@@ -295,10 +319,14 @@ export class GameScene extends Phaser.Scene {
     this.enterReplayOrIdle(timeUp ? `${STR.timeUp} ${verdict}` : verdict)
   }
 
-  update(_time: number, delta: number): void {
+  update(_time: number, rawDelta: number): void {
+    // Point d'entrée UNIQUE du temps de la scène : tout ce qui suit lit `delta`,
+    // donc l'accélérateur des outils de dev (x2, x4) s'applique partout à la
+    // fois — pré, vol, transformation, compteur — ou nulle part.
+    const delta = rawDelta * this.timeScale
     const dt = delta / 1000
 
-    gameState.tickBees(dt)
+    this.tickHoney(dt)
 
     // L'horloge du pré avance AVANT le vol : la position de l'abeille et l'état
     // des fleurs se lisent au même instant, en relecture comme à l'enregistrement.
@@ -328,6 +356,7 @@ export class GameScene extends Phaser.Scene {
     // disparu du calendrier.
     this.flowers.forEach((f, i) => f.sync(this.fieldFlowers.stateOf(i)))
 
+    this.honeyGauge.update()
     this.hud.update(this.mode === 'recording')
     this.hud.setElapsed(this.mode === 'recording' ? (this.recorder?.durationMs ?? 0) : null)
 
@@ -417,6 +446,41 @@ export class GameScene extends Phaser.Scene {
       full ? STR.full : `+${Math.floor(stored)} ${STR.nectar}`,
       full ? HEX.alert : HEX.cream,
     )
+  }
+
+  /**
+   * Transformation du nectar en miel. Le moteur fait les comptes (cf.
+   * `GameState.tickHoney`) ; ici on l'annonce, au-dessus de la ruche.
+   *
+   * Un lot rend peu de miel et le miel rend encore moins de gelée royale : les
+   * deux gains ne tombent donc pas ensemble, et chacun sort avec son pot pour
+   * qu'on ne les confonde pas.
+   */
+  private tickHoney(dt: number): void {
+    const gained = gameState.tickHoney(dt)
+    if (!gained) return
+
+    const top = this.honeyGauge.topY
+    this.hud.popGain(
+      this.hive.x,
+      top - 12,
+      TEX.iconHoney,
+      `+${fmtFine(gained.honey)}`,
+      PALETTE.amber,
+      HEX.honey,
+    )
+    // La gelée royale n'arrive qu'un lot sur beaucoup : elle sort plus haut,
+    // pour ne pas se poser sur le pot de miel du même instant.
+    if (gained.jelly > 0) {
+      this.hud.popGain(
+        this.hive.x,
+        top - 44,
+        TEX.iconJelly,
+        `+${fmtFine(gained.jelly)}`,
+        COLORS.cream,
+        HEX.jelly,
+      )
+    }
   }
 
   private spawnPollen(x: number, y: number): void {
