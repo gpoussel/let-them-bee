@@ -1,4 +1,4 @@
-import Phaser from 'phaser'
+import type Phaser from 'phaser'
 import { HEX, FONTS, HUD } from './theme'
 import { pixelText } from './text'
 import { Ui } from './pixui'
@@ -97,7 +97,9 @@ export class Hud {
       alpha: 0,
       duration: HUD.popDuration,
       ease: 'Cubic.Out',
-      onComplete: () => t.destroy(),
+      onComplete: () => {
+        t.destroy()
+      },
     })
   }
 
@@ -123,7 +125,9 @@ export class Hud {
       alpha: 0,
       duration: HUD.popDuration,
       ease: 'Cubic.Out',
-      onComplete: () => group.destroy(),
+      onComplete: () => {
+        group.destroy()
+      },
     })
   }
 }

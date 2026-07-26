@@ -43,7 +43,7 @@ export function bakeFlowers(scene: Phaser.Scene): void {
   texture.setFilter(Phaser.Textures.FilterMode.NEAREST)
 
   for (let s = 0; s < FLOWER_SPECIES; s++) {
-    const cuts: Array<[string, number]> = [
+    const cuts: [string, number][] = [
       [budFrame(s), ROW_BUD],
       [bloomFrame(s), ROW_BLOOM],
     ]

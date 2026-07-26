@@ -10,7 +10,7 @@ import type { Clickable, ComponentFactory } from 'phaser-pixui'
 import { FONT_KEY } from '../gfx/font'
 import { WORLD } from '../config/game'
 import { COLORS, FONTS } from './theme'
-import { ninePanel, OriginX, OriginY, UI9, Ui } from './pixui'
+import { ninePanel, OriginX, OriginY, UI9, type Ui } from './pixui'
 
 /** Longueur maximale d'une ligne d'infobulle, en caractères. */
 const WRAP = 42
@@ -67,7 +67,7 @@ interface Pending extends HotspotOpts {
  */
 export class Tooltips {
   private readonly pending: Pending[] = []
-  private readonly bubbles: Array<{ show: (on: boolean) => void }> = []
+  private readonly bubbles: { show: (on: boolean) => void }[] = []
 
   constructor(private readonly ui: Ui) {}
 
@@ -96,7 +96,9 @@ export class Tooltips {
 
   /** Affiche la bulle de la zone survolée, s'il y en a une. À appeler chaque frame. */
   update(): void {
-    this.pending.forEach((tip, i) => this.bubbles[i].show(tip.hovered()))
+    this.pending.forEach((tip, i) => {
+      this.bubbles[i].show(tip.hovered())
+    })
   }
 
   private buildBubble(tip: Pending): { show: (on: boolean) => void } {

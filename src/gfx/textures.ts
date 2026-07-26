@@ -1,4 +1,4 @@
-import Phaser from 'phaser'
+import type Phaser from 'phaser'
 
 // Génère des textures placeholder au style "pixel" via des rectangles.
 // À remplacer plus tard par les vrais sprites des packs (tileset Tiny Garden, objects.png)
@@ -149,8 +149,10 @@ function hiveGrid(): string[] {
     for (let x = left; x <= right; x++) {
       let c: string
       if (x === left || x === right) c = 'k'
-      else if (x <= left + 2) c = seam ? 'o' : 'y' // lumière rasante à gauche
-      else if (x >= right - 3) c = seam ? 'k' : 'b' // le flanc droit est dans l'ombre
+      else if (x <= left + 2)
+        c = seam ? 'o' : 'y' // lumière rasante à gauche
+      else if (x >= right - 3)
+        c = seam ? 'k' : 'b' // le flanc droit est dans l'ombre
       else c = seam ? 'b' : 'd'
       rows[y][x] = c
     }
@@ -450,42 +452,16 @@ export function bakeAll(scene: Phaser.Scene) {
   bake(scene, TEX.bee, beeGrid(false), P, 2)
   bake(scene, TEX.beeFlap, beeGrid(true), P, 2)
 
-  bake(scene, TEX.flowerClosed, [
-    '..gg..',
-    '..gg..',
-    '.cooc.',
-    '.cooc.',
-    '..oo..',
-    '..gg..',
-  ], P)
+  bake(scene, TEX.flowerClosed, ['..gg..', '..gg..', '.cooc.', '.cooc.', '..oo..', '..gg..'], P)
 
-  bake(scene, TEX.flowerHalf, [
-    '.r..r.',
-    'rkoork',
-    '.occo.',
-    'rkoork',
-    '.r..r.',
-    '..gg..',
-  ], P)
+  bake(scene, TEX.flowerHalf, ['.r..r.', 'rkoork', '.occo.', 'rkoork', '.r..r.', '..gg..'], P)
 
-  bake(scene, TEX.flowerOpen, [
-    'r.rr.r',
-    'rpccpr',
-    'rccccr',
-    'rpccpr',
-    'r.rr.r',
-    '..gg..',
-  ], P)
+  bake(scene, TEX.flowerOpen, ['r.rr.r', 'rpccpr', 'rccccr', 'rpccpr', 'r.rr.r', '..gg..'], P)
 
   // La ruche est le seul décor dessiné à la vraie résolution du pixel art :
   // 32x32 points, bakés à 2 px écran chacun — la même densité que les fleurs
   // du tileset, pour qu'elle ne détonne pas à côté d'elles.
   bake(scene, TEX.hive, hiveGrid(), P, 2)
 
-  bake(scene, TEX.pollen, [
-    '.cc.',
-    'cccc',
-    'cccc',
-    '.cc.',
-  ], P)
+  bake(scene, TEX.pollen, ['.cc.', 'cccc', 'cccc', '.cc.'], P)
 }

@@ -108,7 +108,7 @@ interface Baked {
   /** 1 = la poussière peut se déposer sur ce pixel. */
   dust: Uint8Array
   /** Position et taille de chaque aile (une texture par aile). */
-  wings: Array<{ x: number; y: number }>
+  wings: { x: number; y: number }[]
 }
 let baked: Baked | null = null
 
@@ -190,7 +190,7 @@ function drawGrid(ctx: CanvasRenderingContext2D, rows: readonly string[], color:
  */
 function wingCells(data: ImageData): Set<number> {
   const cells = new Set<number>()
-  const fill: Array<[number, number]> = []
+  const fill: [number, number][] = []
   for (let y = 0; y < LOGO_H; y++) {
     for (let x = 0; x < LOGO_W; x++) {
       if (same(rgbAt(data, x, y), WING)) {
@@ -199,8 +199,8 @@ function wingCells(data: ImageData): Set<number> {
       }
     }
   }
-  const neighbours = (x: number, y: number): Array<[number, number]> => {
-    const out: Array<[number, number]> = []
+  const neighbours = (x: number, y: number): [number, number][] => {
+    const out: [number, number][] = []
     for (let dy = -1; dy <= 1; dy++) {
       for (let dx = -1; dx <= 1; dx++) {
         const nx = x + dx
@@ -221,16 +221,17 @@ function wingCells(data: ImageData): Set<number> {
 }
 
 /** Sépare un ensemble de pixels en composantes connexes (8-connexité). */
-function components(cells: Set<number>): Array<Set<number>> {
+function components(cells: Set<number>): Set<number>[] {
   const seen = new Set<number>()
-  const out: Array<Set<number>> = []
+  const out: Set<number>[] = []
   for (const start of cells) {
     if (seen.has(start)) continue
     const comp = new Set<number>()
     const stack = [start]
     seen.add(start)
     while (stack.length) {
-      const k = stack.pop() as number
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- la boucle ne tourne que si la pile est non vide
+      const k = stack.pop()!
       comp.add(k)
       const x = k % LOGO_W
       const y = (k - x) / LOGO_W
@@ -287,7 +288,13 @@ export function bakeLogo(scene: Phaser.Scene): void {
     .map((comp) => {
       const xs = [...comp].map((k) => k % LOGO_W)
       const ys = [...comp].map((k) => Math.floor(k / LOGO_W))
-      return { comp, x: Math.min(...xs), y: Math.min(...ys), x2: Math.max(...xs), y2: Math.max(...ys) }
+      return {
+        comp,
+        x: Math.min(...xs),
+        y: Math.min(...ys),
+        x2: Math.max(...xs),
+        y2: Math.max(...ys),
+      }
     })
     .sort((a, b) => a.x - b.x)
   wingBoxes.forEach((box, i) => {
@@ -466,13 +473,18 @@ export function createLogo(
   const scheduleBlink = (): void => {
     // Un clignement sur quatre est double.
     const twice = Math.random() < DOUBLE_BLINK_CHANCE
-    scene.time.delayedCall(Phaser.Math.Between(BLINK_MIN, BLINK_MAX), () => blink(twice))
+    scene.time.delayedCall(Phaser.Math.Between(BLINK_MIN, BLINK_MAX), () => {
+      blink(twice)
+    })
   }
   const blink = (twice: boolean): void => {
     lid.setVisible(true)
     scene.time.delayedCall(BLINK_MS, () => {
       lid.setVisible(false)
-      if (twice) scene.time.delayedCall(BLINK_MS, () => blink(false))
+      if (twice)
+        scene.time.delayedCall(BLINK_MS, () => {
+          blink(false)
+        })
       else scheduleBlink()
     })
   }

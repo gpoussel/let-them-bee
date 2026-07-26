@@ -26,7 +26,9 @@ const game = new Phaser.Game({
   scene: [BootScene, TitleScene, GameScene, CombScene, PauseScene],
 })
 
-game.events.once(Phaser.Core.Events.READY, () => installCursors(game))
+game.events.once(Phaser.Core.Events.READY, () => {
+  installCursors(game)
+})
 
 // Hooks de debug en dev uniquement (accès au jeu depuis la console / tests).
 // `__state` expose l'INSTANCE partagée : la réimporter depuis la console donne
@@ -38,5 +40,7 @@ if (import.meta.env.DEV) {
   // Menu de triche (Tab) — importé DYNAMIQUEMENT derrière ce garde : en
   // production, la condition est fausse à la compilation et tout `src/dev`
   // sort du bundle.
-  void import('./dev/devMenu').then((dev) => dev.installDevMenu(game))
+  void import('./dev/devMenu').then((dev) => {
+    dev.installDevMenu(game)
+  })
 }

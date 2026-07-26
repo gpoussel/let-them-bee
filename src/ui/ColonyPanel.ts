@@ -137,7 +137,9 @@ export class ColonyPanel {
           size: FONTS.sizeHint,
           font: FONT_KEY,
           color: COLORS.cream,
-          onClick: () => gameState.setBrewing(!gameState.brewEnabled),
+          onClick: () => {
+            gameState.setBrewing(!gameState.brewEnabled)
+          },
         })
       }
 

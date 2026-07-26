@@ -67,7 +67,7 @@ export function bakeFont(scene: Phaser.Scene): void {
   const pad = 1
   let x = pad
   let y = pad
-  let rowH = CELL_H + pad
+  const rowH = CELL_H + pad
   const placed: Record<number, { x: number; y: number; w: number }> = {}
   for (const g of baked) {
     const w = Math.max(g.width, 1)
@@ -83,6 +83,7 @@ export function bakeFont(scene: Phaser.Scene): void {
 
   // 2) Dessin de l'atlas (pixels pleins, sans anti-aliasing).
   const canvas = Phaser.Display.Canvas.CanvasPool.create2D(scene, atlasW, atlasH)
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- un canvas fraîchement créé a toujours un contexte 2D
   const ctx = canvas.getContext('2d')!
   ctx.imageSmoothingEnabled = false
   ctx.fillStyle = '#ffffff'
@@ -99,6 +100,7 @@ export function bakeFont(scene: Phaser.Scene): void {
 
   const texKey = FONT_KEY + '-atlas'
   if (scene.textures.exists(texKey)) scene.textures.remove(texKey)
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- la clé vient d'être libérée juste au-dessus
   const texture = scene.textures.addCanvas(texKey, canvas)!
   texture.setFilter(Phaser.Textures.FilterMode.NEAREST)
 

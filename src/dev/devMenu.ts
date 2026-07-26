@@ -51,7 +51,7 @@ interface SceneWithDevContext extends Phaser.Scene {
 
 type Resource = 'nectar' | 'honey' | 'royalJelly'
 
-const RESOURCES: Array<{ id: Resource; label: string }> = [
+const RESOURCES: { id: Resource; label: string }[] = [
   { id: 'nectar', label: 'Nectar' },
   { id: 'honey', label: 'Miel' },
   { id: 'royalJelly', label: 'Gelée royale' },
@@ -142,7 +142,10 @@ export function installDevMenu(game: Phaser.Game): void {
 
     // Les pertes d'abord, du plus gros au plus petit, puis les gains : la ligne
     // se lit comme un axe, le zéro au milieu.
-    for (const amount of [...STEPS].reverse().map((s) => -s).concat([...STEPS])) {
+    for (const amount of [...STEPS]
+      .reverse()
+      .map((s) => -s)
+      .concat([...STEPS])) {
       const btn = document.createElement('button')
       btn.textContent = amount > 0 ? `+${amount}` : `${amount}`
       btn.addEventListener('click', () => {
@@ -219,7 +222,9 @@ export function installDevMenu(game: Phaser.Game): void {
     panel.append(btn)
   }
 
-  action('Programmer un trajet efficace', () => say(programRoute(game)))
+  action('Programmer un trajet efficace', () => {
+    say(programRoute(game))
+  })
   action('Débloquer toutes les alvéoles', () => {
     say(unlockAllUpgrades())
     refresh()
@@ -268,7 +273,7 @@ export function installDevMenu(game: Phaser.Game): void {
 /** Prise de la scène de jeu, ou `null` si le potager n'est pas ouvert. */
 function devContext(game: Phaser.Game): DevContext | null {
   const scene = game.scene.getScene('Game') as SceneWithDevContext | null
-  return scene && scene.scene.isActive() ? scene.devContext() : null
+  return scene?.scene.isActive() ? scene.devContext() : null
 }
 
 /** Ajoute (ou retire) une ressource, en restant dans ses bornes. */

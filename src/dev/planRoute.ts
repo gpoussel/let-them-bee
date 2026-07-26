@@ -11,7 +11,7 @@
 // échantillonnées à `ROUTE.sampleMs`) : rien ne le distingue à la relecture.
 
 import { ROUTE } from '../config/balance'
-import { FlowerField, nectarFrom } from '../systems/FlowerField'
+import { type FlowerField, nectarFrom } from '../systems/FlowerField'
 import type { Route } from '../systems/Route'
 
 export interface PlanContext {

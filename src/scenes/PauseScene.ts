@@ -18,12 +18,23 @@ export class PauseScene extends Phaser.Scene {
   create(): void {
     const ui = new Ui(this)
     buildPrefsPanel(this, ui, {
-      extraButtons: [{ label: STR.backToTitle, onClick: () => this.quitToTitle() }],
-      onClose: () => this.resumeGame(),
+      extraButtons: [
+        {
+          label: STR.backToTitle,
+          onClick: () => {
+            this.quitToTitle()
+          },
+        },
+      ],
+      onClose: () => {
+        this.resumeGame()
+      },
     })
     ui.commit()
 
-    this.input.keyboard?.on('keydown-ESC', () => this.resumeGame())
+    this.input.keyboard?.on('keydown-ESC', () => {
+      this.resumeGame()
+    })
   }
 
   /** Ferme le menu et rend la main au potager. */

@@ -7,14 +7,36 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "build:itch": "tsc --noEmit && vite build --base=./",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "check": "npm run format:check && npm run lint && npm run typecheck",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{ts,js}": [
+      "prettier --write",
+      "eslint --fix --max-warnings=0"
+    ],
+    "*.{json,md,yml,yaml,html,css}": "prettier --write"
   },
   "dependencies": {
     "phaser": "^4.2.1",
     "phaser-pixui": "^0.2.2"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.8.0",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^17.7.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.2.0",
+    "prettier": "^3.9.6",
     "typescript": "^5.6.3",
+    "typescript-eslint": "^8.65.0",
     "vite": "^6.0.0"
   }
 }

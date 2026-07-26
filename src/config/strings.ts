@@ -116,7 +116,7 @@ export const RESOURCE_STR = {
 
 // Contenu de la pop-up « about ». Une entrée = une ligne (label + valeur) ;
 // value seul = ligne pleine largeur.
-export const CREDITS: ReadonlyArray<{ label?: string; value: string }> = [
+export const CREDITS: readonly { label?: string; value: string }[] = [
   { label: 'Author', value: 'Guillaume Poussel (gpoussel)' },
   { label: 'Code & art', value: 'Original pixel art, made for the jam' },
   { label: 'Font', value: 'monogram - Vinicius Menezio (CC0)' },

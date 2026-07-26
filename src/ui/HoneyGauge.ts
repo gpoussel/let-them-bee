@@ -12,7 +12,7 @@
 // joueur doit pouvoir économiser pour une alvéole de rang IV sans la voir se
 // faire manger lot après lot.
 
-import Phaser from 'phaser'
+import type Phaser from 'phaser'
 import { HONEY } from '../config/balance'
 import { gameState } from '../systems/GameState'
 import { handCursor } from './cursor'
@@ -44,7 +44,9 @@ export class HoneyGauge {
       // sienne, gravée. Une seule main à l'écran.
       .setInteractive()
     handCursor(this.hit)
-    this.hit.on('pointerdown', () => gameState.setBrewing(!gameState.brewEnabled))
+    this.hit.on('pointerdown', () => {
+      gameState.setBrewing(!gameState.brewEnabled)
+    })
   }
 
   /** Haut de la jauge : c'est de là que sort le miel, donc là que ça s'annonce. */
@@ -55,7 +57,7 @@ export class HoneyGauge {
   update(): void {
     const on = gameState.canBrew
     this.g.setVisible(on)
-    this.hit.input!.enabled = on
+    if (this.hit.input) this.hit.input.enabled = on
     if (!on) return
 
     const { width, height } = HONEY_GAUGE

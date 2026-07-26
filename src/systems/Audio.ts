@@ -43,7 +43,9 @@ class AudioManager {
     // la musique en fond, c'est un jeu qu'on laisse tourner à côté.
     this.manager.pauseOnBlur = false
     settings.load()
-    settings.onChange = () => this.applyVolumes()
+    settings.onChange = () => {
+      this.applyVolumes()
+    }
     this.applyVolumes()
     // Les fondus sont pilotés par la boucle du jeu et non par une scène : un
     // fondu sortant doit survivre à la destruction de la scène qui l'a lancé.
@@ -131,7 +133,7 @@ class AudioManager {
 
   /** Réapplique les volumes courants aux sons en cours (curseurs de réglages). */
   private applyVolumes(): void {
-    const music = this.music as (Phaser.Sound.BaseSound & { volume?: number }) | undefined
+    const music: (Phaser.Sound.BaseSound & { volume?: number }) | undefined = this.music
     if (!music) return
     // Pendant un fondu entrant, c'est la cible qui bouge : sinon le curseur
     // serait écrasé à la frame suivante.

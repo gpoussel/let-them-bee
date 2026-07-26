@@ -22,7 +22,7 @@ export const TILE = 16
 /** Vert du gazon, identique à la tuile pleine du tileset. */
 export const GRASS = '#43a354'
 /** Touffes d'herbe éparses. */
-const TUFTS: Array<[number, number]> = [
+const TUFTS: [number, number][] = [
   [0, 5],
   [1, 5],
   [2, 5],
@@ -34,12 +34,12 @@ const HOUSE = { col: 17, row: 3, w: 3, h: 3 } as const
 /** Buisson planté au pied gauche de la maison. */
 const HOUSE_BUSH: [number, number] = [15, 5]
 /** Touffes d'herbe au pied droit, décalées en tuiles depuis le coin. */
-const HOUSE_TUFTS: Array<[number, number]> = [
+const HOUSE_TUFTS: [number, number][] = [
   [0, 0],
   [0, 1],
 ]
 /** Cailloux et buissons, posés à l'unité. */
-const SCRUB: Array<[number, number]> = [
+const SCRUB: [number, number][] = [
   [11, 5],
   [12, 5],
   [13, 5],
@@ -61,7 +61,7 @@ const POND_ROW: [number, number, number, number] = [1, 2, 3, 4]
 const SPECIES = 8
 const LOTUS = 8
 /** Stades de pousse : [ligne dans la planche, hauteur en tuiles]. */
-const STAGES: Array<[number, number]> = [
+const STAGES: [number, number][] = [
   [2, 1], // graine
   [3, 1], // pousse
   [4, 2], // bouton
@@ -168,7 +168,7 @@ export function bakeGarden(scene: Phaser.Scene, o: GardenOpts): void {
   ctx.fillStyle = GRASS
   ctx.fillRect(0, 0, width, height)
   const rnd = random(o.seed ?? 7)
-  const tufts: Array<[number, number]> = []
+  const tufts: [number, number][] = []
   for (let ty = 0; ty < rows; ty++) {
     for (let tx = 0; tx < cols; tx++) {
       if (rnd() < TUFT_DENSITY) tufts.push([tx, ty])
@@ -189,7 +189,7 @@ export function bakeGarden(scene: Phaser.Scene, o: GardenOpts): void {
   }
   // Les nénuphars restent sur l'eau : jamais sur la berge (j = 0) ni sur la
   // rive basse (dernière ligne).
-  const lotuses: Array<[number, number]> =
+  const lotuses: [number, number][] =
     style === 'beds'
       ? [
           [3, 2],
@@ -217,7 +217,7 @@ export function bakeGarden(scene: Phaser.Scene, o: GardenOpts): void {
 
   // 4. Parterres : des blocs de terre plantés dru, alignés le long des bords.
   //    Le centre de l'écran reste du gazon nu.
-  const beds: Array<[number, number, number]> = []
+  const beds: [number, number, number][] = []
   // Le bas de l'écran reste libre : c'est là que passent le score et la barre
   // de bas de page.
   for (let k = 0; style === 'beds' && bedRow(k) + BED_H <= rows - 4; k++) {

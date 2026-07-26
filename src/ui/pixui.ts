@@ -10,8 +10,15 @@
 // parent (originX/originY = ancre), puis son offset (x, y) le décale VERS
 // L'INTÉRIEUR depuis ce coin. Son propre origin définit son point d'alignement.
 
-import Phaser from 'phaser'
-import { Container, ComponentFactory, BitmapText, Image, OriginX, OriginY } from 'phaser-pixui'
+import type Phaser from 'phaser'
+import {
+  Container,
+  ComponentFactory,
+  type BitmapText,
+  type Image,
+  OriginX,
+  OriginY,
+} from 'phaser-pixui'
 import type { ComponentConfig } from 'phaser-pixui'
 import { WORLD } from '../config/game'
 import { TEX } from '../gfx/textures'
@@ -403,7 +410,12 @@ export function slider(f: ComponentFactory, o: SliderOpts): void {
   })
 
   const knobCfg = { ...anchor, y: trackY, width: SLIDER_H, height: SLIDER_H }
-  const knob = f.image({ ...knobCfg, x: x + value * travel, texture: TEX.uiSlider, frame: SLIDER.knob })
+  const knob = f.image({
+    ...knobCfg,
+    x: x + value * travel,
+    texture: TEX.uiSlider,
+    frame: SLIDER.knob,
+  })
   const knobHover = f.image({
     ...knobCfg,
     x: x + value * travel,
