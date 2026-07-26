@@ -187,7 +187,7 @@ export class StatusPanel {
       font: FONT_KEY,
       color: COLORS.cream,
       onClick: o.onToggleRecord,
-    })
+    }).label
 
     // La flèche se tient au-dessus du bouton, pas dessus : elle le désigne, et
     // laisse le curseur l'atteindre.

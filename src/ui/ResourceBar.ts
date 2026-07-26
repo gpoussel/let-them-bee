@@ -9,7 +9,7 @@ import { RESOURCE_STR } from '../config/strings'
 import { FONT_KEY } from '../gfx/font'
 import { TEX } from '../gfx/textures'
 import { gameState } from '../systems/GameState'
-import { fmt } from './format'
+import { fmtFine } from './format'
 import { ninePanel, OriginX, OriginY, setText, UI9 } from './pixui'
 import { COLORS, FONTS, PALETTE, PANEL_TINT, SCREEN } from './theme'
 import type { Tooltips } from './tooltip'
@@ -85,7 +85,7 @@ export class ResourceBar {
     // Le nectar affiché est celui de la RÉSERVE, pas celui que porte l'abeille :
     // c'est lui qu'on dépense dans le rayon, et lui qui sature.
     setText(this.values[0], `${Math.floor(gameState.nectar)}/${gameState.nectarCapacity}`)
-    setText(this.values[1], fmt(gameState.honey))
-    setText(this.values[2], fmt(gameState.royalJelly))
+    setText(this.values[1], fmtFine(gameState.honey))
+    setText(this.values[2], fmtFine(gameState.royalJelly))
   }
 }
