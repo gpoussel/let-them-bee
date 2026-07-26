@@ -1,5 +1,6 @@
 import Phaser from 'phaser'
-import { STR, UPGRADE_STR } from '../config/strings'
+import { BEE, FLOWER, HIVE, HONEY, ROUTE } from '../config/balance'
+import { STAT_STR, STR, UPGRADE_STR } from '../config/strings'
 import {
   COMB,
   COMB_TOTAL,
@@ -13,7 +14,7 @@ import { HEX_R, TEX } from '../gfx/textures'
 import { audio } from '../systems/Audio'
 import { gameState } from '../systems/GameState'
 import { handCursor, wireHandCursors } from '../ui/cursor'
-import { fmtBig } from '../ui/format'
+import { fmtBig, fmtFine } from '../ui/format'
 import { button, ninePanel, OriginX, OriginY, Ui, UI9, type ButtonHandle } from '../ui/pixui'
 import { pixelText } from '../ui/text'
 import { COLORS, FONTS, HEX, PALETTE, PANEL_PAD, PANEL_TINT, SCREEN } from '../ui/theme'
@@ -129,6 +130,55 @@ const COIN_TINT: Record<Currency, number> = {
   honey: PALETTE.amber,
 }
 
+/**
+ * BILAN DE LA RUCHE — ce que valent les branches, ici et maintenant.
+ *
+ * Presque tout s'y lit en POURCENTAGE, et la base ne s'écrit nulle part : le
+ * joueur n'a pas à savoir qu'une abeille nue vole à 320 px/s pour comprendre
+ * « Flight +12 % ». Une colonie nue affiche donc une colonne de « +0 % », et
+ * c'est exactement le repère qu'il faut — chaque ligne dit ce qu'on a gagné
+ * depuis le premier matin, pas une grandeur physique.
+ *
+ * Les quelques lignes qui restent en clair sont celles qu'un pourcentage
+ * rendrait illisibles : un effectif se compte, une réserve se lit en nectar, et
+ * un « Perfect ×2 » n'a pas de base à laquelle se comparer.
+ *
+ * Aucune ligne ne lit une branche : toutes passent par les grandeurs DÉRIVÉES de
+ * `GameState` (`flightMult`, `batchMs`…), celles-là mêmes dont dépend le jeu.
+ * C'est ce qui garde le bilan honnête — il ne peut pas diverger de la ruche, il
+ * la lit.
+ */
+interface Stat {
+  label: string
+  value: () => string
+}
+
+/** Écart en pourcentage par rapport à la valeur nue : `+12%`, `-8%`, `+0%`. */
+const pct = (ratio: number): string => `${ratio >= 1 ? '+' : ''}${Math.round((ratio - 1) * 100)}%`
+
+const STATS: readonly Stat[] = [
+  { label: STAT_STR.foragers, value: () => fmtBig(gameState.foragerCount) },
+  { label: STAT_STR.workers, value: () => fmtBig(gameState.bees.worker) },
+  { label: STAT_STR.warriors, value: () => fmtBig(gameState.bees.warrior) },
+  { label: STAT_STR.storage, value: () => fmtBig(gameState.nectarCapacity) },
+  { label: STAT_STR.flight, value: () => pct(gameState.flightMult) },
+  // Le lissage : plus il est grand, moins l'abeille traîne. Le pourcentage dit
+  // donc ce que le joueur ressent — de la MAIN reprise sur l'inertie.
+  { label: STAT_STR.handling, value: () => pct(gameState.beeLerp / BEE.lerp) },
+  { label: STAT_STR.lap, value: () => pct(gameState.maxLapMs / ROUTE.maxDurationMs) },
+  { label: STAT_STR.deposit, value: () => pct(gameState.depositRadius / HIVE.depositRadius) },
+  { label: STAT_STR.bloom, value: () => pct(gameState.growthMult) },
+  { label: STAT_STR.regrowth, value: () => pct(gameState.fieldTuning.restMs / FLOWER.restMs) },
+  { label: STAT_STR.perfect, value: () => `x${String(gameState.fieldTuning.perfectMultiplier)}` },
+  { label: STAT_STR.honeyBatch, value: () => fmtFine(gameState.honeyPerBatch) },
+  { label: STAT_STR.batchTime, value: () => pct(gameState.batchMs / HONEY.batchMs) },
+  { label: STAT_STR.batchCost, value: () => pct(gameState.nectarPerBatch / HONEY.nectarPerBatch) },
+  { label: STAT_STR.jelly, value: () => fmtBig(gameState.jellyThreshold) },
+]
+
+/** Interligne du bilan, en pixels. Serré : quinze lignes doivent tenir. */
+const STAT_LINE_H = 14
+
 /** Une ligne de prix : sa vignette et son chiffre, recentrés ensemble. */
 interface CostRow {
   coin: Phaser.GameObjects.Image
@@ -154,6 +204,8 @@ export class CombScene extends Phaser.Scene {
   /** Les deux lignes de prix de la colonne de détail (cf. `buildChrome`). */
   private detailCost!: CostRow[]
   private progress!: Phaser.GameObjects.BitmapText
+  /** Les valeurs du bilan, dans l'ordre de `STATS` (les libellés ne bougent jamais). */
+  private statValues: Phaser.GameObjects.BitmapText[] = []
   /** Achat groupé, légué par la lignée (`busyWax`) : absent sans elle. */
   private buyAll!: ButtonHandle
   private hovered: CombCell | null = null
@@ -168,6 +220,7 @@ export class CombScene extends Phaser.Scene {
     // remise à zéro, on garderait les alvéoles de la fois précédente, détruites
     // avec leur scène, et le premier rafraîchissement planterait dessus.
     this.views = []
+    this.statValues = []
     this.hovered = null
     this.dragged = false
 
@@ -472,6 +525,28 @@ export class CombScene extends Phaser.Scene {
         ),
       })
     }
+
+    // LE BILAN, calé en BAS de la colonne, et pas à la suite de l'infobulle.
+    //
+    // L'infobulle grandit vers le bas — six lignes pour les ouvrières, deux pour
+    // un piège — et un bilan posé dessous sauterait de quarante pixels à chaque
+    // survol, c'est-à-dire précisément au moment où on le lit. Ancré en bas, il
+    // ne bouge jamais : le regard revient toujours à la même ligne pour y voir
+    // apparaître le « > ». Le blanc entre les deux blocs se referme de lui-même
+    // sur les infobulles longues.
+    const bottom = INNER.y + INNER.h - STATS.length * STAT_LINE_H
+    pixelText(this, sideX, bottom - STAT_LINE_H - 2, STR.combStats, FONTS.sizeHint, HEX.cream)
+      .setOrigin(0, 0)
+      .setTint(PALETTE.amber)
+    STATS.forEach((stat, i) => {
+      const y = bottom + i * STAT_LINE_H
+      pixelText(this, sideX, y, stat.label, FONTS.sizeHint, HEX.cream).setOrigin(0, 0).setAlpha(0.7)
+      // La valeur est FERRÉE À DROITE : les chiffres s'alignent en colonne, et
+      // la flèche du survol pousse vers la gauche au lieu de déborder du cadre.
+      this.statValues.push(
+        pixelText(this, sideX + SIDE_W, y, '', FONTS.sizeHint, HEX.cream).setOrigin(1, 0),
+      )
+    })
   }
 
   // --- Entrées -------------------------------------------------------------
@@ -658,5 +733,34 @@ export class CombScene extends Phaser.Scene {
     const side = this.hiveView()
     this.detail.y = side.y + (FONTS.sizeHint + 4) * (lines.length + 1) + 4
     this.detail.setText(hovered ? wrap(UPGRADE_STR[hovered.kind].tip, SIDE_COLS) : '')
+
+    this.refreshStats(hovered, owned)
+  }
+
+  /**
+   * Le bilan, et ce que l'alvéole survolée y changerait.
+   *
+   * L'aperçu ne recopie aucune formule : l'alvéole est BÂTIE le temps d'une
+   * lecture (cf. `GameState.previewCell`), puis retirée. Ce qui s'affiche après
+   * la flèche est donc, au caractère près, ce que le joueur lira une seconde
+   * après avoir cliqué.
+   *
+   * Seules les lignes qui BOUGENT prennent la flèche et le jaune. Afficher
+   * « 0 > 0 » sur les quatorze autres noierait la seule qui compte — et c'est
+   * tout ce que le joueur veut savoir en survolant : qu'est-ce que ça me fait ?
+   */
+  private refreshStats(hovered: CombCell | null, owned: boolean): void {
+    const now = STATS.map((s) => s.value())
+    const next =
+      hovered && !owned ? gameState.previewCell(hovered, () => STATS.map((s) => s.value())) : now
+
+    this.statValues.forEach((text, i) => {
+      const from = now[i]
+      const to = next[i]
+      const changed = to !== from
+      text.setText(changed ? `${from} > ${to}` : from)
+      text.setTint(changed ? PALETTE.lime : COLORS.cream)
+      text.setAlpha(changed ? 1 : 0.85)
+    })
   }
 }

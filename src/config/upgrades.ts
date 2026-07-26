@@ -264,13 +264,17 @@ const HAND_PLACED: readonly CombCell[] = [
   //
   // 640, c'est plus que la réserve pleine du premier palier (400) : cette alvéole
   // demande DEUX paliers de réserve, et elle n'est de toute façon visible qu'une
-  // fois le tracé du début bâti jusqu'à (2, -4). Le jeu bascule là : jusqu'ici le
-  // nectar servait à s'améliorer, à partir d'ici il se transforme (cf. `HONEY`).
+  // fois `storage-3` bâtie — elle est posée en (2, -4), contre elle. Le jeu
+  // bascule là : jusqu'ici le nectar servait à s'améliorer, à partir d'ici il se
+  // transforme (cf. `HONEY`). Elle se dévoile donc AVANT `storage-4`, qui lui
+  // succède sur la branche : la transformation est le tournant du jeu, elle ne
+  // s'annonce pas au bout du plus long prix en nectar du début. Le plafond après
+  // `storage-3` vaut 2200, les 640 sont tenables sans autre achat.
   //
   // Les suivantes se paient en miel et donnent une ouvrière de plus : un lot
   // rend `honeyPerWorker` PAR ouvrière, l'effectif multiplie donc directement la
   // production. C'est le seul investissement du jeu qui se rembourse.
-  { id: 'workers-1', kind: 'workers', tier: 1, cost: { nectar: 640 }, q: 3, r: -5, bees: 1 },
+  { id: 'workers-1', kind: 'workers', tier: 1, cost: { nectar: 640 }, q: 2, r: -4, bees: 1 },
   { id: 'workers-2', kind: 'workers', tier: 2, cost: { honey: 4 }, q: 2, r: -5, bees: 1 },
   { id: 'workers-3', kind: 'workers', tier: 3, cost: { honey: 9 }, q: 3, r: -6, bees: 1 },
   { id: 'workers-4', kind: 'workers', tier: 4, cost: { honey: 26 }, q: 2, r: -6, bees: 2 },
@@ -328,10 +332,13 @@ const HAND_PLACED: readonly CombCell[] = [
 // `STORAGE_TIERS` ne demande jamais de replacer des coordonnées. La règle est en
 // deux temps :
 //
-//   1. les SIX PREMIÈRES gardent exactement le tracé qu'elles avaient — le coude
-//      qui remonte à droite puis revient sur lui-même, et surtout l'alvéole
-//      (2, -4) contre laquelle pousse la première ouvrière. Ce tracé porte
-//      l'ordre de dévoilement du début de partie, on n'y touche pas ;
+//   1. les SIX PREMIÈRES portent l'ordre de dévoilement du début de partie : le
+//      coude qui remonte à droite puis revient sur lui-même. Le quatrième pas se
+//      détache du fil et va se poser en (3, -5), au-delà des ouvrières : c'est
+//      (2, -4) qui revient à `workers-1`, contre `storage-3`, pour que la
+//      transformation se montre au troisième palier de réserve et non au
+//      quatrième. `storage-4` se dévoile alors par l'ouvrière, et `storage-5`
+//      reste voisine de `storage-3` — le fil n'est pas coupé, il enjambe ;
 //   2. au-delà, la branche cesse d'être un fil et devient un PAVAGE : elle
 //      remplit le haut du rayon en serpentin, ligne par ligne, de la droite vers
 //      la gauche puis l'inverse. Un fil de quinze alvéoles aurait tiré une antenne
@@ -345,7 +352,7 @@ const STORAGE_SEED: readonly (readonly [number, number])[] = [
   [0, -1],
   [1, -2],
   [1, -3],
-  [2, -4],
+  [3, -5],
   [1, -4],
   [1, -5],
 ] as const
@@ -561,21 +568,28 @@ function grow(
  * c'est une décision suivie de quarante-neuf clics — le joueur qui achète le
  * quarantième cran de la même chose ne choisit plus rien.
  *
- * Quinze pour les branches qui règlent (elles ont besoin d'amplitude), dix pour
+ * Huit pour les branches qui règlent (elles ont besoin d'amplitude), six pour
  * celles qui donnent des abeilles ou du temps de vol (chaque cran y pèse déjà
- * lourd). Le rayon fait donc 166 alvéoles et non 250 : c'est moins de cire, et
- * chaque alvéole y vaut davantage.
+ * lourd).
+ *
+ * HUIT ET SIX, ET PAS QUINZE ET DIX : c'est la DURÉE DE PARTIE qui les fixe. Une
+ * partie doit tenir en deux heures, et le temps d'un rayon est d'abord un nombre
+ * d'ACHATS — chaque alvéole coûte à peu près la même attente que la précédente,
+ * puisque prix et production montent ensemble. Quinze et dix donnaient un rayon
+ * de 166 alvéoles qu'aucune courbe de production ne rattrapait : on l'a mesuré à
+ * soixante-dix heures. Baisser les prix n'y changeait rien, c'est le NOMBRE qui
+ * commande. Huit et six font 118 alvéoles, et deux heures.
  */
 const GRIND_TIERS = {
-  microNaps: 15,
-  slowRipening: 15,
-  aerodynamics: 15,
-  deepRoots: 10,
-  frenzy: 10,
-  synergy: 15,
-  queenMother: 10,
-  workerQueen: 10,
-  patrols: 10,
+  microNaps: 8,
+  slowRipening: 8,
+  aerodynamics: 8,
+  deepRoots: 6,
+  frenzy: 6,
+  synergy: 8,
+  queenMother: 6,
+  workerQueen: 6,
+  patrols: 6,
 } as const
 
 /**
@@ -583,11 +597,24 @@ const GRIND_TIERS = {
  *
  * Le miel n'a pas de plafond : sa courbe peut être aussi raide qu'on veut sans
  * jamais bloquer personne, seulement faire attendre. La croissance dit donc à
- * quel rythme la branche décroche du reste du jeu — 1,35 se rattrape en une
- * séance, 2,0 se compte en jours. Les branches étant COURTES (quinze crans au
- * plus, cf. `GRIND_TIERS`), ces croissances sont raides : c'est le seul moyen de
- * garder le même horizon de fin de partie avec trois fois moins d'alvéoles.
+ * quel rythme la branche décroche du reste du jeu.
+ *
+ * Les croissances ne sont plus choisies branche par branche : elles se DÉDUISENT
+ * d'un même écart, `SPAN`, entre le premier cran et le dernier. Une branche de
+ * huit crans croît donc en `SPAN^(1/7)` ≈ 1,63, une de six en `SPAN^(1/5)` ≈
+ * 1,97 — la branche courte monte plus vite parce qu'elle a moins de marches pour
+ * faire le même chemin. C'est ce qui garde les branches COMPARABLES quand on
+ * change leur longueur : `GRIND_TIERS` se retouche sans rouvrir sept nombres.
  */
+/**
+ * Écart entre le premier cran d'une branche et le dernier. C'est LE nombre de
+ * l'équilibrage de fin de partie : le rayon coûte 188 k de miel, et à trente le
+ * dernier cran d'une branche vaut trente fois le premier — assez pour que la
+ * courbe se sente, pas assez pour qu'elle décroche. Cf. `GRIND_TIERS` pour
+ * l'autre moitié du calcul (le nombre d'achats).
+ */
+const SPAN = 30
+const honeyGrowth = (tiers: number): number => SPAN ** (1 / (tiers - 1))
 function honeyCurve(base: number, growth: number, tier: number): number {
   return Math.round(base * growth ** (tier - 1))
 }
@@ -616,8 +643,12 @@ interface BranchSpec {
   /** Cap de croissance, en degrés (0 = droite, 90 = bas, cf. l'écran). */
   heading: number
   cost: (tier: number, tiers: number) => Cost
-  /** Abeilles versées par cran, s'il y en a (cf. `CELL_BEE_KIND`). */
-  bees?: number
+  /**
+   * Abeilles versées par cran, s'il y en a (cf. `CELL_BEE_KIND`). Une fonction
+   * quand le versement CROÎT avec le cran : une branche dont le prix double à
+   * chaque pas et qui rend toujours la même chose s'arrête d'elle-même.
+   */
+  bees?: number | ((tier: number) => number)
 }
 
 const GRIND: readonly BranchSpec[] = [
@@ -630,14 +661,14 @@ const GRIND: readonly BranchSpec[] = [
     tiers: GRIND_TIERS.microNaps,
     anchor: 'fanning-4',
     heading: -55,
-    cost: (n) => ({ honey: honeyCurve(60, 1.35, n) }),
+    cost: (n, t) => ({ honey: honeyCurve(60, honeyGrowth(t), n) }),
   },
   {
     kind: 'slowRipening',
     tiers: GRIND_TIERS.slowRipening,
     anchor: 'ripening-4',
     heading: -160,
-    cost: (n) => ({ honey: honeyCurve(120, 1.35, n) }),
+    cost: (n, t) => ({ honey: honeyCurve(120, honeyGrowth(t), n) }),
   },
 
   // ADVANCED BOTANY — le pré et le vol. Tout s'y paie en NECTAR, et donc sous le
@@ -665,14 +696,14 @@ const GRIND: readonly BranchSpec[] = [
     tiers: GRIND_TIERS.frenzy,
     anchor: 'thrift-4',
     heading: 120,
-    cost: (n, t) => ({ honey: honeyCurve(150, 1.45, n), nectar: nectarCurve(0.3, n, t) }),
+    cost: (n, t) => ({ honey: honeyCurve(150, honeyGrowth(t), n), nectar: nectarCurve(0.3, n, t) }),
   },
   {
     kind: 'synergy',
     tiers: GRIND_TIERS.synergy,
     anchor: 'foragers-3',
     heading: -20,
-    cost: (n) => ({ honey: honeyCurve(200, 1.6, n) }),
+    cost: (n, t) => ({ honey: honeyCurve(200, honeyGrowth(t), n) }),
   },
 
   // GENETICS — ce dont la ruche hérite. Les deux branches les plus chères du
@@ -684,15 +715,24 @@ const GRIND: readonly BranchSpec[] = [
     tiers: GRIND_TIERS.queenMother,
     anchor: 'storage-15',
     heading: -120,
-    cost: (n, t) => ({ honey: honeyCurve(500, 1.9, n), nectar: nectarCurve(0.35, n, t) }),
+    cost: (n, t) => ({
+      honey: honeyCurve(500, honeyGrowth(t), n),
+      nectar: nectarCurve(0.35, n, t),
+    }),
   },
   {
     kind: 'workerQueen',
     tiers: GRIND_TIERS.workerQueen,
     anchor: 'workers-4',
     heading: -90,
-    cost: (n) => ({ honey: honeyCurve(400, 2, n) }),
-    bees: 1,
+    cost: (n, t) => ({ honey: honeyCurve(400, honeyGrowth(t), n) }),
+    // Le cran verse SON RANG d'ouvrières : une au premier, dix au dixième, 55 en
+    // tout. Son prix DOUBLE à chaque cran (base 2) — un versement fixe faisait
+    // du dernier cran, à cinq cents fois le prix du premier, exactement le même
+    // gain que lui. C'est la branche qui porte l'effectif de fin de partie, et
+    // l'effectif est le seul terme que la synergie multiplie : les deux
+    // ensemble sont ce qui rend la courbe du miel quadratique plutôt que plate.
+    bees: (tier) => tier,
   },
 
   // DÉFENSE SPATIALE — la seule branche du rayon qui joue sur le DIVISEUR. Une
@@ -706,7 +746,7 @@ const GRIND: readonly BranchSpec[] = [
     tiers: GRIND_TIERS.patrols,
     anchor: 'foragers-3',
     heading: 40,
-    cost: (n) => ({ honey: honeyCurve(500, 1.8, n) }),
+    cost: (n, t) => ({ honey: honeyCurve(500, honeyGrowth(t), n) }),
     bees: 1,
   },
 ] as const
@@ -741,27 +781,27 @@ const MILESTONES: readonly SoloSpec[] = [
   // moitiés séparées — pour la première fois, embaucher à l'intérieur fait voler
   // plus fort dehors. Prix à l'avenant : le miel d'un cap de branche, et le
   // plafond de nectar au complet.
-  { kind: 'frenzyDance', against: 'queenMother', cost: { honey: 250_000, nectar: NECTAR_CEILING } },
+  { kind: 'frenzyDance', against: 'queenMother', cost: { honey: 12_500, nectar: NECTAR_CEILING } },
   // Le bout des Racines Profondes : le « Perfect » passe de x2 à x3. C'est le
   // seul nœud du jeu qui récompense le PILOTAGE et rien d'autre — il ne vaut que
   // ce que vaut le trajet du joueur, et pour un trajet quelconque il ne vaut rien.
-  { kind: 'mutantCorollas', against: 'deepRoots', cost: { honey: 150_000 } },
+  { kind: 'mutantCorollas', against: 'deepRoots', cost: { honey: 7_500 } },
   // Le bout de l'Aérodynamisme : la gelée royale tombe 20 % plus tôt, donc la
   // lignée entière avance plus vite. Il demande d'avoir mené la réserve au bout,
   // et le dit par son prix : le plafond ultime, en entier.
   {
     kind: 'royalDigestion',
     against: 'aerodynamics',
-    cost: { honey: 80_000, nectar: NECTAR_CEILING },
+    cost: { honey: 4_000, nectar: NECTAR_CEILING },
   },
   // Le bout de la Frénésie : l'inertie de l'abeille disparaît à 95 %. Trophée de
   // pilotage, et rien d'autre — il ne rapporte pas un nectar de plus, il rend
   // seulement possible le trajet qu'on n'arrivait pas à tracer.
-  { kind: 'zeroInertia', against: 'frenzy', cost: { honey: 500_000 } },
+  { kind: 'zeroInertia', against: 'frenzy', cost: { honey: 25_000 } },
   // Le bout de la Reine Ouvrière : l'essaimage cesse de tout prendre. Le seul
   // nœud du rayon qui SURVIVE au rayon — et donc le seul qui pousse à retarder
   // le prestige au lieu de le précipiter.
-  { kind: 'goldenSwarm', against: 'workerQueen', cost: { honey: 300_000 } },
+  { kind: 'goldenSwarm', against: 'workerQueen', cost: { honey: 15_000 } },
   // Le bout de la Maturation Lente : une fleur annonce son ouverture. Il ne
   // change aucun chiffre, il change ce que le joueur VOIT — et c'est ce qui fait
   // les meilleurs trajets. Payé au nectar, juste sous le plafond ultime.
@@ -771,19 +811,19 @@ const MILESTONES: readonly SoloSpec[] = [
   // c'est devenu le jalon qui rend le « touch-and-go » possible : la butineuse
   // n'a plus besoin de rentrer, elle FRÔLE. Il ne se lit que la souris à la
   // main : acheté puis oublié, il ne change pas un chiffre du trajet en cours.
-  { kind: 'honorGuard', against: 'patrols', cost: { honey: 40_000 }, bees: 10 },
+  { kind: 'honorGuard', against: 'patrols', cost: { honey: 2_000 }, bees: 10 },
 ] as const
 
 const TRAPS: readonly SoloSpec[] = [
   // Un bonus ADDITIF au milieu d'un jeu multiplicatif : 0,1 nectar par vol, pour
   // toujours. Excellent au premier tour, risible au centième. Le prix est calé
   // pour être tentant au moment où on le croise — c'est tout l'objet.
-  { kind: 'heavyPollen', against: 'foragers', cost: { honey: 2_500 } },
+  { kind: 'heavyPollen', against: 'foragers', cost: { honey: 125 } },
   // Des paillettes sur la ruche. Aucune mécanique, et le prix d'un vrai nœud :
   // c'est un achat qu'on fait pour soi.
   { kind: 'shinyWax', against: 'ripening', cost: { nectar: 30_000 } },
   // Le bourdonnement descend d'un demi-ton. Il faut l'entendre pour y croire.
-  { kind: 'dullBuzz', against: 'flight', cost: { honey: 6_000 } },
+  { kind: 'dullBuzz', against: 'flight', cost: { honey: 300 } },
 ] as const
 
 // --- ASSEMBLAGE -------------------------------------------------------------
@@ -854,7 +894,7 @@ function buildComb(): CombCell[] {
         spec.cost(tier, spec.tiers),
         from,
         { heading: (spec.heading * Math.PI) / 180 },
-        spec.bees,
+        typeof spec.bees === 'function' ? spec.bees(tier) : spec.bees,
       )
     }
   }
@@ -970,7 +1010,7 @@ export const UPGRADE_EFFECT = {
    * la branche la plus chère du début de partie, et c'est normal — elle multiplie
    * tout le reste.
    */
-  ripeningStep: 0.25,
+  ripeningStep: 0.5,
 
   // --- Le grind -----------------------------------------------------------
 
@@ -995,8 +1035,15 @@ export const UPGRADE_EFFECT = {
   deepRootsMult: 0.98,
   /** Frénésie butineuse : une demi-seconde de tour en plus par cran. */
   frenzyMs: 500,
-  /** Synergie ouvrière : +5 % au rendement de base d'une ouvrière, par cran. */
-  synergyStep: 0.05,
+  /**
+   * Synergie ouvrière : +5 % au rendement de base d'une ouvrière par cran,
+   * MULTIPLICATIVEMENT (comme les micro-siestes et les racines profondes).
+   * Quinze crans font ×2,08 au lieu de ×1,75 — l'écart est mince, mais un pas
+   * additif SATURE : le quinzième cran d'un « 1 + n × pas » vaut moins que le
+   * premier, alors qu'il coûte sept cents fois plus cher. Ce que la ruche se dit
+   * d'elle-même se répète, il ne s'additionne pas.
+   */
+  synergyMult: 1.35,
   /** Reine mère : une butineuse fantôme par cran (elle vole le trajet sans être dessinée). */
   ghostPerQueenTier: 1,
   /**

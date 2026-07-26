@@ -247,6 +247,10 @@ export class GameScene extends Phaser.Scene {
   /**
    * Sème un pré : mêmes bornes, même graine, donc RIGOUREUSEMENT le même
    * calendrier à chaque appel (cf. systems/FlowerField).
+   *
+   * La graine vient de la PARTIE et non de `config/balance` : elle a été tirée
+   * au premier lancement et sauvegardée depuis (cf. `GameState.fieldSeed`). Deux
+   * parties n'ont donc pas le même pré, et une même partie a toujours le sien.
    */
   private makeFlowerField(): FlowerField {
     return new FlowerField(
@@ -260,6 +264,7 @@ export class GameScene extends Phaser.Scene {
       // Ce que la lignée a changé au pré : des fleurs en plus, des corolles plus
       // riches, des repousses plus courtes (cf. `GameState.fieldTuning`).
       gameState.fieldTuning,
+      gameState.fieldSeed,
     )
   }
 
