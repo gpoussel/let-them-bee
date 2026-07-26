@@ -28,6 +28,8 @@ import { audio } from '../systems/Audio'
 
 export { OriginX, OriginY }
 export { handCursor }
+/** Fabrique de composants liée à un coin d'ancrage (cf. `Anchored.at`). */
+export type { ComponentFactory }
 export { UI9, type Ui9Skin }
 
 // La scène de jeu est en mode Scale.FIT sur une résolution fixe WORLD : la

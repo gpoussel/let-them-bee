@@ -8,7 +8,7 @@ import {
   type CombCell,
   type UpgradeKind,
 } from '../config/upgrades'
-import { isBetter, type Route } from './Route'
+import { isBetter, isValidRoute, type Route } from './Route'
 
 const SAVE_KEY = GAME.saveKey
 
@@ -19,7 +19,20 @@ function emptyPopulation(): BeePopulation {
   return { forager: 1, worker: 0, warrior: 0 }
 }
 
+/**
+ * Contenu d'une sauvegarde.
+ *
+ * **Tout état de jeu doit figurer ici.** Une mécanique qui ajoute un compteur,
+ * une caste, une monnaie ou un interrupteur ajoute son champ dans le même
+ * changement : un état oublié ne se remarque pas au développement (la partie
+ * courante le tient en mémoire), seulement chez le joueur qui revient.
+ */
 export interface SaveData {
+  /**
+   * Version du jeu qui a écrit la sauvegarde. Relue par une AUTRE version, la
+   * sauvegarde est détruite et non migrée (cf. `load`).
+   */
+  version: string
   nectar: number
   honey: number
   royalJelly: number
@@ -309,9 +322,32 @@ export class GameState {
     return true
   }
 
+  /**
+   * Remet la partie à l'état d'un premier lancement.
+   *
+   * L'instance de `GameState` est un singleton qui survit aux scènes : effacer
+   * la sauvegarde ne suffit pas, il faut aussi vider ce qui est en mémoire —
+   * sans quoi un « Restart » depuis l'écran-titre relancerait une partie neuve
+   * avec le miel de la précédente.
+   */
+  reset(): void {
+    this.nectar = 0
+    this.honey = 0
+    this.royalJelly = 0
+    this.bees = emptyPopulation()
+    this.bestHoney = 0
+    this.queens = 0
+    this.route = null
+    this.comb = new Set<string>()
+    this.brewing = false
+    this.brewProgress = 0
+    this.honeySinceJelly = 0
+    this.brewEnabled = true
+  }
+
   save(): void {
-    if (!GAME.saveEnabled) return
     const data: SaveData = {
+      version: GAME.version,
       nectar: this.nectar,
       honey: this.honey,
       royalJelly: this.royalJelly,
@@ -332,12 +368,26 @@ export class GameState {
     }
   }
 
+  /**
+   * Relit la sauvegarde. Renvoie faux s'il n'y a rien à reprendre — l'appelant
+   * se présente alors comme un premier lancement.
+   *
+   * **Aucune migration.** Une sauvegarde écrite par une autre version du jeu est
+   * détruite : entre deux versions d'une jam, l'équilibrage, le rayon et les
+   * mécaniques bougent trop pour qu'un état ancien reste jouable, et une partie
+   * subtilement incohérente est pire qu'une partie neuve. La version est celle
+   * de `package.json` : la faire monter suffit à invalider les sauvegardes.
+   */
   load(): boolean {
-    if (!GAME.saveEnabled) return false
     try {
       const raw = localStorage.getItem(SAVE_KEY)
       if (!raw) return false
       const data = JSON.parse(raw) as Partial<SaveData>
+      if (data.version !== GAME.version) {
+        GameState.clear()
+        this.reset()
+        return false
+      }
       this.nectar = data.nectar ?? 0
       this.honey = data.honey ?? 0
       this.royalJelly = data.royalJelly ?? 0
@@ -355,12 +405,16 @@ export class GameState {
       this.brewProgress = Math.min(Math.max(data.brewProgress ?? 0, 0), 1)
       this.honeySinceJelly = data.honeySinceJelly ?? 0
       this.brewEnabled = data.brewEnabled ?? true
-      // Un trajet tronqué (sauvegarde d'une version antérieure, altération)
-      // est écarté plutôt que rejoué de travers.
-      const route = data.route
-      this.route = route && Array.isArray(route.pts) && route.pts.length >= 4 ? route : null
+      // Un trajet tronqué ou abîmé est écarté plutôt que rejoué de travers :
+      // le joueur retombe sur « aucun tour enregistré », ce qui se voit et se
+      // répare, là où un trajet à moitié valide se rejoue en silence (cf.
+      // `isValidRoute`).
+      this.route = isValidRoute(data.route) ? data.route : null
       return true
     } catch {
+      // Sauvegarde illisible : on a pu en appliquer une partie avant de casser.
+      // On repart donc d'une partie propre plutôt que d'un état à moitié relu.
+      this.reset()
       return false
     }
   }

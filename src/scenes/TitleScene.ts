@@ -5,6 +5,7 @@ import { COLORS, FONTS } from '../ui/theme'
 import { FONT_KEY } from '../gfx/font'
 import {
   Ui,
+  type ComponentFactory,
   type Panel,
   button,
   iconButton,
@@ -16,7 +17,9 @@ import {
 } from '../ui/pixui'
 import { TEX } from '../gfx/textures'
 import { createLogo } from '../gfx/logo'
+import { BEE_KINDS } from '../config/balance'
 import { gameState, GameState } from '../systems/GameState'
+import { fmtCount } from '../ui/format'
 import { audio, SND } from '../systems/Audio'
 import { buildPrefsPanel } from '../ui/prefsPanel'
 import { transitionIn, transitionOut, TRANSITION_MS } from '../gfx/transition'
@@ -42,6 +45,15 @@ const ABOUT_LINE_H = 18
 const ABOUT_LABEL_X = 20
 const ABOUT_VALUE_X = 110
 
+// Bloc central : le bouton principal, et — quand une partie est en cours — le
+// bilan de cette partie puis le bouton de reset. Hauteurs posées à la main
+// plutôt que calculées : ce sont des textes bitmap, leur encombrement est connu.
+const BLOCK_BUTTON_H = 40
+const BLOCK_GAP = 16
+const BLOCK_STAT_H = 26
+/** Séparateur entre deux stats d'une même ligne. */
+const STAT_SEP = '   -   '
+
 // Écran-titre : logo, boutons Butiner / Continuer / Reset, barre de bas d'écran
 // (version, crédit jam, liens itch.io / GitHub / crédits).
 // Layout entièrement posé via pixui (ancré au centre / aux bords de l'écran).
@@ -61,15 +73,17 @@ export class TitleScene extends Phaser.Scene {
 
     // Offsets exprimés depuis le centre de l'écran.
     const cy = height / 2
-    // Le bouton principal se place à mi-hauteur entre l'accroche et la barre
-    // de bas d'écran ; le meilleur score, quand il existe, s'intercale dessous.
-    // Le logo occupe le haut de l'écran ; le bouton se place à mi-hauteur entre
-    // lui et la barre de bas d'écran. (Il y avait ici une accroche : retirée, le
-    // jeu n'en a pas encore une qui dise juste ce qu'il est.)
+    // Le logo occupe le haut de l'écran ; le bloc central se centre dans ce qui
+    // reste, entre lui et la barre de bas d'écran. (Il y avait ici une accroche :
+    // retirée, le jeu n'en a pas encore une qui dise juste ce qu'il est.)
     const logoBottomY = height * 0.3 + 132
     const footerTopY = height - FOOTER_Y - ICON_SIZE
-    const buttonY = (logoBottomY + footerTopY) / 2
-    const scoreY = (buttonY + footerTopY) / 2
+    // Le bloc est plus haut quand une partie est en cours (stats + reset) : on
+    // le centre à sa hauteur réelle, sinon le bouton seul se retrouverait haut.
+    const blockH = hasSave
+      ? BLOCK_BUTTON_H + BLOCK_GAP + BLOCK_STAT_H + BLOCK_GAP + BLOCK_BUTTON_H
+      : BLOCK_BUTTON_H
+    let y = (logoBottomY + footerTopY - blockH) / 2
 
     // Bouton principal.
     button(center, {
@@ -78,25 +92,18 @@ export class TitleScene extends Phaser.Scene {
       label: hasSave ? STR.continue : STR.play,
       color: COLORS.darkBrown,
       x: 0,
-      y: buttonY - cy,
+      y: y + BLOCK_BUTTON_H / 2 - cy,
       onClick: () => {
         this.startGame()
       },
     })
+    y += BLOCK_BUTTON_H + BLOCK_GAP
 
     if (hasSave) {
-      // Meilleur score / reines : rien à afficher tant qu'aucune partie n'a
-      // été jouée.
-      center.bitmapText({
-        font: FONT_KEY,
-        size: FONTS.sizeSmall,
-        text: `${STR.best} ${STR.honey.toLowerCase()}: ${Math.floor(gameState.bestHoney)}   -   ${STR.queens}: ${gameState.queens}`,
-        tint: COLORS.cream,
-        x: 0,
-        y: scoreY - cy,
-        originX: OriginX.Center,
-        originY: OriginY.Center,
-      })
+      // Bilan de la partie reprise : il n'y a rien à en dire avant qu'une
+      // partie existe, c'est pourquoi il n'apparaît qu'avec « Continue ».
+      this.buildStats(center, y - cy)
+      y += BLOCK_STAT_H + BLOCK_GAP
 
       button(center, {
         font: FONT_KEY,
@@ -104,9 +111,12 @@ export class TitleScene extends Phaser.Scene {
         label: STR.reset,
         color: COLORS.darkBrown,
         x: 0,
-        y: (scoreY + footerTopY) / 2 - cy,
+        y: y + BLOCK_BUTTON_H / 2 - cy,
         onClick: () => {
+          // La sauvegarde ET l'état en mémoire : l'instance de jeu survit aux
+          // scènes, l'effacer sur disque seul laisserait la partie en cours.
           GameState.clear()
+          gameState.reset()
           this.scene.restart({})
         },
       })
@@ -146,6 +156,38 @@ export class TitleScene extends Phaser.Scene {
     if (this.scene.settings.data && (this.scene.settings.data as SceneData).fromGame) {
       transitionIn(this)
     }
+  }
+
+  /**
+   * Bilan de la partie relue, sous le bouton « Continue » : une ligne courte.
+   *
+   * **Deux nombres, pas plus** : l'effectif et les alvéoles bâties. Un seuil
+   * d'accueil n'est pas un tableau de bord — le joueur doit reconnaître sa
+   * partie d'un coup d'œil, pas la lire, et ces deux nombres-là sont ceux qui
+   * disent où en est sa ruche. Le meilleur miel, les reines et le nectar/s du
+   * meilleur tour en faisaient partie : ce sont des scores, pas un état, et ils
+   * sont de toute façon dans le jeu, à un clic.
+   *
+   * @param panel ancrage central du layout
+   * @param topY haut du bloc, exprimé depuis le centre de l'écran
+   */
+  private buildStats(panel: ComponentFactory, topY: number): void {
+    const bees = BEE_KINDS.reduce((n, kind) => n + gameState.bees[kind.id], 0)
+
+    // Crème et non ambre : sur l'herbe du jardin, l'ambre de la palette ne
+    // ressort pas à cette taille.
+    panel.bitmapText({
+      font: FONT_KEY,
+      size: FONTS.sizeSmall,
+      text: [`${STR.bees}: ${fmtCount(bees)}`, `${STR.combOwned}: ${gameState.comb.size}`].join(
+        STAT_SEP,
+      ),
+      tint: COLORS.cream,
+      x: 0,
+      y: topY + BLOCK_STAT_H / 2,
+      originX: OriginX.Center,
+      originY: OriginY.Center,
+    })
   }
 
   /** Passage au jeu : fondu musical puis fermeture de l'écran en hexagones. */

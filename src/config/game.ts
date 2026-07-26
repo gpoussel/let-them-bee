@@ -6,9 +6,6 @@ export const GAME = {
   version: __APP_VERSION__,
   name: 'Let Them Bee',
   saveKey: 'let-them-bee/save/v1',
-  // Sauvegarde désactivée le temps de travailler l'écran d'accueil : chaque
-  // lancement se présente comme celui d'un nouveau joueur.
-  saveEnabled: false,
 } as const
 
 // Dimensions du monde / canvas.

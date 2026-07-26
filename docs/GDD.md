@@ -8,7 +8,7 @@
 |               |                                                               |
 | ------------- | ------------------------------------------------------------- |
 | Titre         | **Let Them Bee**                                              |
-| Version       | `0.1.0` (`package.json`, injectée dans `GAME.version`)        |
+| Version       | `0.5.0` (`package.json`, injectée dans `GAME.version`)        |
 | Jam           | DTJ36-28 — thème _abeille_                                    |
 | Genre         | Incrémental à **skill** — le pilotage accélère la progression |
 | Plateforme    | Navigateur (GitHub Pages + itch.io)                           |
@@ -370,13 +370,13 @@ aucune interface ne les dépense. **C'est le plus gros manque de design actif.**
 
 ## 8. Écrans & interface
 
-| Scène   | Contenu                                                                                                                                                              |
-| ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Boot`  | Chargement, cuisson des textures procédurales et du fond de prairie                                                                                                  |
-| `Title` | Logo animé, jardin en tileset, boutons _New Game_ / _Continue_, pop-up crédits, panneau de réglages (volumes), pied de page (version, crédit jam, liens itch/GitHub) |
-| `Game`  | Barre de ressources · panneau _Colony_ · bouton du Rayon · le pré · bandeau d'état                                                                                   |
-| `Comb`  | Le Rayon. **Scène** superposée, pas pop-up (voir ci-dessous)                                                                                                         |
-| `Pause` | Échap, en surimpression : reprendre, réglages, retour au titre                                                                                                       |
+| Scène   | Contenu                                                                                                                                                                                                                  |
+| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `Boot`  | Chargement, cuisson des textures procédurales et du fond de prairie                                                                                                                                                      |
+| `Title` | Logo animé, jardin en tileset, bouton _New Game_ / _Continue_, bilan de la partie reprise et _Restart_ (voir 10.1), pop-up crédits, panneau de réglages (volumes), pied de page (version, crédit jam, liens itch/GitHub) |
+| `Game`  | Barre de ressources · panneau _Colony_ · bouton du Rayon · le pré · bandeau d'état                                                                                                                                       |
+| `Comb`  | Le Rayon. **Scène** superposée, pas pop-up (voir ci-dessous)                                                                                                                                                             |
+| `Pause` | Échap, en surimpression : reprendre, réglages, retour au titre                                                                                                                                                           |
 
 **Découpe de l'écran de jeu** (`SCREEN`, coordonnées absolues) : barre de
 ressources en haut ; à gauche la colonne _Colony_ surmontant le bouton du Rayon ;
@@ -471,19 +471,55 @@ alvéoles.
 
 ## 10. Sauvegarde
 
-localStorage, autosave périodique. Persistés : nectar, miel, gelée royale,
-effectifs, meilleur miel, reines, identifiants d'alvéoles, meilleur trajet, et
-l'état de la transformation (lot en cours et son avancement, reliquat de miel
-vers la gelée royale, interrupteur). Le nectar d'un lot engagé a déjà quitté la
-réserve : on reprend le lot où il en était plutôt que de le perdre.
+localStorage, autosave périodique (`FEEL.autosaveMs`), plus une sauvegarde aux
+moments qui comptent : clôture d'un tour, ouverture du menu de pause, retour au
+titre. Persistés : nectar, miel, gelée royale, effectifs, meilleur miel, reines,
+identifiants d'alvéoles, meilleur trajet, et l'état de la transformation (lot en
+cours et son avancement, reliquat de miel vers la gelée royale, interrupteur). Le
+nectar d'un lot engagé a déjà quitté la réserve : on reprend le lot où il en
+était plutôt que de le perdre.
 
-Deux garde-fous à la relecture : une alvéole dont l'identifiant a disparu du
-rayon n'est pas ressuscitée, et un trajet tronqué est écarté plutôt que rejoué de
-travers.
+**Règle de développement : tout état de jeu va dans `SaveData`, dans le même
+changement que la mécanique qui l'introduit.** Une caste, une monnaie, un
+compteur ou un interrupteur oublié ne se voit pas en développement — la partie
+courante le tient en mémoire — mais seulement chez le joueur qui revient, sous la
+forme d'une partie subtilement incohérente.
 
-> ⚠️ **La sauvegarde est actuellement désactivée** (`GAME.saveEnabled = false`),
-> le temps de travailler l'écran d'accueil : chaque lancement se présente comme
-> celui d'un nouveau joueur. À réactiver avant la sortie.
+**Aucune migration entre versions.** La sauvegarde porte la version du jeu
+(`GAME.version`, celle de `package.json`) ; relue par une autre version, elle est
+**détruite** au lancement et le jeu se présente comme un premier lancement.
+Écrire des migrations sur une jam où l'équilibrage, le rayon et les mécaniques
+bougent à chaque itération coûterait plus que ça ne rend : un état ancien rendu
+jouable de force est pire qu'une partie neuve. Faire monter la version suffit
+donc à invalider les sauvegardes du terrain.
+
+Trois garde-fous à la relecture : une alvéole dont l'identifiant a disparu du
+rayon n'est pas ressuscitée ; un trajet qui ne serait pas rejouable est écarté
+plutôt que rejoué de travers ; et une sauvegarde illisible (comme une version périmée) remet la partie
+**en mémoire** à zéro — `GameState` est un singleton qui survit aux scènes, un
+état à moitié relu s'y installerait sinon. C'est la même raison qui fait que le
+bouton _Restart_ de l'écran-titre efface le disque **et** la mémoire.
+
+Un trajet est jugé rejouable point par point, et aux deux bouts : à
+l'enregistrement comme à la relecture. `JSON.stringify` ne sait pas écrire une
+coordonnée non finie — il l'écrit `null`, qui se relit comme un **zéro** ajouté au
+coin du pré. Le trajet abîmé ne se voit alors pas : il se charge, il se rejoue, et
+la butineuse reste plantée au coin haut-gauche du pré pour un tour entier. C'est
+pire qu'un trajet refusé, car le joueur croit son enregistrement perdu alors que
+le jeu le rejoue en silence.
+
+### 10.1 Le bilan de l'écran-titre
+
+Quand une sauvegarde est reprise, l'écran-titre en montre le bilan sous le bouton
+_Continue_ — le joueur qui revient doit reconnaître sa partie avant d'y entrer.
+
+**Une ligne, deux nombres** : l'effectif total et le nombre d'alvéoles bâties.
+C'est un seuil d'accueil, pas un tableau de bord : la partie doit se reconnaître
+d'un coup d'œil, pas se lire. Le meilleur miel, les reines et le nectar/s du
+meilleur tour y ont figuré et en sont tombés — ce sont des **scores**, quand ce
+qu'on cherche ici est un **état**, et ils sont de toute façon dans le jeu, à un
+clic. Sans sauvegarde, la ligne n'existe pas : le bouton _New Game_ est alors
+seul, et le bloc se recentre.
 
 ## 11. Outils de développement
 
@@ -510,7 +546,8 @@ dévoilement, achats) · **usage du miel** : effectifs et réglages des lots ·
 transformation du nectar en miel par lots, sa jauge et ses gains
 flottants · gelée royale par paliers · HUD complet et infobulles · relances de
 première fois (trajet, rayon) et dévoilement du bandeau · écran-titre complet,
-transitions, audio, pause · déploiements Pages + itch.
+transitions, audio, pause · **sauvegarde active** : autosave, reprise, bilan sur
+l'écran-titre, invalidation par version · déploiements Pages + itch.
 
 **Manquant, par ordre d'impact design**
 

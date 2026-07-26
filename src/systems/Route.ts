@@ -35,6 +35,28 @@ export function isBetter(candidate: Route, best: Route | null): boolean {
 }
 
 /**
+ * Un trajet est-il exploitable ?
+ *
+ * Le piège est une coordonnée NON FINIE. `JSON.stringify` ne sait pas écrire
+ * `NaN` : il l'écrit `null`, qui se relit en `null` et vaut **zéro** dans
+ * l'addition avec l'origine du pré. Un trajet ainsi abîmé ne se voit pas — il se
+ * charge, il se rejoue, et la butineuse reste plantée au coin haut-gauche du pré
+ * sans bouger, pour un tour entier. C'est pire qu'un trajet refusé : le joueur
+ * croit son enregistrement perdu alors que le jeu le rejoue en silence.
+ *
+ * On vérifie donc les points un par un, aux deux bouts : à l'enregistrement pour
+ * ne jamais écrire ça, et à la relecture pour ne jamais rejouer ce qui aurait
+ * déjà été écrit.
+ */
+export function isValidRoute(route: Route | null | undefined): route is Route {
+  if (!route || !Array.isArray(route.pts)) return false
+  // Longueur paire : les points sont aplatis par couples (x, y).
+  if (route.pts.length < 4 || route.pts.length % 2 !== 0) return false
+  if (!Number.isFinite(route.duration) || route.duration <= 0) return false
+  return route.pts.every((v) => Number.isFinite(v))
+}
+
+/**
  * Enregistreur : échantillonne la position de la butineuse à pas fixe pendant
  * que le joueur la pilote.
  */
@@ -70,6 +92,14 @@ export class RouteRecorder {
   }
 
   private push(x: number, y: number): void {
+    // Position non finie (cf. `isValidRoute`) : on retombe sur le dernier point
+    // valable plutôt que d'empoisonner le trajet. Tant qu'il n'y en a aucun, on
+    // n'écrit rien — un trajet qui commence par du néant ne commence pas.
+    if (!Number.isFinite(x) || !Number.isFinite(y)) {
+      const n = this.pts.length
+      if (n >= 2) this.pts.push(this.pts[n - 2], this.pts[n - 1])
+      return
+    }
     this.pts.push(Math.round(x - this.originX), Math.round(y - this.originY))
   }
 
@@ -88,7 +118,9 @@ export class RouteRecorder {
     // La durée retenue est celle des points effectivement enregistrés : c'est
     // elle que la relecture mettra à reproduire.
     const duration = (this.pts.length / 2 - 1) * ROUTE.sampleMs
-    return { pts: [...this.pts], duration, nectar }
+    const route = { pts: [...this.pts], duration, nectar }
+    // Dernier filet : un tour qu'on ne saurait pas rejouer n'est pas un tour.
+    return isValidRoute(route) ? route : null
   }
 }
 
